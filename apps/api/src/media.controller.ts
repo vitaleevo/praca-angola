@@ -8,6 +8,8 @@ import { AuthenticatedUser } from "./auth/auth.types";
 import { CurrentUser } from "./auth/current-user.decorator";
 import { SessionGuard } from "./auth/session.guard";
 import { DatabaseService } from "./database/database.service";
+import { RateLimit } from "./rate-limit/rate-limit.decorator";
+import { RateLimitGuard } from "./rate-limit/rate-limit.guard";
 import { MediaQuotaService } from "./media/media-quota.service";
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
@@ -28,7 +30,8 @@ export class MediaController {
   ) {}
 
   @Post()
-  @UseGuards(SessionGuard)
+  @RateLimit({ scope: "media-upload", limit: 10, windowSeconds: 60 })
+  @UseGuards(SessionGuard, RateLimitGuard)
   async upload(@Req() request: Readable & { headers: Record<string, string | string[] | undefined>; resume(): void }, @CurrentUser() user: AuthenticatedUser) {
     const declaredLength = Number(request.headers["content-length"] ?? 0);
     if (declaredLength > MAX_IMAGE_BYTES) throw new BadRequestException({ code: "IMAGE_TOO_LARGE", message: "Cada imagem pode ter no máximo 5 MB." });

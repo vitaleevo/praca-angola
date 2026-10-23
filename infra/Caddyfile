@@ -10,5 +10,5 @@
 		Cross-Origin-Resource-Policy "same-origin"
 		-Server
 	}
-	reverse_proxy 172.30.255.3:80
+	reverse_proxy 127.0.0.1:3200
 }

@@ -75,15 +75,15 @@ Os browsers enviam normalmente `Content-Type: application/csp-report`. O body pa
 O NGINX aplica rate limit por IP:
 
 ```nginx
-limit_req_zone $binary_remote_addr zone=csp_report:10m rate=30r/m;
-limit_req zone=csp_report burst=10 nodelay;
+limit_req_zone $binary_remote_addr zone=csp_report:10m rate=120r/m;
+limit_req zone=csp_report burst=40 nodelay;
 ```
 
-O limite é intencional: relatórios CSP são úteis para diagnóstico, mas não devem tornar-se um vetor de abuso. O endpoint não requer autenticação, tal como os browsers esperam, mas é limitado e não executa qualquer ação sobre o sistema.
+O limite admite vários relatórios gerados por uma única navegação e mantém proteção contra abuso. A API também aplica um limite Redis de 240 relatórios por minuto por origem, inclusive quando é acedida diretamente na Railway. O endpoint não requer autenticação, tal como os browsers esperam, e não executa qualquer ação sobre o sistema.
 
 ### Privacidade dos relatórios
 
-Os relatórios podem conter URLs, user agent e detalhes da página. Não incluir tokens, cookies ou dados pessoais em logs de longa duração. Aplicar a retenção normal de logs e restringir o acesso ao canal de observabilidade.
+Os relatórios podem conter URLs, user agent e detalhes da página. O controlador regista apenas a diretiva violada, truncada a 80 caracteres; não regista o corpo completo. Aplicar a retenção normal de logs e restringir o acesso ao canal de observabilidade.
 
 ## Verificação
 
