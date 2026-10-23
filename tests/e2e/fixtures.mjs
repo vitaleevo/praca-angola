@@ -39,6 +39,27 @@ export async function cleanup(){
   await client.query('DELETE FROM reviews WHERE author_id=ANY($1::uuid[])',[users]);
   await client.query('DELETE FROM orders WHERE buyer_id=ANY($1::uuid[]) OR seller_profile_id IN(SELECT id FROM seller_profiles WHERE owner_user_id=ANY($1::uuid[]))',[users]);
   await client.query('DELETE FROM moderation_actions WHERE actor_id=ANY($1::uuid[])',[users]);
+  await client.query(
+   `DELETE FROM messages WHERE conversation_id IN (
+      SELECT id FROM conversations
+      WHERE buyer_id=ANY($1::uuid[])
+         OR seller_profile_id IN (SELECT id FROM seller_profiles WHERE owner_user_id=ANY($1::uuid[]))
+    )`,
+   [users],
+  );
+  await client.query(
+   `DELETE FROM conversations
+    WHERE buyer_id=ANY($1::uuid[])
+       OR seller_profile_id IN (SELECT id FROM seller_profiles WHERE owner_user_id=ANY($1::uuid[]))`,
+   [users],
+  );
+  await client.query(
+   `DELETE FROM reports WHERE reporter_id=ANY($1::uuid[])
+      OR listing_id IN (SELECT id FROM listings WHERE seller_profile_id IN (
+        SELECT id FROM seller_profiles WHERE owner_user_id=ANY($1::uuid[])
+      ))`,
+   [users],
+  );
   await client.query('DELETE FROM listings WHERE seller_profile_id IN(SELECT id FROM seller_profiles WHERE owner_user_id=ANY($1::uuid[]))',[users]);
   await client.query('DELETE FROM seller_profiles WHERE owner_user_id=ANY($1::uuid[])',[users]);
   await client.query('DELETE FROM media_assets WHERE owner_user_id=ANY($1::uuid[])',[users]);

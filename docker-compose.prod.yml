@@ -7,21 +7,23 @@ services:
       NODE_ENV: production
       API_PORT: 4000
       WEB_ORIGIN: ${WEB_ORIGIN:?Define WEB_ORIGIN}
-      PUBLIC_SITE_URL: ${PUBLIC_SITE_URL:-http://localhost:3200}
-      SMTP_HOST: ${SMTP_HOST:-}
+      PUBLIC_SITE_URL: ${PUBLIC_SITE_URL:?Define PUBLIC_SITE_URL}
+      SMTP_HOST: ${SMTP_HOST:?Define SMTP_HOST}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_SECURE: ${SMTP_SECURE:-false}
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
-      SMTP_FROM: ${SMTP_FROM:-}
+      SMTP_FROM: ${SMTP_FROM:?Define SMTP_FROM}
       DATABASE_URL: ${DATABASE_URL:?Define DATABASE_URL}
       REDIS_URL: ${REDIS_URL:?Define REDIS_URL}
       APP_ENCRYPTION_KEY: ${APP_ENCRYPTION_KEY:?Define a high-entropy APP_ENCRYPTION_KEY}
+      APP_ENCRYPTION_KEY_PREVIOUS: ${APP_ENCRYPTION_KEY_PREVIOUS:-}
       METRICS_TOKEN: ${METRICS_TOKEN:-}
       SENTRY_DSN: ${SENTRY_DSN:-}
       MEDIA_DIR: /app/apps/api/uploads
       MEDIA_QUOTA_BYTES_PER_USER: ${MEDIA_QUOTA_BYTES_PER_USER:-52428800}
       MEDIA_QUOTA_ASSETS_PER_USER: ${MEDIA_QUOTA_ASSETS_PER_USER:-100}
+      RATE_LIMIT_ENABLED: ${RATE_LIMIT_ENABLED:-true}
     command: ["sh", "-c", "node apps/api/scripts/migrate.mjs && node dist/main.js"]
     restart: unless-stopped
     volumes:

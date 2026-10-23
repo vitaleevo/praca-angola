@@ -5,6 +5,8 @@ import { DatabaseService } from "./database/database.service";
 import { AuthenticatedUser } from "./auth/auth.types";
 import { CurrentUser } from "./auth/current-user.decorator";
 import { SessionGuard } from "./auth/session.guard";
+import { RateLimit } from "./rate-limit/rate-limit.decorator";
+import { RateLimitGuard } from "./rate-limit/rate-limit.guard";
 
 class ListingActionDto {
   @IsUUID("4") listingId!: string;
@@ -49,6 +51,8 @@ export class FavoritesController {
   }
 
   @Post()
+  @RateLimit({ scope: "favorite", limit: 60, windowSeconds: 60 })
+  @UseGuards(RateLimitGuard)
   async add(@Body() body: ListingActionDto, @CurrentUser() user: AuthenticatedUser) {
     const result = await this.database.query(
       `INSERT INTO favorites (user_id, listing_id)
@@ -65,6 +69,8 @@ export class FavoritesController {
   }
 
   @Post("remove")
+  @RateLimit({ scope: "favorite", limit: 60, windowSeconds: 60 })
+  @UseGuards(RateLimitGuard)
   async remove(@Body() body: ListingActionDto, @CurrentUser() user: AuthenticatedUser) {
     await this.database.query("DELETE FROM favorites WHERE user_id = $1 AND listing_id = $2", [user.id, body.listingId]);
     return { saved: false };
@@ -92,6 +98,8 @@ export class ConversationsController {
   }
 
   @Post()
+  @RateLimit({ scope: "conversation-start", limit: 10, windowSeconds: 60 })
+  @UseGuards(RateLimitGuard)
   async start(@Body() body: ConversationDto, @CurrentUser() user: AuthenticatedUser) {
     return this.database.transaction(async (client) => {
       const listing = await client.query<{ seller_profile_id: string; owner_user_id: string }>(
@@ -129,6 +137,8 @@ export class ConversationsController {
   }
 
   @Post(":id/messages")
+  @RateLimit({ scope: "message", limit: 30, windowSeconds: 60 })
+  @UseGuards(RateLimitGuard)
   async sendMessage(@Param("id") id: string, @Body() body: MessageDto, @CurrentUser() user: AuthenticatedUser) {
     return this.database.transaction(async (client) => {
       const access = await client.query<{ id: string }>(
@@ -149,6 +159,8 @@ export class ReportsController {
   constructor(private readonly database: DatabaseService) {}
 
   @Post()
+  @RateLimit({ scope: "report", limit: 5, windowSeconds: 3600 })
+  @UseGuards(RateLimitGuard)
   async create(@Body() body: ReportDto, @CurrentUser() user: AuthenticatedUser) {
     try {
       const result = await this.database.query<{ id: string }>(
@@ -171,6 +183,8 @@ export class ReviewsController {
   constructor(private readonly database: DatabaseService) {}
 
   @Post()
+  @RateLimit({ scope: "review", limit: 10, windowSeconds: 3600 })
+  @UseGuards(RateLimitGuard)
   async create(@Body() body: ReviewDto, @CurrentUser() user: AuthenticatedUser) {
     const result = await this.database.query(
       `INSERT INTO reviews (order_id, author_id, seller_profile_id, rating, body)
