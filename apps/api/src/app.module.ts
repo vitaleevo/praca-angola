@@ -24,6 +24,8 @@ import { MetricsController } from "./observability/metrics.controller";
 import { MetricsInterceptor } from "./observability/metrics.interceptor";
 import { MetricsService } from "./observability/metrics.service";
 import { RateLimitModule } from "./rate-limit/rate-limit.module";
+import { PlatformOwnerController } from "./platform-owner.controller";
+import { PlatformOwnerService } from "./platform-owner.service";
 
 @Module({
   imports: [LoggerModule.forRoot(loggerConfig), DatabaseModule, AuthModule, ServicesModule, RateLimitModule],
@@ -43,12 +45,14 @@ import { RateLimitModule } from "./rate-limit/rate-limit.module";
     OrdersController,
     StoreInvitationsController,
     AdsController,
+    PlatformOwnerController,
   ],
   providers: [
     OrderMaintenanceService,
     StoreContextService,
     StoreInvitationsService,
     MediaQuotaService,
+    PlatformOwnerService,
     HealthService,
     MetricsService,
     { provide: APP_INTERCEPTOR, useClass: MetricsInterceptor },

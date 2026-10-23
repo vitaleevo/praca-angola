@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
-type SessionUser = { displayName: string };
+type SessionUser = { displayName: string; roles: string[] };
 
 export function MobileMenu({
   user,
@@ -53,6 +53,7 @@ export function MobileMenu({
               <Link href="/conta/encomendas" onClick={() => setOpen(false)}>Encomendas</Link>
               <Link href="/conta/mensagens" onClick={() => setOpen(false)}>Mensagens</Link>
               <Link href="/conta/favoritos" onClick={() => setOpen(false)}>Favoritos</Link>
+              {user.roles.includes("platform_owner") && <Link href="/admin" onClick={() => setOpen(false)}>Painel global</Link>}
               <Link href="/vendedor" onClick={() => setOpen(false)}>Vender na PUVO</Link>
               <button type="button" className="mobile-logout" disabled={loggingOut} onClick={() => void onLogout()}>
                 {loggingOut ? "A terminar sessão…" : "Terminar sessão"}
