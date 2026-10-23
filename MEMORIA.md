@@ -1,4 +1,27 @@
-# Estado mais recente — notificações e denúncias moderadas de Serviços (22/10/2026)
+# Estado mais recente — implantação pública inicial (23/10/2026)
+
+O utilizador confirmou que o repositório GitHub `vitaleevo/praca-angola` é **público** e autorizou `praca.vitaleevo.ao`, API HTTPS pública, chave de cifra e SMTP Resend como segredos da API na Railway. Nunca copiar valores de segredos para este ficheiro.
+
+## Concluído nesta etapa
+
+- `main` publicado no GitHub. Web Next.js na Vercel em `https://praca.vitaleevo.ao`; API NestJS na Railway em `https://pracaapi-production.up.railway.app`. PostgreSQL, Redis e volume de media associados à API.
+- Domínio verificado na Vercel; HTTP redireciona para HTTPS com 308. `vitaleevo.ao` já estava verificado no Resend; chave de envio restrita ao domínio configurada como segredo SMTP da API. `APP_ENCRYPTION_KEY` gerada e guardada apenas na Railway.
+- Corrigido o runner Docker da API para conservar `dist/main.js` como ligação ao `dist/src/main.js` real, compatível com o comando de arranque ainda configurado na Railway. Commit `9bdddc9`; build local anterior confirmou o ficheiro compilado e o script de migração.
+- Corrigida a Web na Vercel para usar a origem HTTPS pública da API, contornando um rewrite antigo para endereço privado. `API_PUBLIC_URL` pode substituir o destino por ambiente Vercel; desenvolvimento local continua a usar `API_INTERNAL_URL`/localhost. Commit `f534d5b`.
+- Verificação pública: `GET /api/v1/health/live` e `/health/ready` 200; readiness confirmou `db:ok`, `outboxLagSeconds:0`, `media:ok`. Através de `praca.vitaleevo.ao`, categorias de Produtos e Serviços, diretórios e páginas `/`, `/produtos`, `/servicos`, `/lojas`, `/entrar` responderam 200. Repositório `PUBLIC` confirmado por GitHub CLI.
+
+## Estado e limites
+
+- Banco público novo: **0 anúncios** e **0 profissionais** publicados. As categorias existem; os diretórios vazios são dados reais, não falha da API. Não criar anúncios fictícios para mascarar isto.
+- SMTP está configurado, mas entrega real de registo/reset ainda não foi exercitada. Backups/restauro, monitorização/alertas, carga, auditoria WCAG e fluxo de pagamento manual em produção também não foram certificados. A plataforma pública está acessível para preparação, sem certificação de beta amplo.
+- Branch `hardening/p0` contém rate limits adicionais, validação do ambiente, rotação de chave e runbook; permanece separada de `main` e ainda não foi integrada nesta implantação. Rever e integrar antes de abertura ampla. A entrada pública Railway não passa pelo NGINX local, portanto os limites NGINX não devem ser presumidos em produção.
+- A conexão Railway MCP/CLI exigiu nova autenticação nesta sessão. Configurações que dependam do painel Railway precisam de sessão autenticada; a correção do arranque foi aplicada no código e publicada via GitHub. A limpeza de `.deploy-inspect/`, diretório local de inspeção criado nesta etapa, foi rejeitada pela revisão automática de comandos e ficou pendente; não incluí-lo em commits.
+
+Próximo passo: rever e integrar o hardening P0 com a topologia Vercel→Railway, validar o SMTP com conta de teste controlada, configurar backup/restauro e alertas, depois executar smoke e E2E de produção antes de abrir o beta.
+
+---
+
+# Estado anterior — notificações e denúncias moderadas de Serviços (22/10/2026)
 
 Pedido: continuar de `MEMORIA.md` e implementar notificações de Serviços, preferências, outbox e denúncias com moderação e testes de privacidade. O utilizador forneceu links de cPanel, GitHub, Vercel, Resend e Railway como contexto; esta etapa trabalhou no ambiente local e não configurou contas/domínio/produção. Não guardar nem reutilizar URL de sessão cPanel em documentação.
 
