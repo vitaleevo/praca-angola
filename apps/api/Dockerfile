@@ -10,8 +10,7 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
 COPY apps/web/package.json apps/web/package.json
 COPY apps/api/package.json apps/api/package.json
-RUN --mount=type=cache,id=praca-pnpm-store,target=/pnpm/store/v11,sharing=locked \
-  pnpm install --frozen-lockfile --filter @praca/api... --network-concurrency 4 --fetch-timeout 600000
+RUN pnpm install --frozen-lockfile --filter @praca/api... --network-concurrency 4 --fetch-timeout 600000
 
 FROM deps AS builder
 WORKDIR /app
@@ -19,8 +18,7 @@ COPY . .
 RUN pnpm --filter @praca/api build
 
 FROM builder AS pruner
-RUN --mount=type=cache,id=praca-pnpm-store,target=/pnpm/store/v11,sharing=locked \
-  pnpm --filter @praca/api deploy --prod /out
+RUN pnpm --filter @praca/api deploy --prod /out
 
 FROM node:24-alpine AS runner
 ENV NODE_ENV=production
