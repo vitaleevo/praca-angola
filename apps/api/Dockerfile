@@ -28,5 +28,5 @@ COPY --from=builder /app/apps/api/dist ./dist
 COPY --from=builder /app/apps/api/migrations ./apps/api/migrations
 COPY --from=builder /app/apps/api/scripts ./apps/api/scripts
 EXPOSE 4000
-CMD ["node", "dist/main.js"]
+CMD ["node", "dist/src/main.js"]
 
