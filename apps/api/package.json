@@ -9,6 +9,9 @@
     "build": "nest build",
     "start": "node dist/main.js",
     "typecheck": "tsc --noEmit",
+    "lint": "eslint . --max-warnings=0",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "db:migrate": "node scripts/migrate.mjs",
     "db:seed:dev": "node scripts/seed-dev.mjs",
     "admin:grant": "node scripts/grant-admin.mjs"
@@ -29,6 +32,9 @@
     "@nestjs/cli": "^11.0.0",
     "@types/node": "^24.0.0",
     "@types/pg": "^8.23.1",
-    "typescript": "^5.9.3"
+    "eslint": "^9.39.5",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.72.0",
+    "vitest": "^5.0.5"
   }
 }

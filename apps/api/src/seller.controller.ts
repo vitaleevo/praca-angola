@@ -31,11 +31,6 @@ class StoreDto {
   @IsOptional() @IsString() @MaxLength(2000) termsPolicy?: string;
 }
 
-class StoreMemberDto {
-  @IsEmail() @MaxLength(254) email!: string;
-  @IsIn(["editor", "support"]) role!: "editor" | "support";
-}
-
 class StoreMemberRoleDto {
   @IsIn(["editor", "support"]) role!: "editor" | "support";
 }
