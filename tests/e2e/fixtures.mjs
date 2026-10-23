@@ -32,7 +32,7 @@ export async function cleanup(){
  const client=await db.connect();
  await client.query('BEGIN');
  try{
-  await client.query('DELETE FROM audit_events WHERE actor_id=ANY($1::uuid[])',[users]);
+  await client.query("DELETE FROM audit_events WHERE actor_id=ANY($1::uuid[]) OR (entity_type='user' AND entity_id=ANY($1::uuid[]))",[users]);
   await client.query('DELETE FROM service_reports WHERE reporter_id=ANY($1::uuid[]) OR moderator_id=ANY($1::uuid[]) OR profile_id IN(SELECT id FROM professional_profiles WHERE user_id=ANY($1::uuid[])) OR request_id IN(SELECT id FROM service_requests WHERE buyer_id=ANY($1::uuid[]))',[users]);
   await client.query('DELETE FROM service_requests WHERE buyer_id=ANY($1::uuid[])',[users]);
   await client.query('DELETE FROM professional_profiles WHERE user_id=ANY($1::uuid[])',[users]);

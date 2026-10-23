@@ -15,6 +15,7 @@
     "db:migrate": "node scripts/migrate.mjs",
     "db:seed:dev": "node scripts/seed-dev.mjs",
     "admin:grant": "node scripts/grant-admin.mjs",
+    "platform-owner:bootstrap": "node scripts/bootstrap-platform-owner.mjs",
     "media:cleanup": "node scripts/cleanup-orphan-media.mjs"
   },
   "dependencies": {
