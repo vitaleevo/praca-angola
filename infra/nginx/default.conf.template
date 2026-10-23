@@ -48,6 +48,10 @@ server {
 
     include /etc/nginx/auth-routes.conf;
 
+    location = /api/v1/metrics {
+        return 404;
+    }
+
     location / {
         proxy_pass http://web_upstream;
         include /etc/nginx/proxy-common.conf;
@@ -63,6 +67,10 @@ server {
     client_max_body_size 6m;
 
     include /etc/nginx/auth-routes.conf;
+
+    location = /api/v1/metrics {
+        return 404;
+    }
 
     location / {
         proxy_pass http://api_upstream;

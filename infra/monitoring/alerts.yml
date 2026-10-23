@@ -1,0 +1,23 @@
+groups:
+  - name: praca-api
+    rules:
+      - alert: PracaApiDown
+        expr: up{job="praca-api"} == 0
+        for: 2m
+        labels: { severity: critical }
+        annotations: { summary: "API Praça Angola em baixo" }
+      - alert: PracaHigh5xxRate
+        expr: sum(rate(praca_http_requests_total{status=~"5.."}[5m])) / sum(rate(praca_http_requests_total[5m])) > 0.02
+        for: 10m
+        labels: { severity: critical }
+        annotations: { summary: "Taxa de 5xx acima de 2%" }
+      - alert: PracaOutboxLag
+        expr: praca_outbox_oldest_age_seconds > 300
+        for: 10m
+        labels: { severity: warning }
+        annotations: { summary: "Outbox atrasado há mais de 5 minutos" }
+      - alert: PracaDiskLow
+        expr: node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"} < 0.15
+        for: 15m
+        labels: { severity: warning }
+        annotations: { summary: "Menos de 15% de disco livre no host" }

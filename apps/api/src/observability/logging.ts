@@ -12,6 +12,7 @@ export const loggerConfig = {
     redact: [
       "req.headers.cookie",
       "req.headers.authorization",
+      "req.headers['x-metrics-token']",
       "res.headers['set-cookie']",
     ],
     autoLogging: {

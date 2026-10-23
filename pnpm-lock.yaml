@@ -54,6 +54,9 @@ importers:
       pino-http:
         specifier: ^11.0.0
         version: 11.0.0
+      prom-client:
+        specifier: ^15.1.3
+        version: 15.1.3
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
@@ -67,6 +70,9 @@ importers:
       '@nestjs/cli':
         specifier: ^11.0.0
         version: 11.0.24(@types/node@24.19.2)(lightningcss@1.33.0)(postcss@8.5.31)
+      '@types/express':
+        specifier: ^5.0.6
+        version: 5.0.6
       '@types/node':
         specifier: ^24.0.0
         version: 24.19.2
@@ -1097,8 +1103,14 @@ packages:
   '@tybys/wasm-util@0.10.4':
     resolution: {integrity: sha512-W3c4gRigFS0T/Ma4qIYF3GDAc5AQdHb1yL5znJT1Zv1YaD9Kitx656wBjvr19qbiosmZT8lWDM5BEMynUqX65A==}
 
+  '@types/body-parser@1.19.6':
+    resolution: {integrity: sha512-HLFeCYgz89uk22N5Qg3dvGvsv46B8GLvKKo1zKG4NybA8U2DiEO3w9lqGg29t/tfLRJpJ6iQxnVw4OnB7MoM9g==}
+
   '@types/chai@5.2.3':
     resolution: {integrity: sha512-Mw558oeA9fFbv65/y4mHtXDs9bPnFMZAL/jxdPFUpOHHIXX91mcgEHbS5Lahr+pwZFR8A7GQleRWeI6cGFC2UA==}
+
+  '@types/connect@3.4.38':
+    resolution: {integrity: sha512-K6uROf1LD88uDQqJCktA4yzL1YYAK6NgfsI0v/mTgyPKWsX1CnJ0XPSDhViejru1GcRkLWb8RlzFYJRqGUbaug==}
 
   '@types/deep-eql@4.0.2':
     resolution: {integrity: sha512-c9h9dVVMigMPc4bwTvC5dxqtqJZwQPePsWjPlpSOnojbor6pGqdk541lfA7AqFQr5pB1BRdq0juY9db81BwyFw==}
@@ -1112,6 +1124,15 @@ packages:
   '@types/estree@1.0.9':
     resolution: {integrity: sha512-GhdPgy1el4/ImP05X05Uw4cw2/M93BCUmnEvWZNStlCzEKME4Fkk+YpoA5OiHNQmoS7Cafb8Xa3Pya8m1Qrzeg==}
 
+  '@types/express-serve-static-core@5.1.3':
+    resolution: {integrity: sha512-dPfW8NFiOF4wOHc7+N/QSxlY9cfSsenewGbAz8C8U/MULPd/YZ27LvJUIlzaXie7e6Ove9YunJGgC9tbHD2cKw==}
+
+  '@types/express@5.0.6':
+    resolution: {integrity: sha512-sKYVuV7Sv9fbPIt/442koC7+IIwK5olP1KWeD88e/idgoJqDm3JV/YUiPwkoKK92ylff2MGxSz1CSjsXelx0YA==}
+
+  '@types/http-errors@2.0.5':
+    resolution: {integrity: sha512-r8Tayk8HJnX0FztbZN7oVqGccWgw98T/0neJphO91KkmOzug1KkofZURD4UaD5uH8AqcFLfdPErnBod0u71/qg==}
+
   '@types/json-schema@7.0.15':
     resolution: {integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==}
 
@@ -1124,6 +1145,12 @@ packages:
   '@types/pg@8.23.1':
     resolution: {integrity: sha512-fKVHpikPdg4GKks3JuLEhvwSyvwzF23hnabPy6DD8ljVbC7+6J5dQzdv4arV6jqq57djnMgs1HKBxX4P8aBI3A==}
 
+  '@types/qs@6.15.1':
+    resolution: {integrity: sha512-GZHUBZR9hckSUhrxmp1nG6NwdpM9fCunJwyThLW1X3AyHgd9IlHb6VANpQQqDr2o/qQp6McZ3y/IA2rVzKzSbw==}
+
+  '@types/range-parser@1.2.7':
+    resolution: {integrity: sha512-hKormJbkJqzQGhziax5PItDUTMAM9uE2XXQmM37dyd4hVM+5aVl7oVxMVUiVQn2oCQFN/LKCZdvSM0pFRqbSmQ==}
+
   '@types/react-dom@19.3.0':
     resolution: {integrity: sha512-ZI7bU42mZXXKHn/qNLEw2IrbiINU7X5+vfgdixBHkCNpYWXjKgfQ/P+uyGb5CjOLB9UcnTeg3rylQtV2hym44Q==}
     peerDependencies:
@@ -1131,6 +1158,12 @@ packages:
 
   '@types/react@19.3.0':
     resolution: {integrity: sha512-N0rFCuH9YoxG9/m61l9MfpJKfmLOVU0em7ipIz6TRgSSkvReLB9vL85GB+yr8Bs5leqpvg96JSwF4ZS1s4viQg==}
+
+  '@types/send@1.2.1':
+    resolution: {integrity: sha512-arsCikDvlU99zl1g69TcAB3mzZPpxgw0UQnaHeC1Nwb015xp8bknZv5rIfri9xTOcMuaVgvabfIRA7PSZVuZIQ==}
+
+  '@types/serve-static@2.2.0':
+    resolution: {integrity: sha512-8mam4H1NHLtu7nmtalF7eyBH14QyOASmcxHhSfEoRyr0nP/YdoesEtU+uSRvMe96TW/HPTtkoKqQLl53N7UXMQ==}
 
   '@types/validator@13.15.10':
     resolution: {integrity: sha512-T8L6i7wCuyoK8A/ZeLYt1+q0ty3Zb9+qbSSvrIVitzT3YjZqkTZ40IbRsPanlB4h1QB3JVL1SYCdR6ngtFYcuA==}
@@ -1528,6 +1561,9 @@ packages:
     resolution: {integrity: sha512-YJs6Pz17RMNv8HoyKREtCY38E3BV1nPkWVmIb+XN1uHC1Vqt3KZCH/uJH9ZKRoiKb/icZ6tvehyee6RZNbFfRA==}
     engines: {node: '>=6.0.0'}
     hasBin: true
+
+  bintrees@1.0.2:
+    resolution: {integrity: sha512-VOMgTMwjAaUG580SXn3LacVgjurrbMme7ZZNYGSSV7mmtY6QQRh0Eg3pwIcntQ77DErK1L0NxkbetjcoXzVwKw==}
 
   bl@4.1.0:
     resolution: {integrity: sha512-1W07cM9gS6DcLperZfFSj+bWLtaPGSOHWhPiGzXmvVJbRLdG82sH/Kn8EtW1VqWVA54AKf2h5k5BbnIbwF3h6w==}
@@ -2907,6 +2943,11 @@ packages:
   process-warning@5.1.1:
     resolution: {integrity: sha512-oCkNVj4OKnKEcocVBcDfiIugN1/cE6rgfT3nCtzeqZPA8+rIxMaQ0xXzIkGP8Gj2qUaP1UR7uhJ1VD8lUCpzCg==}
 
+  prom-client@15.1.3:
+    resolution: {integrity: sha512-6ZiOBfCywsD4k1BN9IX0uZhF+tJkV8q8llP64G5Hajs4JOeVLPCwpPVcpXy3BwYiUGgyJzsJJQeOIv7+hDSq8g==}
+    engines: {node: ^16 || ^18 || >=20}
+    deprecated: prom-client has been replaced by @prometheus-io/client
+
   prop-types@15.8.1:
     resolution: {integrity: sha512-oj87CgZICdulUohogVAR7AjlC0327U4el4L6eAvOqCeudMDVU0NThNaV+b9Df4dXgSP1gXMTnPdhfe/2qDH5cg==}
 
@@ -3246,6 +3287,9 @@ packages:
   tapable@2.3.3:
     resolution: {integrity: sha512-uxc/zpqFg6x7C8vOE7lh6Lbda8eEL9zmVm/PLeTPBRhh1xCgdWaQ+J1CUieGpIfm2HdtsUpRv+HshiasBMcc6A==}
     engines: {node: '>=6'}
+
+  tdigest@0.1.3:
+    resolution: {integrity: sha512-zbRt+lT+/H4fRItHshczHErVCQnitJk8MfMT24MqFJf3YL7SJJPqGIGeuOdvxXxM/AHFzKBl7WoyaYwqO9s3Kw==}
 
   terser-webpack-plugin@5.6.1:
     resolution: {integrity: sha512-201R5j+sJpK8nFWwKVyNfZot8FaJbLZDq5evriVzbV1wDtSXDjRUDRfJzHpAaxFDMEhsZL1QkeqM61wgsS3KaQ==}
@@ -4476,10 +4520,19 @@ snapshots:
       tslib: 2.8.1
     optional: true
 
+  '@types/body-parser@1.19.6':
+    dependencies:
+      '@types/connect': 3.4.38
+      '@types/node': 24.19.2
+
   '@types/chai@5.2.3':
     dependencies:
       '@types/deep-eql': 4.0.2
       assertion-error: 2.0.1
+
+  '@types/connect@3.4.38':
+    dependencies:
+      '@types/node': 24.19.2
 
   '@types/deep-eql@4.0.2': {}
 
@@ -4495,6 +4548,21 @@ snapshots:
 
   '@types/estree@1.0.9': {}
 
+  '@types/express-serve-static-core@5.1.3':
+    dependencies:
+      '@types/node': 24.19.2
+      '@types/qs': 6.15.1
+      '@types/range-parser': 1.2.7
+      '@types/send': 1.2.1
+
+  '@types/express@5.0.6':
+    dependencies:
+      '@types/body-parser': 1.19.6
+      '@types/express-serve-static-core': 5.1.3
+      '@types/serve-static': 2.2.0
+
+  '@types/http-errors@2.0.5': {}
+
   '@types/json-schema@7.0.15': {}
 
   '@types/json5@0.0.29': {}
@@ -4509,6 +4577,10 @@ snapshots:
       pg-protocol: 1.16.1
       pg-types: 2.2.0
 
+  '@types/qs@6.15.1': {}
+
+  '@types/range-parser@1.2.7': {}
+
   '@types/react-dom@19.3.0(@types/react@19.3.0)':
     dependencies:
       '@types/react': 19.3.0
@@ -4516,6 +4588,15 @@ snapshots:
   '@types/react@19.3.0':
     dependencies:
       csstype: 3.2.3
+
+  '@types/send@1.2.1':
+    dependencies:
+      '@types/node': 24.19.2
+
+  '@types/serve-static@2.2.0':
+    dependencies:
+      '@types/http-errors': 2.0.5
+      '@types/node': 24.19.2
 
   '@types/validator@13.15.10': {}
 
@@ -4932,6 +5013,8 @@ snapshots:
   base64-js@1.5.1: {}
 
   baseline-browser-mapping@2.11.30: {}
+
+  bintrees@1.0.2: {}
 
   bl@4.1.0:
     dependencies:
@@ -6465,6 +6548,11 @@ snapshots:
 
   process-warning@5.1.1: {}
 
+  prom-client@15.1.3:
+    dependencies:
+      '@opentelemetry/api': 1.10.0
+      tdigest: 0.1.3
+
   prop-types@15.8.1:
     dependencies:
       loose-envify: 1.4.0
@@ -6893,6 +6981,10 @@ snapshots:
   symbol-observable@4.0.0: {}
 
   tapable@2.3.3: {}
+
+  tdigest@0.1.3:
+    dependencies:
+      bintrees: 1.0.2
 
   terser-webpack-plugin@5.6.1(lightningcss@1.33.0)(postcss@8.5.31)(webpack@5.106.2(lightningcss@1.33.0)(postcss@8.5.31)):
     dependencies:

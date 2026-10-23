@@ -1,6 +1,8 @@
 import { Module } from "@nestjs/common";
+import { APP_INTERCEPTOR } from "@nestjs/core";
 import { LoggerModule } from "nestjs-pino";
 import { HealthController } from "./health.controller";
+import { HealthService } from "./health.service";
 import { MarketplacesController } from "./marketplaces.controller";
 import { DatabaseModule } from "./database/database.module";
 import { AuthModule } from "./auth/auth.module";
@@ -16,11 +18,15 @@ import { StoreInvitationsController } from './store-invitations.controller';
 import { ServicesModule } from './services/services.module';
 import { AdsController } from './ads.controller';
 import { loggerConfig } from "./observability/logging";
+import { MetricsController } from "./observability/metrics.controller";
+import { MetricsInterceptor } from "./observability/metrics.interceptor";
+import { MetricsService } from "./observability/metrics.service";
 
 @Module({
   imports: [LoggerModule.forRoot(loggerConfig), DatabaseModule, AuthModule, ServicesModule],
   controllers: [
     HealthController,
+    MetricsController,
     MarketplacesController,
     CatalogController,
     SellerController,
@@ -34,6 +40,13 @@ import { loggerConfig } from "./observability/logging";
     StoreInvitationsController,
     AdsController,
   ],
-  providers: [OrderMaintenanceService, StoreContextService, StoreInvitationsService],
+  providers: [
+    OrderMaintenanceService,
+    StoreContextService,
+    StoreInvitationsService,
+    HealthService,
+    MetricsService,
+    { provide: APP_INTERCEPTOR, useClass: MetricsInterceptor },
+  ],
 })
 export class AppModule {}
