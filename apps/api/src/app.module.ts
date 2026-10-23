@@ -1,4 +1,5 @@
 import { Module } from "@nestjs/common";
+import { LoggerModule } from "nestjs-pino";
 import { HealthController } from "./health.controller";
 import { MarketplacesController } from "./marketplaces.controller";
 import { DatabaseModule } from "./database/database.module";
@@ -14,9 +15,10 @@ import { StoreInvitationsService } from './store-invitations.service';
 import { StoreInvitationsController } from './store-invitations.controller';
 import { ServicesModule } from './services/services.module';
 import { AdsController } from './ads.controller';
+import { loggerConfig } from "./observability/logging";
 
 @Module({
-  imports: [DatabaseModule, AuthModule, ServicesModule],
+  imports: [LoggerModule.forRoot(loggerConfig), DatabaseModule, AuthModule, ServicesModule],
   controllers: [
     HealthController,
     MarketplacesController,

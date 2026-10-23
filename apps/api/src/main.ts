@@ -1,10 +1,23 @@
 import "reflect-metadata";
 import { ValidationPipe } from "@nestjs/common";
-import { NestFactory } from "@nestjs/core";
+import { HttpAdapterHost, NestFactory } from "@nestjs/core";
+import { Logger } from "nestjs-pino";
+import * as Sentry from "@sentry/node";
 import { AppModule } from "./app.module";
+import { SentryExceptionFilter } from "./observability/sentry.filter";
+
+if (process.env.SENTRY_DSN) {
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    environment: process.env.NODE_ENV,
+    tracesSampleRate: 0.1,
+  });
+}
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  app.useLogger(app.get(Logger));
+  app.useGlobalFilters(new SentryExceptionFilter(app.get(HttpAdapterHost).httpAdapter));
   app.setGlobalPrefix("api/v1");
   const allowedOrigins = (process.env.WEB_ORIGIN ?? "http://localhost:3100").split(",").map((origin) => origin.trim()).filter(Boolean);
   app.enableCors({ origin: allowedOrigins, credentials: true, methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"], allowedHeaders: ["Content-Type", "Accept"] });
