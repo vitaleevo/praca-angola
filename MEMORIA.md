@@ -1,4 +1,16 @@
-# Estado mais recente — implantação pública inicial (23/10/2026)
+# Estado mais recente — PUVO público (23/10/2026)
+
+O endereço canónico confirmado pelo utilizador é **https://puvo.vitaleevo.ao**. O DNS de `vitaleevo.ao` está delegado à Vercel; o subdomínio PUVO foi associado ao projeto `praca-angola-web` e responde por HTTPS. `https://praca.vitaleevo.ao` redireciona para o novo domínio com 308. Na API Railway, `WEB_ORIGIN` e `PUBLIC_SITE_URL` foram atualizados para o domínio PUVO; `API_PORT=4000` e `PORT=4000` alinham o servidor ao healthcheck. Na Vercel, `PUBLIC_SITE_URL` de produção também foi atualizado. Confirmar o sitemap após a próxima implantação Web.
+
+O rebranding e o hardening foram integrados em `main` no commit `8f59e84` via PR #3; CI de qualidade, migrations e E2E passou. Web pública e API Railway responderam 200, incluindo `GET /api/v1/health/ready` com `db:ok`, outbox sem atraso e media disponível. O primeiro deployment novo da API falhou por desalinhamento da porta Railway; foi revertido, corrigido com `PORT=4000` e o deployment do commit novo terminou com sucesso. A alteração de origens criou um deployment subsequente saudável.
+
+PostgreSQL tem snapshots diários e semanais, PITR com backup base concluído; volume de media tem snapshots diários e semanais. Um dump lógico restaurou 36 tabelas numa base isolada, com contagens iguais às de produção (ainda vazia). Monitorização e alertas não estão certificados. A credencial SMTP atual foi rejeitada pelo Resend como inválida; substituir `SMTP_PASSWORD` na Railway por uma chave de envio válida e validar registo e recuperação antes de declarar email operacional. O ficheiro de ensaio `C:\Users\alexa\AppData\Local\Temp\praca-restore-drill-20261023.dump` ficou pendente de limpeza após rejeição automática da remoção. Não guardar segredos nesta memória.
+
+Próximo passo: confirmar o sitemap no domínio canónico após o deployment Web, validar o envio SMTP e os fluxos de conta, configurar destinatários e testar alertas, e completar o smoke de produção dos dois marketplaces antes de abertura ampla.
+
+---
+
+# Estado anterior — implantação pública inicial (23/10/2026)
 
 ## Rebranding para PUVO (23/10/2026)
 
