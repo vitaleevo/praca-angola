@@ -5,7 +5,7 @@ import { account,context,db,emails,password,json,storeSettings,professionalSetti
 test.afterEach(async()=>{await cleanup();});
 
 test('conta única: registo, confirmação de e-mail, entrada e saída',async({page,request})=>{
- const email=`e2e-${randomUUID()}@praca.invalid`;emails.push(email);
+ const email=`e2e-${randomUUID()}@puvo.invalid`;emails.push(email);
  await page.goto('/registar');await page.getByLabel('Nome completo').fill('Pessoa E2E');await page.locator('#auth-email').fill(email);await page.locator('#auth-password').fill(password);await page.locator('#auth-password-confirm').fill(password);
  await page.getByRole('button',{name:'Criar conta',exact:true}).click();await expect(page).toHaveURL(/confirmar-email/);
  let messageId;

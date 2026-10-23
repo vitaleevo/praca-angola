@@ -53,7 +53,7 @@ export function MobileMenu({
               <Link href="/conta/encomendas" onClick={() => setOpen(false)}>Encomendas</Link>
               <Link href="/conta/mensagens" onClick={() => setOpen(false)}>Mensagens</Link>
               <Link href="/conta/favoritos" onClick={() => setOpen(false)}>Favoritos</Link>
-              <Link href="/vendedor" onClick={() => setOpen(false)}>Vender na praça</Link>
+              <Link href="/vendedor" onClick={() => setOpen(false)}>Vender na PUVO</Link>
               <button type="button" className="mobile-logout" disabled={loggingOut} onClick={() => void onLogout()}>
                 {loggingOut ? "A terminar sessão…" : "Terminar sessão"}
               </button>
@@ -64,7 +64,7 @@ export function MobileMenu({
               <span className="mobile-menu-divider" />
               <Link href="/entrar" onClick={() => setOpen(false)}>Entrar</Link>
               <Link className="mobile-create-account" href="/registar" onClick={() => setOpen(false)}>Criar conta</Link>
-              <Link href="/vendedor" onClick={() => setOpen(false)}>Vender na praça</Link>
+              <Link href="/vendedor" onClick={() => setOpen(false)}>Vender na PUVO</Link>
             </>
           )}
         </nav>

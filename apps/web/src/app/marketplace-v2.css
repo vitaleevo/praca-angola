@@ -1,6 +1,6 @@
 .site-header{gap:24px;padding:0 max(24px,calc((100vw - 1440px)/2));height:76px}
 .brand-mark{display:flex;align-items:center;justify-content:center;padding:0;letter-spacing:0;text-transform:uppercase}
-.brand-mark>span{display:none}
+.brand-name{font-weight:800;letter-spacing:-.7px}
 .team-invitation-page{display:grid;place-items:center;padding:48px 20px;min-height:65vh;background:#f5f8f5}
 .team-invitation-page .auth-card{width:min(100%,560px)}
 .site-header .desktop-nav{gap:20px;font-size:12px;flex-shrink:0}

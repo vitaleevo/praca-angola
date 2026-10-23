@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Fechar os oito bloqueadores P0 da auditoria e deixar o Praça Angola pronto para um beta público controlado, sem alterar funcionalidades de produto.
+**Goal:** Fechar os oito bloqueadores P0 da auditoria e deixar o PUVO pronto para um beta público controlado, sem alterar funcionalidades de produto.
 
 **Architecture:** O trabalho é incremental e em camadas: primeiro cria-se a rede de segurança (Git, builds reproduzíveis, lint, testes, CI); depois resiliência operacional (backups, logs, health, métricas); depois controlos de segurança e abuso (headers, quotas, rate limits); por fim configuração de produção, segredos e verificação de go-live. Cada camada depende da anterior e termina num entregável testável.
 
@@ -130,7 +130,7 @@ Esperado: apenas `.env.example` e `.env.prod.example`.
 
 **Files:**
 - Modify: `apps/web/package.json` (script `lint`)
-- Modify: todos os ficheiros reportados por `pnpm --filter @praca/web lint`, incluindo:
+- Modify: todos os ficheiros reportados por `pnpm --filter @puvo/web lint`, incluindo:
   - `apps/web/src/app/conta/mensagens/page.tsx`
   - `apps/web/src/app/conta/mensagens/[id]/page.tsx`
   - `apps/web/src/app/produtos/[slug]/page.tsx`
@@ -144,12 +144,12 @@ Esperado: apenas `.env.example` e `.env.prod.example`.
 
 **Interfaces:**
 - Consumes: páginas e componentes atuais.
-- Produces: `pnpm --filter @praca/web lint` com 0 erros e 0 avisos.
+- Produces: `pnpm --filter @puvo/web lint` com 0 erros e 0 avisos.
 
 - [ ] **Step 1: Confirmar o baseline**
 
 ```bash
-pnpm --filter @praca/web lint
+pnpm --filter @puvo/web lint
 ```
 
 Esperado: 18 erros e 7 avisos (25 problemas), exit 1.
@@ -178,8 +178,8 @@ Em `apps/web/package.json`:
 
 ```bash
 pnpm stack:dev
-pnpm --filter @praca/web lint
-pnpm --filter @praca/web typecheck
+pnpm --filter @puvo/web lint
+pnpm --filter @puvo/web typecheck
 pnpm test:e2e -- tests/e2e/marketplaces.spec.mjs
 ```
 
@@ -209,7 +209,7 @@ git commit -m "fix(web): resolve lint errors and warnings"
 - [ ] **Step 1: Adicionar dependências e scripts**
 
 ```bash
-pnpm --filter @praca/api add -D eslint typescript-eslint vitest
+pnpm --filter @puvo/api add -D eslint typescript-eslint vitest
 ```
 
 Em `apps/api/package.json`:
@@ -270,9 +270,9 @@ describe("password hashing", () => {
 - [ ] **Step 5: Executar lint e testes**
 
 ```bash
-pnpm --filter @praca/api test
-pnpm --filter @praca/api lint
-pnpm --filter @praca/api typecheck
+pnpm --filter @puvo/api test
+pnpm --filter @puvo/api lint
+pnpm --filter @puvo/api typecheck
 ```
 
 Esperado: teste passa; lint e typecheck com exit 0. Corrigir imports não usados e variáveis mortas reportadas; não desativar regras sem justificação.
@@ -342,7 +342,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
       - run: pnpm lint
-      - run: pnpm --filter @praca/api test
+      - run: pnpm --filter @puvo/api test
       - run: pnpm build
 
   migrations:
@@ -367,10 +367,10 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 24, cache: pnpm }
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @praca/api db:migrate
+      - run: pnpm --filter @puvo/api db:migrate
         env:
           DATABASE_URL: postgresql://praca:praca@localhost:5432/praca_angola
-      - run: pnpm --filter @praca/api db:migrate
+      - run: pnpm --filter @puvo/api db:migrate
         env:
           DATABASE_URL: postgresql://praca:praca@localhost:5432/praca_angola
       - run: sudo apt-get update && sudo apt-get install -y postgresql-client
@@ -636,7 +636,7 @@ describe("normalizeRequestId", () => {
 - [ ] **Step 2: Executar e confirmar a falha**
 
 ```bash
-pnpm --filter @praca/api test -- request-id.spec.ts
+pnpm --filter @puvo/api test -- request-id.spec.ts
 ```
 
 Esperado: FAIL porque `request-id.ts` não existe.
@@ -660,7 +660,7 @@ export function normalizeRequestId(value: string | undefined): string {
 - [ ] **Step 4: Adicionar dependências e configurar o logger**
 
 ```bash
-pnpm --filter @praca/api add nestjs-pino pino pino-http @sentry/node
+pnpm --filter @puvo/api add nestjs-pino pino pino-http @sentry/node
 ```
 
 `apps/api/src/observability/logging.ts`:
@@ -737,8 +737,8 @@ Registar o filtro em `main.ts` com `app.useGlobalFilters(new SentryExceptionFilt
 
 ```bash
 pnpm stack:dev:build
-pnpm --filter @praca/api test
-pnpm --filter @praca/api typecheck
+pnpm --filter @puvo/api test
+pnpm --filter @puvo/api typecheck
 curl -si http://localhost:4000/api/v1/health -H 'x-request-id: req-12345678' | grep -i x-request-id
 ```
 
@@ -816,7 +816,7 @@ describe("HealthService", () => {
 - [ ] **Step 2: Executar e confirmar a falha**
 
 ```bash
-pnpm --filter @praca/api test -- health.service.spec.ts
+pnpm --filter @puvo/api test -- health.service.spec.ts
 ```
 
 Esperado: FAIL porque `health.service.ts` não existe.
@@ -911,7 +911,7 @@ Registar `HealthService` em `app.module.ts`.
 - [ ] **Step 4: Adicionar métricas**
 
 ```bash
-pnpm --filter @praca/api add prom-client
+pnpm --filter @puvo/api add prom-client
 ```
 
 `apps/api/src/observability/metrics.service.ts`:
@@ -1027,7 +1027,7 @@ groups:
         expr: up{job="praca-api"} == 0
         for: 2m
         labels: { severity: critical }
-        annotations: { summary: "API Praça Angola em baixo" }
+        annotations: { summary: "API PUVO em baixo" }
       - alert: PracaHigh5xxRate
         expr: sum(rate(praca_http_requests_total{status=~"5.."}[5m])) / sum(rate(praca_http_requests_total[5m])) > 0.02
         for: 10m
@@ -1051,8 +1051,8 @@ groups:
 
 ```bash
 pnpm stack:dev:build
-pnpm --filter @praca/api test
-pnpm --filter @praca/api typecheck
+pnpm --filter @puvo/api test
+pnpm --filter @puvo/api typecheck
 curl -si http://localhost:4000/api/v1/health/ready
 curl -si http://localhost:4000/api/v1/metrics
 docker run --rm -v "$PWD/infra/monitoring:/etc/prometheus" prom/prometheus promtool check rules /etc/prometheus/alerts.yml
@@ -1331,7 +1331,7 @@ describe("MediaQuotaService", () => {
 - [ ] **Step 2: Executar e confirmar a falha**
 
 ```bash
-pnpm --filter @praca/api test -- media-quota.service.spec.ts
+pnpm --filter @puvo/api test -- media-quota.service.spec.ts
 ```
 
 Esperado: FAIL porque o serviço não existe.
@@ -1512,8 +1512,8 @@ Nota: o controller atual devolve 201 por omissão do Nest para `POST`; confirmar
 
 ```bash
 pnpm stack:dev
-pnpm --filter @praca/api db:migrate
-pnpm --filter @praca/api test
+pnpm --filter @puvo/api db:migrate
+pnpm --filter @puvo/api test
 pnpm test:e2e -- tests/e2e/upload-quota.spec.mjs
 ```
 
@@ -1555,7 +1555,7 @@ export MEDIA_DIR="$ROOT/.data/uploads"
 mkdir -p "$MEDIA_DIR"
 
 USER_ID=$("${DC[@]}" exec -T postgres psql -U praca -d praca_angola -Atc \
-  "INSERT INTO users (display_name, email, password_hash) VALUES ('Cleanup E2E', 'cleanup-e2e-$$@praca.invalid', 'x') RETURNING id")
+  "INSERT INTO users (display_name, email, password_hash) VALUES ('Cleanup E2E', 'cleanup-e2e-$$@puvo.invalid', 'x') RETURNING id")
 ASSET_ID=$("${DC[@]}" exec -T postgres psql -U praca -d praca_angola -Atc \
   "INSERT INTO media_assets (owner_user_id, storage_key, mime_type, size_bytes, created_at)
    VALUES ('$USER_ID', 'orphan-$USER_ID.webp', 'image/webp', 10, now() - interval '25 hours') RETURNING id")
@@ -1687,7 +1687,7 @@ describe("RateLimitGuard", () => {
 - [ ] **Step 2: Executar e confirmar a falha**
 
 ```bash
-pnpm --filter @praca/api test -- rate-limit.guard.spec.ts
+pnpm --filter @puvo/api test -- rate-limit.guard.spec.ts
 ```
 
 Esperado: FAIL porque o guard não existe.
@@ -1695,7 +1695,7 @@ Esperado: FAIL porque o guard não existe.
 - [ ] **Step 3: Implementar decorator, serviço e guard**
 
 ```bash
-pnpm --filter @praca/api add ioredis
+pnpm --filter @puvo/api add ioredis
 ```
 
 `rate-limit.decorator.ts`:
@@ -2022,7 +2022,7 @@ O log `rate limit unavailable` é o sinal de alerta: no agregador de logs, criar
 
 ```bash
 pnpm stack:dev:build
-pnpm --filter @praca/api test
+pnpm --filter @puvo/api test
 pnpm test:e2e -- tests/e2e/rate-limits.spec.mjs
 ```
 
@@ -2069,7 +2069,7 @@ const production = {
   APP_ENCRYPTION_KEY: "a".repeat(32),
   SMTP_HOST: "smtp.example",
   SMTP_PORT: "587",
-  SMTP_FROM: "Praça Angola <no-reply@marketplace.example>",
+  SMTP_FROM: "PUVO <no-reply@marketplace.example>",
   SMTP_SECURE: "false",
   MEDIA_DIR: "/app/apps/api/uploads",
   REDIS_URL: "redis://redis:6379",
@@ -2109,7 +2109,7 @@ describe("validateEnv", () => {
 - [ ] **Step 2: Executar e confirmar a falha**
 
 ```bash
-pnpm --filter @praca/api test -- env.spec.ts
+pnpm --filter @puvo/api test -- env.spec.ts
 ```
 
 Esperado: FAIL porque `env.ts` não existe.
@@ -2207,7 +2207,7 @@ SMTP_FROM: ${SMTP_FROM:?Define SMTP_FROM}
 - [ ] **Step 7: Verificar**
 
 ```bash
-pnpm --filter @praca/api test
+pnpm --filter @puvo/api test
 docker compose --env-file .env.prod.example -p praca-angola-prod -f docker-compose.prod.yml config >/dev/null
 ```
 
@@ -2266,7 +2266,7 @@ describe("encryption key rotation", () => {
 - [ ] **Step 2: Executar e confirmar a falha**
 
 ```bash
-pnpm --filter @praca/api test -- auth.crypto.rotation.spec.ts
+pnpm --filter @puvo/api test -- auth.crypto.rotation.spec.ts
 ```
 
 Esperado: FAIL porque `APP_ENCRYPTION_KEY_PREVIOUS` ainda não é considerado.
@@ -2305,7 +2305,7 @@ function encryptionKeys(): Buffer[] {
 Antes de executar:
 
 ```bash
-pnpm --filter @praca/api build
+pnpm --filter @puvo/api build
 ```
 
 - [ ] **Step 5: Testar em ambiente de desenvolvimento**
@@ -2480,7 +2480,7 @@ Antes de declarar o plano concluído:
 pnpm install --frozen-lockfile
 pnpm typecheck
 pnpm lint
-pnpm --filter @praca/api test
+pnpm --filter @puvo/api test
 pnpm build
 pnpm stack:dev:build
 pnpm test:e2e

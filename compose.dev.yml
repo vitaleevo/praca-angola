@@ -4,7 +4,7 @@ services:
       context: .
       dockerfile: apps/api/Dockerfile
       target: deps
-    command: ["sh", "-c", "node apps/api/scripts/migrate.mjs && pnpm --filter @praca/api dev"]
+    command: ["sh", "-c", "node apps/api/scripts/migrate.mjs && pnpm --filter @puvo/api dev"]
     environment:
       NODE_ENV: development
       API_PORT: 4000
@@ -13,7 +13,7 @@ services:
       SMTP_HOST: mailpit
       SMTP_PORT: 1025
       SMTP_SECURE: "false"
-      SMTP_FROM: Praça Angola <no-reply@praca.local>
+      SMTP_FROM: PUVO <no-reply@puvo.local>
       DATABASE_URL: postgresql://praca:praca_local_dev@postgres:5432/praca_angola
       REDIS_URL: redis://redis:6379
       APP_ENCRYPTION_KEY: ${APP_ENCRYPTION_KEY:-local-development-only-key-change-before-production}
@@ -42,7 +42,7 @@ services:
       context: .
       dockerfile: apps/web/Dockerfile
       target: deps
-    command: pnpm --filter @praca/web exec next dev --webpack --hostname 0.0.0.0 --port 3100
+    command: pnpm --filter @puvo/web exec next dev --webpack --hostname 0.0.0.0 --port 3100
     environment:
       NODE_ENV: development
       API_INTERNAL_URL: http://api:4000/api/v1

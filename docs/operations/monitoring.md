@@ -1,4 +1,4 @@
-# Monitorização e alertas — Praça Angola
+# Monitorização e alertas — PUVO
 
 Este documento cobre os endpoints de saúde, as métricas Prometheus, as regras de alerta e o procedimento de silenciamento. O objetivo é detetar indisponibilidade, erros 5xx, atraso no outbox e falta de disco antes de afetarem os utilizadores.
 

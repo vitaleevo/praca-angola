@@ -5,7 +5,7 @@ groups:
         expr: up{job="praca-api"} == 0
         for: 2m
         labels: { severity: critical }
-        annotations: { summary: "API Praça Angola em baixo" }
+        annotations: { summary: "API PUVO em baixo" }
       - alert: PracaHigh5xxRate
         expr: sum(rate(praca_http_requests_total{status=~"5.."}[5m])) / sum(rate(praca_http_requests_total[5m])) > 0.02
         for: 10m

@@ -18,11 +18,11 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const result = await publicApi<StorefrontResult | null>("/catalog/stores/" + encodeURIComponent(slug), null);
   return result ? {
-    title: result.store.display_name + " — Praça Angola",
-    description: result.store.description || "Descobre produtos de " + result.store.display_name + " na Praça Angola.",
+    title: result.store.display_name + " — PUVO",
+    description: result.store.description || "Descobre produtos de " + result.store.display_name + " na PUVO.",
     alternates: { canonical: "/lojas/" + result.store.slug },
-    openGraph: { title: result.store.display_name + " — Praça Angola", description: result.store.description || "Conhece a montra pública desta loja angolana.", type: "website" },
-  } : { title: "Loja não encontrada — Praça Angola" };
+    openGraph: { title: result.store.display_name + " — PUVO", description: result.store.description || "Conhece a montra pública desta loja angolana.", type: "website" },
+  } : { title: "Loja não encontrada — PUVO" };
 }
 
 export default async function StorePage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: SearchParams }) {
@@ -57,7 +57,7 @@ export default async function StorePage({ params, searchParams }: { params: Prom
       <div className="store-cover-pattern" aria-hidden="true"><span>p.</span></div>
       <div className="store-front-brand">
         <span className="store-mark store-green store-mark-large store-front-logo" aria-hidden="true">{store.logo_url ? <Image src={store.logo_url} alt="" width={68} height={68} sizes="68px"/> : store.display_name.slice(0, 1).toUpperCase()}</span>
-        <div className="store-front-identity"><p className="eyebrow eyebrow-dark"><span className="eyebrow-line"/>{store.profile_type === "individual" ? "Vendedor local" : "Loja na Praça Angola"}</p>
+        <div className="store-front-identity"><p className="eyebrow eyebrow-dark"><span className="eyebrow-line"/>{store.profile_type === "individual" ? "Vendedor local" : "Loja na PUVO"}</p>
           <h1>{store.display_name}{store.is_verified && <span className="verified-badge" aria-label="Loja verificada">✓ Verificada</span>}</h1>
           <p className="store-front-description">{store.description || "Conhece os produtos e as novidades desta loja local."}</p>
           <span className="detail-location">⌖ {store.province} · {store.municipality}</span>
@@ -68,7 +68,7 @@ export default async function StorePage({ params, searchParams }: { params: Prom
     <section className="store-trust-row" aria-label="Informação da loja">
       <div><b>{store.listing_count ?? listings.length}</b><span>produtos publicados</span></div>
       <div><b>{store.average_rating ? <><span aria-hidden="true">★</span> {store.average_rating} / 5</> : "—"}</b><span>{store.review_count ? store.review_count + " avaliações de compradores" : "Sem avaliações ainda"}</span></div>
-      <div><b>{store.is_verified ? "Verificada" : "Perfil público"}</b><span>{store.is_verified ? "Identidade confirmada pela Praça" : "Informações publicadas pela loja"}</span></div>
+      <div><b>{store.is_verified ? "Verificada" : "Perfil público"}</b><span>{store.is_verified ? "Identidade confirmada pela PUVO" : "Informações publicadas pela loja"}</span></div>
     </section>
     {(store.contact_email || store.contact_phone || storePolicies.length > 0) && <section className="store-information-grid" aria-label="Contactos e condições da loja">
       {(store.contact_email || store.contact_phone) && <div className="store-information-card store-contact-card"><p className="eyebrow eyebrow-dark"><span className="eyebrow-line"/> Fala com a loja</p><h2>Contacto comercial</h2><p>Usa estes canais públicos para esclarecer dúvidas sobre os produtos e a entrega.</p><div className="store-contact-links">{store.contact_phone && <a href={`tel:${store.contact_phone.replace(/\s/g, "")}`}><span aria-hidden="true">☎</span><span><small>Telefone</small><b>{store.contact_phone}</b></span></a>}{store.contact_email && <a href={`mailto:${store.contact_email}`}><span aria-hidden="true">✉</span><span><small>E-mail</small><b>{store.contact_email}</b></span></a>}</div></div>}

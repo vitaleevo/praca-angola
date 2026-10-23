@@ -99,7 +99,7 @@ export function VerifyEmailForm({ token }: { token: string }) {
       <div className="auth-confirmation" role="status" aria-live="polite">
         <span className="auth-confirmation-icon" aria-hidden="true">✓</span>
         <h2>E-mail confirmado</h2>
-        <p>A tua conta está ativa. Já podes entrar na Praça Angola.</p>
+        <p>A tua conta está ativa. Já podes entrar na PUVO.</p>
         <Link className="button button-primary button-wide auth-submit" href="/entrar">Entrar na minha conta</Link>
       </div>
     );

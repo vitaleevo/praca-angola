@@ -24,7 +24,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
       - run: pnpm lint
-      - run: pnpm --filter @praca/api test
+      - run: pnpm --filter @puvo/api test
       - run: pnpm build
 
   migrations:
@@ -49,10 +49,10 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 24, cache: pnpm }
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @praca/api db:migrate
+      - run: pnpm --filter @puvo/api db:migrate
         env:
           DATABASE_URL: postgresql://praca:praca@localhost:5432/praca_angola
-      - run: pnpm --filter @praca/api db:migrate
+      - run: pnpm --filter @puvo/api db:migrate
         env:
           DATABASE_URL: postgresql://praca:praca@localhost:5432/praca_angola
       - run: sudo apt-get update && sudo apt-get install -y postgresql-client

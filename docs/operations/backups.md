@@ -1,6 +1,6 @@
-# Backups e restauro — Praça Angola
+# Backups e restauro — PUVO
 
-Este documento descreve a operação de backup e restauro do PostgreSQL e dos media da Praça Angola. Os scripts são intencionalmente simples: usam os contentores do Compose, geram checksums e mantêm uma retenção local de 14 dias. A cópia off-host é uma responsabilidade operacional separada.
+Este documento descreve a operação de backup e restauro do PostgreSQL e dos media da PUVO. Os scripts são intencionalmente simples: usam os contentores do Compose, geram checksums e mantêm uma retenção local de 14 dias. A cópia off-host é uma responsabilidade operacional separada.
 
 ## Objetivos
 
@@ -88,7 +88,7 @@ Exemplo de serviço e timer para PostgreSQL. Ajustar `WorkingDirectory`, utiliza
 
 ```ini
 [Unit]
-Description=Praça Angola — backup PostgreSQL
+Description=PUVO — backup PostgreSQL
 After=docker.service
 Requires=docker.service
 

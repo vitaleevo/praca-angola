@@ -7,7 +7,7 @@ if (process.env.NODE_ENV !== "development") {
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL, max: 2 });
 
-const seedPassword = "PracaAngola2026!";
+const seedPassword = "Puvo2026!";
 const salt = randomBytes(16);
 const derived = await new Promise((resolve, reject) => {
   scryptCallback(seedPassword, salt, 64, { N: 16_384, r: 8, p: 1, maxmem: 64 * 1024 * 1024 }, (error, key) => error ? reject(error) : resolve(key));
@@ -20,7 +20,7 @@ try {
     await client.query("BEGIN");
     const user = await client.query(
       `INSERT INTO users (display_name, email, password_hash, email_verified_at)
-       VALUES ('Vendedor de demonstração', 'demo@praca.local', $1, now())
+       VALUES ('Vendedor de demonstração', 'demo@puvo.local', $1, now())
        ON CONFLICT (email) DO UPDATE SET display_name = EXCLUDED.display_name, password_hash = EXCLUDED.password_hash,
          email_verified_at = COALESCE(users.email_verified_at, now())
        RETURNING id`,

@@ -8,12 +8,12 @@ import "./account-access.css";
 import './marketplace-v2.css';
 
 export const metadata: Metadata = {
-  title: "Praça Angola — O que procuras hoje?",
+  title: "PUVO — Plataforma Única de Vendas Online",
   description:
-    "Descobre produtos, lojas, profissionais e serviços em Angola. Tudo o que procuras, numa só praça.",
+    "Descobre produtos, lojas, profissionais e serviços em Angola na PUVO, a Plataforma Única de Vendas Online.",
   openGraph: {
-    title: "Praça Angola — Descobre o que Angola tem para ti",
-    description: "Produtos, profissionais e empresas num só lugar.",
+    title: "PUVO — Plataforma Única de Vendas Online",
+    description: "Produtos, profissionais e empresas num só lugar em Angola.",
     locale: "pt_AO",
     type: "website",
   },

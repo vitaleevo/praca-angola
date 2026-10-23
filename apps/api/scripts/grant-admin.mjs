@@ -2,7 +2,7 @@ import { Pool } from "pg";
 
 const email = process.argv[2]?.trim().toLowerCase();
 if (!email || !email.includes("@")) {
-  console.error("Usage: pnpm --filter @praca/api admin:grant <account-email>");
+  console.error("Usage: pnpm --filter @puvo/api admin:grant <account-email>");
   process.exit(2);
 }
 

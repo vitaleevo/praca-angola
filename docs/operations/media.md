@@ -1,6 +1,6 @@
 # Media — armazenamento, quotas e limpeza
 
-Este documento cobre o ciclo de vida dos media da Praça Angola: localização do volume, quota por utilizador, limpeza de órfãos, backup e restauro.
+Este documento cobre o ciclo de vida dos media da PUVO: localização do volume, quota por utilizador, limpeza de órfãos, backup e restauro.
 
 ## Localização e formato
 

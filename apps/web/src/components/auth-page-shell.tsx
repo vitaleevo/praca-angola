@@ -25,7 +25,7 @@ export function AuthPageShell({
           </section>
           <aside className="auth-aside">
             <span className="auth-aside-mark" aria-hidden="true">p.</span>
-            <p className="eyebrow eyebrow-light">A tua conta Praça</p>
+            <p className="eyebrow eyebrow-light">A tua conta PUVO</p>
             <h2>O que precisas continua perto.</h2>
             <ul>
               <li>Protege o acesso à tua conta.</li>
