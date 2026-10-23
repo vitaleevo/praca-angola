@@ -1,9 +1,11 @@
-import { Body, Controller, Get, HttpCode, Post, Req, Res } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, Post, Req, Res, UseGuards } from "@nestjs/common";
 import { Transform } from "class-transformer";
 import { IsEmail, IsString, Length, Matches, MaxLength } from "class-validator";
 import { AuthService } from "./auth.service";
 import { AuthenticatedRequest } from "./auth.types";
 import { readSessionToken, sessionCookieName } from "./auth.crypto";
+import { RateLimit } from "../rate-limit/rate-limit.decorator";
+import { RateLimitGuard } from "../rate-limit/rate-limit.guard";
 
 class RegisterDto {
   @Transform(({ value }) => typeof value === "string" ? value.trim() : value)
@@ -62,6 +64,8 @@ export class AuthController {
 
   @Post("register")
   @HttpCode(202)
+  @RateLimit({ scope: "auth-register", subject: "email", limit: 5, windowSeconds: 3600, sourceLimit: { limit: 2000, windowSeconds: 3600 } })
+  @UseGuards(RateLimitGuard)
   async register(@Body() body: RegisterDto) {
     await this.auth.register(body);
     return { accepted: true };
@@ -69,6 +73,8 @@ export class AuthController {
 
   @Post("login")
   @HttpCode(200)
+  @RateLimit({ scope: "auth-login", subject: "email", limit: 20, windowSeconds: 900, sourceLimit: { limit: 3000, windowSeconds: 3600 } })
+  @UseGuards(RateLimitGuard)
   async login(@Body() body: LoginDto, @Res({ passthrough: true }) response: CookieResponse) {
     const result = await this.auth.login(body.email, body.password);
     this.setSessionCookie(response, result.token);
@@ -77,6 +83,8 @@ export class AuthController {
 
   @Post("email-verification-requests")
   @HttpCode(202)
+  @RateLimit({ scope: "auth-verification-request", subject: "email", limit: 5, windowSeconds: 3600, sourceLimit: { limit: 2000, windowSeconds: 3600 } })
+  @UseGuards(RateLimitGuard)
   async requestEmailVerification(@Body() body: EmailActionDto): Promise<{ accepted: true }> {
     await this.auth.requestEmailVerification(body.email);
     return { accepted: true };
@@ -84,6 +92,8 @@ export class AuthController {
 
   @Post("email-verifications")
   @HttpCode(200)
+  @RateLimit({ scope: "auth-verify", limit: 30, windowSeconds: 900 })
+  @UseGuards(RateLimitGuard)
   async verifyEmail(@Body() body: EmailVerificationDto): Promise<{ verified: true }> {
     await this.auth.verifyEmail(body.token);
     return { verified: true };
@@ -91,6 +101,8 @@ export class AuthController {
 
   @Post("password-reset-requests")
   @HttpCode(202)
+  @RateLimit({ scope: "auth-reset-request", subject: "email", limit: 5, windowSeconds: 3600, sourceLimit: { limit: 2000, windowSeconds: 3600 } })
+  @UseGuards(RateLimitGuard)
   async requestPasswordReset(@Body() body: EmailActionDto): Promise<{ accepted: true }> {
     await this.auth.requestPasswordReset(body.email);
     return { accepted: true };
@@ -98,6 +110,8 @@ export class AuthController {
 
   @Post("password-resets")
   @HttpCode(200)
+  @RateLimit({ scope: "auth-reset", limit: 30, windowSeconds: 900 })
+  @UseGuards(RateLimitGuard)
   async resetPassword(@Body() body: PasswordResetDto): Promise<{ reset: true }> {
     await this.auth.resetPassword(body.token, body.password);
     return { reset: true };

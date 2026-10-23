@@ -34,4 +34,30 @@ describe("RateLimitGuard", () => {
     };
     await expect(guard.canActivate(context as never)).resolves.toBe(true);
   });
+
+  it("limits auth by normalized email without storing it in the key", async () => {
+    const limiter = {
+      consume: vi.fn().mockResolvedValue({ allowed: true, remaining: 1, retryAfter: 0 }),
+    };
+    const reflector = {
+      getAllAndOverride: vi.fn().mockReturnValue({
+        scope: "auth-login", subject: "email", limit: 20, windowSeconds: 900,
+        sourceLimit: { limit: 3000, windowSeconds: 3600 },
+      }),
+    };
+    const guard = new RateLimitGuard(limiter as never, reflector as never);
+    const request = { ip: "192.0.2.5", body: { email: "  CLIENTE@EXAMPLE.COM  " } };
+    const context = {
+      switchToHttp: () => ({ getRequest: () => request }),
+      getHandler: () => ({}),
+      getClass: () => ({}),
+    };
+    await expect(guard.canActivate(context as never)).resolves.toBe(true);
+    const keys = limiter.consume.mock.calls.map((call) => call[0] as string);
+    expect(keys).toHaveLength(2);
+    expect(keys[0]).toBe("auth-login:source:192.0.2.5");
+    expect(keys[1]).toMatch(/^auth-login:email:[a-f0-9]{64}$/);
+    expect(keys.join(" ")).not.toContain("CLIENTE");
+    expect(keys.join(" ")).not.toContain("example.com");
+  });
 });
