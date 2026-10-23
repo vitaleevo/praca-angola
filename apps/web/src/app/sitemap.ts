@@ -2,7 +2,9 @@ import type { MetadataRoute } from "next";
 import { publicApi, Listing, Store } from "../lib/api";
 import { ProfessionalDirectory } from '../lib/services';
 
-const origin = process.env.PUBLIC_SITE_URL ?? "http://localhost:3100";
+const origin = process.env.VERCEL
+  ? "https://puvo.vitaleevo.ao"
+  : process.env.PUBLIC_SITE_URL?.trim() || "http://localhost:3100";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [products, stores, professionals] = await Promise.all([
