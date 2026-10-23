@@ -48,17 +48,20 @@ export async function verifyPassword(password: string, stored: string): Promise<
   }
 }
 
-function encryptionKey(): Buffer {
-  const secret = process.env.APP_ENCRYPTION_KEY;
-  if (!secret || (process.env.NODE_ENV === "production" && secret.length < 32)) {
+function encryptionKeys(): Buffer[] {
+  const current = process.env.APP_ENCRYPTION_KEY;
+  if (!current?.trim()) throw new Error("APP_ENCRYPTION_KEY is required");
+  if (process.env.NODE_ENV === "production" && current.length < 32) {
     throw new Error("APP_ENCRYPTION_KEY must contain at least 32 characters");
   }
-  return createHash("sha256").update(secret).digest();
+  const secrets = [current, process.env.APP_ENCRYPTION_KEY_PREVIOUS]
+    .filter((value): value is string => Boolean(value?.trim()));
+  return secrets.map((secret) => createHash("sha256").update(secret).digest());
 }
 
 export function encryptPrivateValue(value: string): string {
   const iv = randomBytes(12);
-  const cipher = createCipheriv("aes-256-gcm", encryptionKey(), iv);
+  const cipher = createCipheriv("aes-256-gcm", encryptionKeys()[0], iv);
   const encrypted = Buffer.concat([cipher.update(value, "utf8"), cipher.final()]);
   return `v1.${iv.toString("base64url")}.${cipher.getAuthTag().toString("base64url")}.${encrypted.toString("base64url")}`;
 }
@@ -66,7 +69,14 @@ export function encryptPrivateValue(value: string): string {
 export function decryptPrivateValue(value: string): string {
   const [version, ivText, tagText, encryptedText] = value.split(".");
   if (version !== "v1" || !ivText || !tagText || !encryptedText) throw new Error("Unsupported encrypted value");
-  const decipher = createDecipheriv("aes-256-gcm", encryptionKey(), Buffer.from(ivText, "base64url"));
-  decipher.setAuthTag(Buffer.from(tagText, "base64url"));
-  return Buffer.concat([decipher.update(Buffer.from(encryptedText, "base64url")), decipher.final()]).toString("utf8");
+  for (const key of encryptionKeys()) {
+    try {
+      const decipher = createDecipheriv("aes-256-gcm", key, Buffer.from(ivText, "base64url"));
+      decipher.setAuthTag(Buffer.from(tagText, "base64url"));
+      return Buffer.concat([decipher.update(Buffer.from(encryptedText, "base64url")), decipher.final()]).toString("utf8");
+    } catch {
+      // Try the next key in the rotation ring.
+    }
+  }
+  throw new Error("Unsupported encrypted value");
 }

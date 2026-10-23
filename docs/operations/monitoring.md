@@ -106,6 +106,24 @@ As regras estão em `infra/monitoring/alerts.yml`.
 | `PracaOutboxLag` | evento mais antigo >300 s por 10 min | Aviso | Verificar worker/outbox, emails e Redis; reprocessar. |
 | `PracaDiskLow` | menos de 15% de disco livre por 15 min | Aviso | Limpar backups/logs antigos, aumentar disco; não apagar a base. |
 
+### Rate limit indisponível (fail-open)
+
+O `RateLimitService` é fail-open: se o Redis estiver indisponível, a escrita continua a funcionar e é registado um aviso:
+
+```text
+rate limit unavailable: ...
+```
+
+Criar no agregador de logs um alerta quando a mensagem `rate limit unavailable` ocorrer mais de uma vez em 5 minutos. O alerta deve incluir o serviço `api` e o ambiente; uma falha prolongada do Redis remove temporariamente os limites por utilizador, embora o backstop de IP do NGINX continue ativo.
+
+Procedimento:
+
+1. confirmar `docker compose ... ps redis` e a conectividade a `REDIS_URL`;
+2. verificar memória, disco e logs do Redis;
+3. reiniciar o Redis e confirmar que os limites voltam com um pedido de teste;
+4. não desativar `RATE_LIMIT_ENABLED` para “resolver” o alerta;
+5. se o Redis estiver instável, reduzir o tráfego de escrita e escalar.
+
 Validar as regras antes de as carregar:
 
 ```bash

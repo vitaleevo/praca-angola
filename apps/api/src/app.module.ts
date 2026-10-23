@@ -23,9 +23,10 @@ import { loggerConfig } from "./observability/logging";
 import { MetricsController } from "./observability/metrics.controller";
 import { MetricsInterceptor } from "./observability/metrics.interceptor";
 import { MetricsService } from "./observability/metrics.service";
+import { RateLimitModule } from "./rate-limit/rate-limit.module";
 
 @Module({
-  imports: [LoggerModule.forRoot(loggerConfig), DatabaseModule, AuthModule, ServicesModule],
+  imports: [LoggerModule.forRoot(loggerConfig), DatabaseModule, AuthModule, ServicesModule, RateLimitModule],
   controllers: [
     HealthController,
     MetricsController,
