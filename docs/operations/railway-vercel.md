@@ -4,7 +4,7 @@ Esta é a topologia pública atualmente usada. Os runbooks de Compose neste dire
 
 | Componente | Endereço ou serviço |
 | --- | --- |
-| Web | `https://praca.vitaleevo.ao` na Vercel |
+| Web | `https://puvo.vitaleevo.ao` na Vercel (`praca.vitaleevo.ao` redireciona com 308) |
 | API | `https://pracaapi-production.up.railway.app` na Railway |
 | Dados | PostgreSQL e Redis privados no projeto Railway |
 | Imagens carregadas | Volume persistente da API em `/app/apps/api/uploads` |
@@ -15,11 +15,13 @@ Esta é a topologia pública atualmente usada. Os runbooks de Compose neste dire
 1. Confirmar CI verde para o commit exato a publicar, incluindo migrations e E2E.
 2. Confirmar cópia recuperável de PostgreSQL e media antes de aplicar migrations.
 3. Publicar o mesmo commit na Vercel e Railway. A API executa `node apps/api/scripts/migrate.mjs && node dist/main.js` no arranque.
-4. Confirmar `GET https://praca.vitaleevo.ao/api/v1/health/ready` e `GET https://pracaapi-production.up.railway.app/api/v1/health/ready` com `status: ok`.
+4. Confirmar `GET https://puvo.vitaleevo.ao/api/v1/health/ready` e `GET https://pracaapi-production.up.railway.app/api/v1/health/ready` com `status: ok`.
 5. Confirmar catálogo, serviços, login, registo, confirmação de email, recuperação de conta e upload controlado. Não usar uma conta real de cliente para o ensaio.
 6. Registar IDs dos deployments, commit, hora, resultados e responsável. Se a API falhar, reverter o deployment da Railway para o commit anterior e confirmar readiness antes de reabrir tráfego.
 
 O ambiente local usa Compose com watchers e hot reload. O build das imagens é necessário apenas para publicar uma nova versão de produção ou alterar dependências/imagens locais.
+
+Na Railway, `API_PORT=4000` e `PORT=4000` devem coincidir para o healthcheck da plataforma alcançar a API. `WEB_ORIGIN` e `PUBLIC_SITE_URL` apontam para `https://puvo.vitaleevo.ao`. Na Vercel, `PUBLIC_SITE_URL` de produção usa o mesmo endereço para sitemap e robots.
 
 ## Backups
 
