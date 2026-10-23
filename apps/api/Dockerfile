@@ -27,6 +27,7 @@ COPY --from=pruner /out ./
 COPY --from=builder /app/apps/api/dist ./dist
 COPY --from=builder /app/apps/api/migrations ./apps/api/migrations
 COPY --from=builder /app/apps/api/scripts ./apps/api/scripts
+RUN ln -s src/main.js dist/main.js
 EXPOSE 4000
 CMD ["node", "dist/src/main.js"]
 
