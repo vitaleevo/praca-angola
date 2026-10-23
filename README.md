@@ -1,6 +1,6 @@
-# Praça Angola
+# PUVO — Plataforma Única de Vendas Online
 
-Marketplace público angolano com **Praça Produtos** e **Praça Serviços** (profissionais liberais e empresas prestadoras). A arquitetura é um monólito modular, preparado para abrir outros marketplaces sem criar um serviço independente para cada área.
+**PUVO** é a Plataforma Única de Vendas Online de Angola, com **Produtos** e **Serviços** (profissionais liberais e empresas prestadoras). A arquitetura é um monólito modular, preparado para abrir outros marketplaces sem criar um serviço independente para cada área.
 
 ## Stack
 
@@ -28,10 +28,10 @@ pnpm stack:dev
 O container da API aplica as migrações automaticamente antes de iniciar. Depois prepara conteúdo local de demonstração:
 
 ```powershell
-docker compose -p praca-angola-dev -f docker-compose.yml -f compose.dev.yml exec api pnpm --filter @praca/api db:seed:dev
+docker compose -p praca-angola-dev -f docker-compose.yml -f compose.dev.yml exec api pnpm --filter @puvo/api db:seed:dev
 ```
 
-O seed só funciona com `NODE_ENV=development`. Conta de demonstração local: `demo@praca.local` / `PracaAngola2026!`. Configura os dados Multicaixa Express da loja de demonstração antes de fazer uma encomenda; o seed não contém um número de pagamento real.
+O seed só funciona com `NODE_ENV=development`. Conta de demonstração local: `demo@puvo.local` / `Puvo2026!`. Configura os dados Multicaixa Express da loja de demonstração antes de fazer uma encomenda; o seed não contém um número de pagamento real.
 
 - **Web com Fast Refresh:** `http://localhost:3100` (atrás do NGINX)
 - **API local:** `http://localhost:4000/api/v1` (porta publicada pelo NGINX; a porta do container API não é publicada)
@@ -51,7 +51,7 @@ Comandos úteis:
 ```powershell
 pnpm stack:dev
 docker compose -p praca-angola-dev -f docker-compose.yml -f compose.dev.yml logs -f web api
-docker compose -p praca-angola-dev -f docker-compose.yml -f compose.dev.yml exec api pnpm --filter @praca/api admin:grant admin@example.ao
+docker compose -p praca-angola-dev -f docker-compose.yml -f compose.dev.yml exec api pnpm --filter @puvo/api admin:grant admin@example.ao
 ```
 
 O comando `admin:grant` promove uma conta existente e ativa. Executa-o apenas para contas de operação autorizadas.
@@ -67,8 +67,8 @@ O comando `admin:grant` promove uma conta existente e ativa. Executa-o apenas pa
 - Anúncios passam por revisão antes de aparecer no catálogo. Denúncias e decisões de moderação têm registo.
 - Favoritos, mensagens por produto, encomendas, estados de preparação/entrega, avaliações de encomendas concluídas e histórico estão disponíveis.
 - O carrinho cria uma encomenda por cada loja e reserva stock por 30 minutos. A loja define levantamento ou envio e o comprador confirma a receção.
-- Para já, o pagamento é **transferência Multicaixa Express feita diretamente pelo comprador ao vendedor**. O destino fica cifrado e só é mostrado ao comprador daquela encomenda. O comprador reporta a transferência; o vendedor confirma depois de verificar o seu próprio extrato. A Praça não recebe nem guarda fundos, não usa o comprovativo como confirmação e não aceita PIN, OTP ou dados de cartão.
-- Cancelamentos antes do pagamento e reembolsos manuais têm estados e histórico. O vendedor faz a devolução fora da Praça e só depois confirma o reembolso no pedido.
+- Para já, o pagamento é **transferência Multicaixa Express feita diretamente pelo comprador ao vendedor**. O destino fica cifrado e só é mostrado ao comprador daquela encomenda. O comprador reporta a transferência; o vendedor confirma depois de verificar o seu próprio extrato. A PUVO não recebe nem guarda fundos, não usa o comprovativo como confirmação e não aceita PIN, OTP ou dados de cartão.
+- Cancelamentos antes do pagamento e reembolsos manuais têm estados e histórico. O vendedor faz a devolução fora da PUVO e só depois confirma o reembolso no pedido.
 
 ## Rotas principais
 

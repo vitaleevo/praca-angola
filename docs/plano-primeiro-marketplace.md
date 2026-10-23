@@ -1,19 +1,19 @@
-# Plano do primeiro marketplace — Praça Produtos
+# Plano do primeiro marketplace — PUVO Produtos
 
 **Data:** 22 de outubro de 2026  
-**Base:** PRD Praça Angola 1.0 e estado atual do monorepo
+**Base:** PRD PUVO 1.0 e estado atual do monorepo
 
 ## 1. Decisão de produto
 
-O primeiro vertical a lançar será **Praça Produtos**, para artigos novos e usados vendidos por particulares e lojas.
+O primeiro vertical a lançar será **PUVO Produtos**, para artigos novos e usados vendidos por particulares e lojas.
 
-É o melhor ponto de partida para estabelecer os elementos comuns da plataforma: conta única, perfil público de vendedor/loja, categorias, anúncios, imagens, pesquisa, localização, favoritos, mensagens, confiança e moderação. Serviços, empresas, imóveis e automóveis podem continuar visíveis na Praça pública, mas devem indicar claramente quando ainda não estão disponíveis. Não mostrar anúncios ou métricas inventados como conteúdo real.
+É o melhor ponto de partida para estabelecer os elementos comuns da plataforma: conta única, perfil público de vendedor/loja, categorias, anúncios, imagens, pesquisa, localização, favoritos, mensagens, confiança e moderação. Serviços, empresas, imóveis e automóveis podem continuar visíveis na PUVO pública, mas devem indicar claramente quando ainda não estão disponíveis. Não mostrar anúncios ou métricas inventados como conteúdo real.
 
 ### O que significa “completo”
 
 A primeira versão completa inclui descoberta, anúncios, lojas, contacto, moderação e encomendas pagas por **transferência manual direta ao vendedor via MULTICAIXA Express**. Não depende de uma integração de gateway, que ainda não foi contratada/configurada.
 
-O modelo inicial assume que cada encomenda pertence a um único vendedor e que o dinheiro vai diretamente para esse vendedor. A Praça não recebe nem retém os fundos. O vendedor confirma manualmente que recebeu a transferência na própria conta; só então a encomenda avança. Entrega/levantamento é combinado com o vendedor e o estado fica registado na Praça.
+O modelo inicial assume que cada encomenda pertence a um único vendedor e que o dinheiro vai diretamente para esse vendedor. A PUVO não recebe nem retém os fundos. O vendedor confirma manualmente que recebeu a transferência na própria conta; só então a encomenda avança. Entrega/levantamento é combinado com o vendedor e o estado fica registado na PUVO.
 
 Uma integração automática do MULTICAIXA Express pode vir depois. A Rede MULTICAIXA descreve pagamentos online de comerciantes pelo GPO através de número de telemóvel ou QR e adesão iniciada no banco de apoio, com certificação para integração por API ou iFrame. Isto é uma opção futura, sujeita a adesão, contrato e requisitos do banco; não é o mesmo que uma transferência manual. Não marcar um pagamento como confirmado com base num clique do comprador ou apenas num comprovativo.
 
@@ -31,7 +31,7 @@ O perfil de vendedor público não deve expor endereço residencial, telefone ou
 
 ### Público, indexável e disponível sem sessão
 
-- `/` — Praça pública: pesquisa global, entrada para os marketplaces, produtos reais em destaque e lojas.
+- `/` — página pública do PUVO: pesquisa global, entrada para os marketplaces, produtos reais em destaque e lojas.
 - `/produtos` — catálogo com pesquisa, filtros, ordenação e paginação.
 - `/produtos/[slug]` — detalhe do anúncio, imagens, preço em Kz, condição, localização, vendedor e ações disponíveis.
 - `/categorias/[slug]` — catálogo da categoria.
@@ -53,7 +53,7 @@ As páginas privadas devem validar sessão, propriedade do recurso e papel do ut
 
 ### A. Descobrir e contactar
 
-1. Visitante abre a Praça ou uma ligação partilhada.
+1. Visitante abre a PUVO ou uma ligação partilhada.
 2. Pesquisa por palavras e ajusta categoria, preço, condição e localização.
 3. Abre o anúncio e consulta vendedor, estado e opções de contacto.
 4. Para guardar ou enviar mensagem, entra ou cria conta.
@@ -95,7 +95,7 @@ Uma futura integração GPO poderá substituir a confirmação manual por confir
 
 - Migrador de base de dados e schema versionado; PostgreSQL é a fonte de verdade.
 - Conta única, sessões, perfis de vendedor, lojas e permissões de equipa.
-- Marketplaces e categorias configuráveis; Praça Produtos é o primeiro vertical ativo.
+- Marketplaces e categorias configuráveis; PUVO Produtos é o primeiro vertical ativo.
 - Taxonomia e localidades configuráveis, sem fixar a aplicação a uma lista imutável.
 - Política inicial de categorias permitidas, conteúdo proibido, imagens, denúncias e decisões de moderação.
 - Dados demonstrativos apenas em desenvolvimento; produção só mostra conteúdo real aprovado.
@@ -128,7 +128,7 @@ Uma futura integração GPO poderá substituir a confirmação manual por confir
 - Destino de transferência mantido privado, instruções e referência da encomenda; confirmação manual pelo vendedor após verificar a conta.
 - Painel de vendedor para confirmar/rejeitar pagamento, atualizar preparação/entrega e tratar cancelamentos ou reembolsos manuais.
 - Estados do comprador inequívocos: aguarda transferência, transferência reportada, confirmada pelo vendedor, em preparação, pronta/enviada, concluída, cancelada ou em assistência.
-- Praça não retém dinheiro, não garante transferência e não desconta comissão automaticamente. Receita inicial deve usar um mecanismo separado e acordado, como subscrição/anúncio, ou ficar desligada.
+- PUVO não retém dinheiro, não garante transferência e não desconta comissão automaticamente. Receita inicial deve usar um mecanismo separado e acordado, como subscrição/anúncio, ou ficar desligada.
 - Políticas, prazo de pagamento, expiração/libertação de stock e responsabilidades de entrega definidos antes do lançamento.
 
 ### Entrega 6 — Integração automática (opcional, depois)
@@ -187,7 +187,7 @@ Um anúncio pertence a um perfil de vendedor; a loja/organização é entidade p
 
 ## 8. Critérios de aceitação da primeira versão pública
 
-1. Pessoa sem conta abre a Praça, catálogo, categoria, anúncio e loja em desktop e telemóvel.
+1. Pessoa sem conta abre a PUVO, catálogo, categoria, anúncio e loja em desktop e telemóvel.
 2. Pesquisa, filtros e ordenação produzem resultados persistidos, paginados e partilháveis; nenhum endpoint devolve listagens ilimitadas.
 3. Só anúncios aprovados, publicados e disponíveis entram nas páginas públicas e na pesquisa.
 4. Vendedor cria e edita rascunho, carrega imagens permitidas e acompanha a decisão da equipa.
@@ -197,7 +197,7 @@ Um anúncio pertence a um perfil de vendedor; a loja/organização é entidade p
 8. As áreas futuras estão identificadas como indisponíveis/em breve e não apresentam conteúdo fabricado.
 9. Pesquisa pública aponta para objetivo de p95 inferior a 800 ms; listagens paginadas e queries críticas têm índices. Medir antes de declarar atingido.
 10. Encomenda por transferência manual só é confirmada após o vendedor verificar o crédito na conta; comprovativo e botão do comprador não são confirmação. Cancelamento e reembolso têm estado e histórico.
-11. Número de destino e nome do beneficiário não aparecem em páginas públicas; nenhum PIN, OTP, cartão ou segredo é recolhido pela Praça.
+11. Número de destino e nome do beneficiário não aparecem em páginas públicas; nenhum PIN, OTP, cartão ou segredo é recolhido pela PUVO.
 12. Os limites operacionais da Transferência Express são verificados com o banco/EMIS e não ficam codificados como valor permanente. Encomendas multi-vendedor não misturam destinos de pagamento.
 13. Com GPO, confirmação automática só passa após homologação e reconciliação de estados do prestador.
 

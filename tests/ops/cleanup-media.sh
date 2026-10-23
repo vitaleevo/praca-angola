@@ -8,7 +8,7 @@ export MEDIA_DIR="$ROOT/.data/uploads"
 mkdir -p "$MEDIA_DIR"
 
 USER_ID=$("${DC[@]}" exec -T postgres psql -U praca -d praca_angola -qAtc \
-  "INSERT INTO users (display_name, email, password_hash) VALUES ('Cleanup E2E', 'cleanup-e2e-$$@praca.invalid', 'x') RETURNING id")
+  "INSERT INTO users (display_name, email, password_hash) VALUES ('Cleanup E2E', 'cleanup-e2e-$$@puvo.invalid', 'x') RETURNING id")
 ASSET_ID=$("${DC[@]}" exec -T postgres psql -U praca -d praca_angola -qAtc \
   "INSERT INTO media_assets (owner_user_id, storage_key, mime_type, size_bytes, created_at)
    VALUES ('$USER_ID', 'orphan-$USER_ID.webp', 'image/webp', 10, now() - interval '25 hours') RETURNING id")

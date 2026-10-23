@@ -1,5 +1,5 @@
 {
-  "name": "@praca/api",
+  "name": "@puvo/api",
   "private": true,
   "files": [
     "dist"

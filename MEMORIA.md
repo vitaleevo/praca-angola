@@ -1,5 +1,9 @@
 # Estado mais recente — implantação pública inicial (23/10/2026)
 
+## Rebranding para PUVO (23/10/2026)
+
+Nome oficial confirmado pelo utilizador: **PUVO — Plataforma Única de Vendas Online**. A marca foi atualizada na interface, metadata, emails, alertas, exemplos locais, pacotes de workspace e documentação. Os identificadores persistidos e os endpoints atuais da implantação continuam estáveis nesta etapa; não houve publicação nem execução de testes.
+
 O utilizador confirmou que o repositório GitHub `vitaleevo/praca-angola` é **público** e autorizou `praca.vitaleevo.ao`, API HTTPS pública, chave de cifra e SMTP Resend como segredos da API na Railway. Nunca copiar valores de segredos para este ficheiro.
 
 ## Concluído nesta etapa
@@ -38,7 +42,7 @@ Pedido: continuar de `MEMORIA.md` e implementar notificações de Serviços, pre
 - API/Web `typecheck` e ESLint focado passaram.
 - `pnpm test:e2e tests/e2e/service-notifications-reports.spec.mjs`: **2 passed** (25,5 s) após ajuste final de concorrência. Cobertura: destinatário e leitura isolados, opt-in/out, outbox e Mailpit sem descrição privada, replay de aceitação sem aviso duplicado, autorização negativa de denúncia, fila moderada, estado próprio, rotas e 320 px. Capturas desktop e mobile em `output/playwright/service-notifications-*.png` e moderação desktop, revistas visualmente. Primeira execução de desenvolvimento falhou quando Next reiniciou automaticamente por limiar de memória e a página ficou sem hidratação; repetição passou, sem reconstruir imagens Docker.
 - `pnpm test:e2e --grep 'serviços:'`: **3 passed (1,8 min)** após retirar `db.end()` antigo em `tests/e2e/marketplaces.spec.mjs`, que fechava o pool partilhado antes do teste seguinte. O percurso anterior de perfil→avaliação continua a passar. A primeira tentativa desta regressão falhou apenas pelo pool partilhado e foi corrigida.
-- Zero contas `e2e-%@praca.invalid` no banco após limpeza; migração 009 aparece em `schema_migrations`. Revalidar depois da regressão selecionada, se executada.
+- Zero contas `e2e-%@puvo.invalid` no banco após limpeza; migração 009 aparece em `schema_migrations`. Revalidar depois da regressão selecionada, se executada.
 - Nenhum build de produção, lançamento externo, ensaio de falha SMTP pública, medição Lighthouse/p95 ou auditoria WCAG integral.
 
 ## Estado e próximo passo
@@ -71,7 +75,7 @@ Plano durável: `docs/plano-marketplaces-operacionais.md` estabelece cinco etapa
 - `pnpm test:e2e --grep 'serviços:|categorias por setas'` — **2 passed (46,9 s)** após correções. Teste de Produtos e revisão responsiva já passaram após esta implementação (rodada selecionada inicial: 2 passed, 1 falhou por hidratação durante compilação dev; serviço repetido e passou).
 - Web/API typecheck e ESLint focado — passaram.
 - `GET /api/v1/health` 200; `GET /api/v1/ads/placements?marketplace=servicos` devolve `items:[]` sem campanhas.
-- Banco final: zero users `e2e-%@praca.invalid`, zero campanhas de teste e migração 008 aplicada. Captura `output/playwright/servicos-1440.png` revista: setas visíveis, barra horizontal ausente; sem overflow horizontal nos layouts E2E.
+- Banco final: zero users `e2e-%@puvo.invalid`, zero campanhas de teste e migração 008 aplicada. Captura `output/playwright/servicos-1440.png` revista: setas visíveis, barra horizontal ausente; sem overflow horizontal nos layouts E2E.
 - Não houve build de produção, Lighthouse ou ensaio público de Google Ads.
 
 ## Estado do projeto
@@ -116,12 +120,12 @@ Skills aplicadas: continuity-memory, professional-delivery-flow, global-engineer
 
 - pnpm test:e2e: 5 passed (3.1m). Conta com confirmação/login/logout; convites/contexto/permissões; serviços até avaliação; compra por transferência manual até receção; responsividade.
 - Após refinamentos de portefólio/recusa dirigida/Escape: pnpm test:e2e --grep 'serviços:|novos visuais' — passou (2 testes). output/playwright/test-results/.last-run.json status passed.
-- pnpm --filter @praca/web typecheck e pnpm --filter @praca/api typecheck — passaram na revisão final.
+- pnpm --filter @puvo/web typecheck e pnpm --filter @puvo/api typecheck — passaram na revisão final.
 - ESLint focado nos novos componentes/rotas e alterações de catálogo/convites/serviços — passou, sem erros/avisos. Corrigidos dois anchors do índice para next/Link. Não declarar lint global limpo.
 - Script API check-store-operations.mjs adaptado aos convites — PASS:32 verificações HTTP, fixtures removidas.
 - Negativos E2E incluem destinatário errado, replay/expiração/revogação, isolamento entre lojas, proprietário protegido, outsider, avaliação precoce/duplicada, conversa encerrada e concorrência de aceitação 201/409.
 - Capturas de produtos/serviços em 320,768,1440 e perfil profissional revistas; sem overflow horizontal nos catálogos testados. Fotos brancas do profissional E2E são upload-fixture de um pixel, não erro de carregamento.
-- Consulta final confirmou zero users e2e-%@praca.invalid e migrações005/006/007 aplicadas. Fixtures do script também limpas. Mailpit conserva e-mails fictícios locais.
+- Consulta final confirmou zero users e2e-%@puvo.invalid e migrações005/006/007 aplicadas. Fixtures do script também limpas. Mailpit conserva e-mails fictícios locais.
 - Desenvolvimento manteve Next Fast Refresh e Nest watcher, dados em volumes. Nenhuma imagem Docker reconstruída; migrações aplicadas e NGINX reload necessários. Sem build/benchmark de produção ou Lighthouse.
 
 ## Estado do projeto
@@ -166,7 +170,7 @@ Ambiente: C:\Users\alexa\Videos\Mercado Angolano; Docker praca-angola-dev; Web h
 
 # Estado mais recente — operação comercial das lojas (22/10/2026)
 
-Objetivo: continuar as lojas completas e bonitas da Praça Angola, integrando equipa, contactos públicos consentidos e condições comerciais na base existente, com desenvolvimento local em hot reload.
+Objetivo: continuar as lojas completas e bonitas da PUVO, integrando equipa, contactos públicos consentidos e condições comerciais na base existente, com desenvolvimento local em hot reload.
 
 Foi feito:
 
@@ -182,8 +186,8 @@ Foi feito:
 
 Verificação executada:
 
-- pnpm --filter @praca/web typecheck — passou.
-- pnpm --filter @praca/api typecheck — passou.
+- pnpm --filter @puvo/web typecheck — passou.
+- pnpm --filter @puvo/api typecheck — passou.
 - ESLint focado em lojas, homepage, sitemap, seller-dashboard, share-store-button, store-team-manager e order-detail — passou sem erros nem avisos.
 - docker compose -p praca-angola-dev -f docker-compose.yml -f compose.dev.yml exec -T api node apps/api/scripts/migrate.mjs — Applied 004_store_operations.sql.
 - docker compose -p praca-angola-dev -f docker-compose.yml -f compose.dev.yml exec -T api node apps/api/scripts/check-store-operations.mjs — PASS: 28 HTTP checks.
@@ -237,18 +241,18 @@ Arquivos para abrir primeiro:
 
 # Histórico das etapas anteriores
 
-# Continuidade — Praça Angola
+# Continuidade — PUVO
 
 ## Estado atual — Primeiro marketplace implementado
 
 **Última atualização:** 22 de outubro de 2026  
-**Objetivo:** continuar a implementação de Praça Produtos sem reconstruir as imagens a cada alteração de interface.
+**Objetivo:** continuar a implementação de PUVO Produtos sem reconstruir as imagens a cada alteração de interface.
 
 ### Decisões confirmadas
 
-- O primeiro vertical completo é **Praça Produtos**, com catálogo público acessível sem conta.
+- O primeiro vertical completo é **PUVO Produtos**, com catálogo público acessível sem conta.
 - As outras áreas (serviços, empresas, imóveis e automóveis) aparecem no índice, claramente marcadas como “A preparar”.
-- O pagamento inicial é **transferência MULTICAIXA Express manual, diretamente do comprador para o vendedor**. A Praça não recebe nem retém fundos e não confirma pagamentos automaticamente.
+- O pagamento inicial é **transferência MULTICAIXA Express manual, diretamente do comprador para o vendedor**. A PUVO não recebe nem retém fundos e não confirma pagamentos automaticamente.
 - O fluxo usa referência comunicada pelo comprador e confirmação manual do vendedor depois de verificar a própria conta. Nunca pedir PIN, OTP ou dados de cartão.
 - Para desenvolvimento diário, usar o serviço Webpack/Fast Refresh em http://localhost:3100. Alterações normais de código não requerem build nem reinício da stack. Build só quando mudarem dependências/Dockerfiles ou quando for preciso atualizar imagens compiladas de produção.
 
@@ -326,8 +330,8 @@ Arquivos principais:
 Verificação executada:
 
 ```text
-API: pnpm --filter @praca/api typecheck
-Web: pnpm --filter @praca/web typecheck
+API: pnpm --filter @puvo/api typecheck
+Web: pnpm --filter @puvo/web typecheck
 GET http://localhost:3100/confirmar-email
 GET http://localhost:3100/api/v1/health
 ```
@@ -615,8 +619,8 @@ Arquivos principais:
 
 Verificação executada:
 
-- pnpm --filter @praca/web typecheck
-- pnpm --filter @praca/api typecheck
+- pnpm --filter @puvo/web typecheck
+- pnpm --filter @puvo/api typecheck
 - Migração executada pelo migrador no container API da stack de desenvolvimento.
 - GET ao diretório de lojas, diretório com filtros, montra pública, montra com pesquisa e API de lojas.
 
@@ -633,7 +637,7 @@ Limitações e riscos remanescentes:
 
 Estado do projeto:
 
-- Fase/trilha atual: evolução da experiência de loja e montra pública da Praça Produtos.
+- Fase/trilha atual: evolução da experiência de loja e montra pública da PUVO Produtos.
 - Sólido agora: descoberta de lojas, filtros URL, montra pública com identidade visual opcional, catálogo interno filtrável/paginado e upload de marca protegido por propriedade do asset.
 - Falta imediato: verificar visualmente em browser quando estiver disponível, otimizar variantes de imagem, completar sitemap para todas as lojas e evoluir operações/identidade comercial (contactos públicos consentidos, políticas e equipa).
 - Distância do fim: esta primeira fatia de UI e catálogo está funcional localmente; lojas plenamente completas para operação comercial continuam no meio do caminho, pois contactos/políticas/equipa e imagens otimizadas ainda não estão implementados. O produto público em geral continua dependente do domínio, TLS real, SMTP, operações e preparação do lançamento.

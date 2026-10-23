@@ -67,8 +67,8 @@ Com a stack dev ativa, Node/pnpm instalados e Google Chrome disponível:
 
 ```powershell
 pnpm test:e2e
-pnpm --filter @praca/web typecheck
-pnpm --filter @praca/api typecheck
+pnpm --filter @puvo/web typecheck
+pnpm --filter @puvo/api typecheck
 docker compose -p praca-angola-dev -f docker-compose.yml -f compose.dev.yml exec -T api node apps/api/scripts/check-store-operations.mjs
 ```
 
@@ -80,7 +80,7 @@ Resultado nesta entrega:
 - Negativos: e-mail errado, token repetido/expirado/revogado, isolamento entre lojas, proprietário protegido, terceiros sem acesso, avaliação precoce/duplicada, conversa encerrada e duas aceitações simultâneas (201/409).
 - Integração existente adaptada aos convites: **32 verificações HTTP aprovadas**. Typechecks Web/API e ESLint focado nos ficheiros novos/alterados passaram. Não foi declarado lint global limpo nem feito build de produção.
 - Capturas e verificação de transbordamento em **320, 768 e 1440 px**, ambos os catálogos. Capturas revistas visualmente. Não substituem estudo com utilizadores, auditoria integral WCAG ou ensaio em dispositivos reais.
-- Fixtures usam exclusivamente contas fictícias `e2e-…@praca.invalid` no banco local. Limpam dados e uploads em `finally`; Mailpit captura mensagens localmente. Não executar contra produção. Banco de teste precisa da mesma versão das migrações.
+- Fixtures usam exclusivamente contas fictícias `e2e-…@puvo.invalid` no banco local. Limpam dados e uploads em `finally`; Mailpit captura mensagens localmente. Não executar contra produção. Banco de teste precisa da mesma versão das migrações.
 
 Código: `tests/e2e/marketplaces.spec.mjs`, `tests/e2e/fixtures.mjs`, `playwright.config.ts`. Relatório: `output/playwright/report/index.html`. Capturas: `output/playwright/`. Esses artefactos são ignorados no controlo de versão. Fotos brancas nas capturas do perfil E2E são fixtures mínimas de upload, não imagens quebradas de produção.
 
@@ -107,9 +107,9 @@ Modo: ferramenta nativa de geração de imagens, sem referências de pessoas rea
 
 Prompt Serviços:
 
-> Create a polished photographic website hero background, ultrawide panoramic composition 3:1. Praça Angola marketplace, Angola audience. Realistic Luanda waterfront skyline and bay in bright soft morning light, contemporary Angolan urban architecture, elegant blue glass buildings and palm trees on the right. Rightmost quarter: a confident smiling Black Angolan female freelance business consultant in her early 30s with natural curly hair wearing a light blue blazer and white blouse, standing with relaxed arms crossed, waist-up. The left 50 percent must be very pale off-white/sky negative space for readable dark website text, gradually fading into the photograph on the right. Premium commercial editorial photography, natural credible appearance, calm restrained light blue palette. No typography, no logos, no UI, no buttons, no text. Do not reproduce a screenshot; deliver only the decorative background photograph.
+> Create a polished photographic website hero background, ultrawide panoramic composition 3:1. PUVO marketplace, Angola audience. Realistic Luanda waterfront skyline and bay in bright soft morning light, contemporary Angolan urban architecture, elegant blue glass buildings and palm trees on the right. Rightmost quarter: a confident smiling Black Angolan female freelance business consultant in her early 30s with natural curly hair wearing a light blue blazer and white blouse, standing with relaxed arms crossed, waist-up. The left 50 percent must be very pale off-white/sky negative space for readable dark website text, gradually fading into the photograph on the right. Premium commercial editorial photography, natural credible appearance, calm restrained light blue palette. No typography, no logos, no UI, no buttons, no text. Do not reproduce a screenshot; deliver only the decorative background photograph.
 
 Prompt Produtos:
 
-> Photographic ultrawide website hero background 3:1 for Praça Angola online products marketplace. Panoramic view of Luanda bay Angola, coastal promenade, palms, modern skyline and Agostinho Neto memorial, clear bright morning sky and water. Architecture concentrated on right half. Left half gently fades naturally into very pale warm ivory/off-white empty sky and haze, negative space for dark headline and search UI. Calm premium editorial travel photograph, realistic warm African coastal light, restrained natural blue water and cream palette. No people foreground, no typography, no logos, no text, no UI. Decorative panoramic image only.
+> Photographic ultrawide website hero background 3:1 for PUVO online products marketplace. Panoramic view of Luanda bay Angola, coastal promenade, palms, modern skyline and Agostinho Neto memorial, clear bright morning sky and water. Architecture concentrated on right half. Left half gently fades naturally into very pale warm ivory/off-white empty sky and haze, negative space for dark headline and search UI. Calm premium editorial travel photograph, realistic warm African coastal light, restrained natural blue water and cream palette. No people foreground, no typography, no logos, no text, no UI. Decorative panoramic image only.
 

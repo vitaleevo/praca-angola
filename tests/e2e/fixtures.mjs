@@ -11,7 +11,7 @@ export const db=new Pool({connectionString:connection,max:2});
 export const emails=[];
 export const password='E2ePracaLocal2026!';
 export async function account(name,role='buyer'){
- const id=randomUUID(),email=`e2e-${id}@praca.invalid`,token=randomBytes(32).toString('hex'),salt=randomBytes(16);
+ const id=randomUUID(),email=`e2e-${id}@puvo.invalid`,token=randomBytes(32).toString('hex'),salt=randomBytes(16);
  emails.push(email);
  const hash=`scrypt$${salt.toString('base64url')}$${scryptSync(password,salt,64,{N:16384,r:8,p:1,maxmem:64*1024*1024}).toString('base64url')}`;
  await db.query('INSERT INTO users(id,display_name,email,password_hash,email_verified_at) VALUES($1,$2,$3,$4,now())',[id,name,email,hash]);

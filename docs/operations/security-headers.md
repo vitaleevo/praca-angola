@@ -1,4 +1,4 @@
-# Cabeçalhos de segurança e relatórios CSP — Praça Angola
+# Cabeçalhos de segurança e relatórios CSP — PUVO
 
 Este documento descreve os cabeçalhos de segurança emitidos pelo Next.js, pelo ingress NGINX e pelo Caddy, o endpoint de relatórios CSP e o processo de rollout da política.
 

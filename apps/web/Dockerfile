@@ -12,13 +12,13 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
 COPY apps/web/package.json apps/web/package.json
 COPY apps/api/package.json apps/api/package.json
 RUN --mount=type=cache,id=praca-pnpm-store,target=/pnpm/store/v11,sharing=locked \
-  pnpm install --frozen-lockfile --filter @praca/web... --network-concurrency 4 --fetch-timeout 600000
+  pnpm install --frozen-lockfile --filter @puvo/web... --network-concurrency 4 --fetch-timeout 600000
 
 FROM deps AS builder
 WORKDIR /app
 ENV API_INTERNAL_URL=http://api:4000/api/v1
 COPY . .
-RUN pnpm --filter @praca/web build
+RUN pnpm --filter @puvo/web build
 
 FROM node:24-alpine AS runner
 ENV NODE_ENV=production
