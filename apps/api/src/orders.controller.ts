@@ -6,6 +6,8 @@ import { DatabaseService } from "./database/database.service";
 import { AuthenticatedUser } from "./auth/auth.types";
 import { CurrentUser } from "./auth/current-user.decorator";
 import { SessionGuard } from "./auth/session.guard";
+import { RateLimit } from "./rate-limit/rate-limit.decorator";
+import { RateLimitGuard } from "./rate-limit/rate-limit.guard";
 import { decryptPrivateValue } from "./auth/auth.crypto";
 
 class CheckoutItemDto {
@@ -91,6 +93,8 @@ export class OrdersController {
   }
 
   @Post()
+  @RateLimit({ scope: "checkout", limit: 10, windowSeconds: 60 })
+  @UseGuards(RateLimitGuard)
   async checkout(@Body() body: CheckoutDto, @CurrentUser() user: AuthenticatedUser) {
     const ids = body.items.map((item) => item.listingId);
     if (new Set(ids).size !== ids.length) throw new BadRequestException({ code: "DUPLICATE_LISTING", message: "Combina as quantidades de produtos repetidos no carrinho." });
