@@ -24,6 +24,7 @@ FROM node:24-alpine AS runner
 ENV NODE_ENV=production
 WORKDIR /app
 COPY --from=pruner /out ./
+COPY --from=builder /app/apps/api/dist ./dist
 COPY --from=builder /app/apps/api/migrations ./apps/api/migrations
 COPY --from=builder /app/apps/api/scripts ./apps/api/scripts
 EXPOSE 4000
