@@ -14,7 +14,8 @@
     "test:watch": "vitest",
     "db:migrate": "node scripts/migrate.mjs",
     "db:seed:dev": "node scripts/seed-dev.mjs",
-    "admin:grant": "node scripts/grant-admin.mjs"
+    "admin:grant": "node scripts/grant-admin.mjs",
+    "media:cleanup": "node scripts/cleanup-orphan-media.mjs"
   },
   "dependencies": {
     "@nestjs/common": "12.2.0",
