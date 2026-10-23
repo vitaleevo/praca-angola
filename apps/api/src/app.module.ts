@@ -17,6 +17,7 @@ import { StoreInvitationsService } from './store-invitations.service';
 import { StoreInvitationsController } from './store-invitations.controller';
 import { ServicesModule } from './services/services.module';
 import { AdsController } from './ads.controller';
+import { SecurityController } from "./security.controller";
 import { loggerConfig } from "./observability/logging";
 import { MetricsController } from "./observability/metrics.controller";
 import { MetricsInterceptor } from "./observability/metrics.interceptor";
@@ -27,6 +28,7 @@ import { MetricsService } from "./observability/metrics.service";
   controllers: [
     HealthController,
     MetricsController,
+    SecurityController,
     MarketplacesController,
     CatalogController,
     SellerController,

@@ -4,5 +4,11 @@
 
 {$PUBLIC_DOMAIN} {
 	encode zstd gzip
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		Cross-Origin-Opener-Policy "same-origin"
+		Cross-Origin-Resource-Policy "same-origin"
+		-Server
+	}
 	reverse_proxy 172.30.255.3:80
 }

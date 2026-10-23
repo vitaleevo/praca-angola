@@ -11,6 +11,24 @@ const nextConfig: NextConfig = {
     const api = process.env.API_INTERNAL_URL ?? "http://localhost:4000/api/v1";
     return [{ source: "/api/v1/:path*", destination: `${api}/:path*` }];
   },
+  async headers() {
+    return [
+      {
+        source: "/(.*)",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=()" },
+          {
+            key: "Content-Security-Policy-Report-Only",
+            value:
+              "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'; report-uri /api/v1/csp-report",
+          },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;
