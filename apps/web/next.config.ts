@@ -8,7 +8,9 @@ const nextConfig: NextConfig = {
     minimumCacheTTL: 604800,
   },
   async rewrites() {
-    const api = process.env.API_INTERNAL_URL ?? "http://localhost:4000/api/v1";
+    const api = process.env.VERCEL
+      ? process.env.API_PUBLIC_URL ?? "https://pracaapi-production.up.railway.app/api/v1"
+      : process.env.API_INTERNAL_URL ?? "http://localhost:4000/api/v1";
     return [{ source: "/api/v1/:path*", destination: `${api}/:path*` }];
   },
   async headers() {

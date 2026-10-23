@@ -1,4 +1,6 @@
-const apiBase = process.env.API_INTERNAL_URL ?? "http://localhost:4000/api/v1";
+const apiBase = process.env.VERCEL
+  ? process.env.API_PUBLIC_URL ?? "https://pracaapi-production.up.railway.app/api/v1"
+  : process.env.API_INTERNAL_URL ?? "http://localhost:4000/api/v1";
 
 export async function publicApi<T>(path: string, fallback: T, revalidate = 30): Promise<T> {
   try {
