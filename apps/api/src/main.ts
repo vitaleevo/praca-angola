@@ -5,7 +5,10 @@ import { NestExpressApplication } from "@nestjs/platform-express";
 import { Logger } from "nestjs-pino";
 import * as Sentry from "@sentry/node";
 import { AppModule } from "./app.module";
+import { validateEnv } from "./config/env";
 import { SentryExceptionFilter } from "./observability/sentry.filter";
+
+validateEnv();
 
 if (process.env.SENTRY_DSN) {
   Sentry.init({
