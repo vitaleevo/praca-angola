@@ -1,0 +1,95 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: deps
+    command: ["sh", "-c", "node apps/api/scripts/migrate.mjs && pnpm --filter @praca/api dev"]
+    environment:
+      NODE_ENV: development
+      API_PORT: 4000
+      WEB_ORIGIN: http://localhost:3100
+      PUBLIC_SITE_URL: http://localhost:3100
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+      SMTP_SECURE: "false"
+      SMTP_FROM: Praça Angola <no-reply@praca.local>
+      DATABASE_URL: postgresql://praca:praca_local_dev@postgres:5432/praca_angola
+      REDIS_URL: redis://redis:6379
+      APP_ENCRYPTION_KEY: ${APP_ENCRYPTION_KEY:-local-development-only-key-change-before-production}
+      MEDIA_DIR: /app/apps/api/uploads
+      CHOKIDAR_USEPOLLING: "true"
+    expose:
+      - "4000"
+    volumes:
+      - ./apps/api/src:/app/apps/api/src
+      - ./apps/api/migrations:/app/apps/api/migrations
+      - ./apps/api/scripts:/app/apps/api/scripts
+      - ./.data/uploads:/app/apps/api/uploads
+      - ./packages:/app/packages
+      - ./apps/api/tsconfig.json:/app/apps/api/tsconfig.json
+      - ./apps/api/nest-cli.json:/app/apps/api/nest-cli.json
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      target: deps
+    command: pnpm --filter @praca/web exec next dev --webpack --hostname 0.0.0.0 --port 3100
+    environment:
+      NODE_ENV: development
+      API_INTERNAL_URL: http://api:4000/api/v1
+      WATCHPACK_POLLING: "true"
+    expose:
+      - "3100"
+    volumes:
+      - ./apps/web/src:/app/apps/web/src
+      - ./apps/web/public:/app/apps/web/public
+      - ./packages:/app/packages
+      - ./apps/web/tsconfig.json:/app/apps/web/tsconfig.json
+      - ./apps/web/next.config.ts:/app/apps/web/next.config.ts
+    depends_on:
+      - api
+
+  ingress:
+    image: nginx:1.31.7-alpine3.24@sha256:892bb2152464f0c5d8972593a5f5afaf8054552580b699d95f8ff4af08c2d33d
+    restart: unless-stopped
+    environment:
+      NGINX_ENVSUBST_FILTER: "^(WEB_UPSTREAM|API_UPSTREAM)$"
+      WEB_UPSTREAM: web:3100
+      API_UPSTREAM: api:4000
+    volumes:
+      - ./infra/nginx/default.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ./infra/nginx/auth-routes.conf:/etc/nginx/auth-routes.conf:ro
+      - ./infra/nginx/proxy-common.conf:/etc/nginx/proxy-common.conf:ro
+      - ./infra/nginx/trusted-proxies.conf:/etc/nginx/trusted-proxies.conf:ro
+    ports:
+      - "3100:80"
+      - "4000:4000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/_ingress-health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    depends_on:
+      - api
+      - web
+
+  mailpit:
+    image: axllent/mailpit:v1.27.4
+    restart: unless-stopped
+    environment:
+      MP_DATABASE: /data/mailpit.db
+    volumes:
+      - ./.data/mailpit:/data
+    ports:
+      - "8025:8025"
+      - "1025:1025"

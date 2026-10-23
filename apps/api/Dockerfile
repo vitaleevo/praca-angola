@@ -1,0 +1,33 @@
+FROM node:24-alpine AS base
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN corepack enable
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+RUN corepack prepare pnpm@11.25.0 --activate
+
+FROM base AS deps
+WORKDIR /app
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
+COPY apps/web/package.json apps/web/package.json
+COPY apps/api/package.json apps/api/package.json
+RUN --mount=type=cache,id=praca-pnpm-store,target=/pnpm/store/v11,sharing=locked \
+  pnpm install --frozen-lockfile --filter @praca/api... --network-concurrency 4 --fetch-timeout 600000
+
+FROM deps AS builder
+WORKDIR /app
+COPY . .
+RUN pnpm --filter @praca/api build
+
+FROM builder AS pruner
+RUN --mount=type=cache,id=praca-pnpm-store,target=/pnpm/store/v11,sharing=locked \
+  pnpm --filter @praca/api deploy --prod /out
+
+FROM node:24-alpine AS runner
+ENV NODE_ENV=production
+WORKDIR /app
+COPY --from=pruner /out ./
+COPY --from=builder /app/apps/api/migrations ./apps/api/migrations
+COPY --from=builder /app/apps/api/scripts ./apps/api/scripts
+EXPOSE 4000
+CMD ["node", "dist/main.js"]
+

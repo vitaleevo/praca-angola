@@ -1,0 +1,10 @@
+"use client";
+import { useEffect,useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+export function AcceptTeamInvitation({token}:{token:string}){
+  const router=useRouter();const [invite,setInvite]=useState<{display_name:string;role:string;expires_at:string}|null>(null),[email,setEmail]=useState(''),[ready,setReady]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState('');
+  useEffect(()=>{let active=true;Promise.all([fetch(`/api/v1/team-invitations/${encodeURIComponent(token)}`).then(async r=>{const d=await r.json();if(!r.ok)throw new Error(d.message??'Convite inválido.');return d;}),fetch('/api/v1/auth/me',{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error('Não foi possível verificar a sessão. Atualiza a página para tentar novamente.');return r.json();})]).then(([d,me])=>{if(active){setInvite(d);setEmail(me.user?.email??'');}}).catch((e:Error)=>{if(active)setError(e.message);}).finally(()=>{if(active)setReady(true);});return()=>{active=false;};},[token]);
+  async function accept(){setBusy(true);setError('');try{const r=await fetch('/api/v1/team-invitations/accept',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token})});const d=await r.json();if(!r.ok)throw new Error(d.message??'Não foi possível aceitar.');router.push('/vendedor');}catch(e){setError(e instanceof Error?e.message:'Sem ligação.');}finally{setBusy(false);}}
+  return <section className="auth-card"><p className="eyebrow eyebrow-dark">Equipa Praça Angola</p><h1>Convite para uma loja</h1>{!ready&&<p role="status">A verificar convite…</p>}{invite&&<><h2>{invite.display_name}</h2><p>Papel: {invite.role==='editor'?'Editor':'Suporte'}. Aceita apenas se reconheces esta loja.</p>{email?<><p>Sessão: {email}</p><button className="button button-primary" disabled={busy} onClick={()=>void accept()}>{busy?'A aceitar…':'Aceitar convite'}</button></>:<Link className="button button-primary" href={`/entrar?next=${encodeURIComponent(`/convites/aceitar?token=${token}`)}`}>Entrar para aceitar</Link>}</>}{error&&<p className="form-error" role="alert">{error}</p>}</section>;
+}

@@ -1,0 +1,8 @@
+export type ServiceCategory={id:string;name:string;slug:string};
+export type Professional={id:string;slug:string;display_name:string;headline:string;bio:string;provider_type:'individual'|'company';province:string;municipality:string;work_mode:string;starting_price:string;years_experience:number;availability:string;specialties:string;is_verified:boolean;contact_phone:string|null;photo_url:string|null;average_rating:number|null;review_count:number;category:string;category_slug:string};
+export type ProfessionalDetail={profile:Professional;portfolio:{url:string;position:number}[];reviews:{id:string;author:string;rating:number;body:string;created_at:string}[]};
+export type ProfessionalDirectory={items:Professional[];total:number;page:number;pages:number};
+export const modeLabel=(mode:string)=>mode==='online'?'Online':mode==='onsite'?'Presencial':'Online e presencial';
+export const availabilityLabel=(value:string)=>value==='available'?'Disponível para pedidos':value==='this_week'?'Disponível esta semana':'Indisponível de momento';
+export const jobStatus:Record<string,string>={open:'A receber propostas',awarded:'Em execução',completed:'Concluído',cancelled:'Cancelado',pending:'Proposta enviada',accepted:'Aceite',declined:'Recusado',withdrawn:'Retirada'};
+export async function serviceApi<T>(path:string,method='GET',body?:object):Promise<T>{const response=await fetch('/api/v1/services/'+path,{method,cache:'no-store',credentials:'include',headers:{'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined});const data=await response.json().catch(()=>({})) as {message?:string|string[]};if(!response.ok)throw new Error(Array.isArray(data.message)?data.message.join(' '):data.message??'Não foi possível concluir o pedido.');return data as T;}

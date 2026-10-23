@@ -1,0 +1,23 @@
+{
+  "name": "praca-angola",
+  "private": true,
+  "packageManager": "pnpm@11.25.0",
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "typecheck": "turbo typecheck",
+    "infra:up": "docker compose up -d postgres redis meilisearch object-storage",
+    "infra:down": "docker compose down",
+    "stack:dev": "docker compose -p praca-angola-dev -f docker-compose.yml -f compose.dev.yml up -d",
+    "stack:dev:build": "docker compose -p praca-angola-dev -f docker-compose.yml -f compose.dev.yml up --build -d",
+    "stack:prod": "docker compose --env-file .env.prod -p praca-angola-prod -f docker-compose.prod.yml up -d",
+    "stack:prod:build": "docker compose --env-file .env.prod -p praca-angola-prod -f docker-compose.prod.yml up --build -d",
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "turbo": "^2.5.6",
+    "typescript": "^5.9.3"
+  }
+}

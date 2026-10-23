@@ -1,0 +1,16 @@
+node_modules
+.next
+dist
+.turbo
+.env
+.env.*
+!.env.example
+!.env.prod.example
+coverage
+*.log
+*.tsbuildinfo
+.data/
+apps/api/uploads/
+.playwright-cli/
+output/playwright/
+.superpowers/

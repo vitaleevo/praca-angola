@@ -1,0 +1,128 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    environment:
+      NODE_ENV: production
+      API_PORT: 4000
+      WEB_ORIGIN: ${WEB_ORIGIN:?Define WEB_ORIGIN}
+      PUBLIC_SITE_URL: ${PUBLIC_SITE_URL:-http://localhost:3200}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      DATABASE_URL: ${DATABASE_URL:?Define DATABASE_URL}
+      REDIS_URL: ${REDIS_URL:?Define REDIS_URL}
+      APP_ENCRYPTION_KEY: ${APP_ENCRYPTION_KEY:?Define a high-entropy APP_ENCRYPTION_KEY}
+      MEDIA_DIR: /app/apps/api/uploads
+    command: ["sh", "-c", "node apps/api/scripts/migrate.mjs && node dist/main.js"]
+    restart: unless-stopped
+    volumes:
+      - media_data:/app/apps/api/uploads
+    expose:
+      - "4000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4000/api/v1/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+      API_INTERNAL_URL: http://api:4000/api/v1
+    command:
+      - sh
+      - -c
+      - >-
+        if [ -f /app/apps/web/apps/web/server.js ]; then
+          mkdir -p /app/apps/web/apps/web/.next/static;
+          cp -a /app/apps/web/.next/static/. /app/apps/web/apps/web/.next/static/;
+          exec node /app/apps/web/apps/web/server.js;
+        else
+          exec node /app/apps/web/server.js;
+        fi
+    restart: unless-stopped
+    expose:
+      - "3000"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  ingress:
+    image: nginx:1.31.7-alpine3.24@sha256:892bb2152464f0c5d8972593a5f5afaf8054552580b699d95f8ff4af08c2d33d
+    restart: unless-stopped
+    environment:
+      NGINX_ENVSUBST_FILTER: "^(WEB_UPSTREAM|API_UPSTREAM)$"
+      WEB_UPSTREAM: web:3000
+      API_UPSTREAM: api:4000
+    volumes:
+      - ./infra/nginx/default.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ./infra/nginx/auth-routes.conf:/etc/nginx/auth-routes.conf:ro
+      - ./infra/nginx/proxy-common.conf:/etc/nginx/proxy-common.conf:ro
+      - ./infra/nginx/trusted-proxies.conf:/etc/nginx/trusted-proxies.conf:ro
+    ports:
+      - "127.0.0.1:3200:80"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/_ingress-health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    depends_on:
+      web:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-praca_angola}
+      POSTGRES_USER: ${POSTGRES_USER:-praca}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Define a strong POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-praca} -d ${POSTGRES_DB:-praca_angola}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:8-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  media_data:
