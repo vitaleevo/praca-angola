@@ -1,6 +1,6 @@
 import { BadRequestException, Controller, Get, NotFoundException, Post, Req, Res, UseGuards } from "@nestjs/common";
 import { randomUUID } from "node:crypto";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 import { Readable } from "node:stream";
 import sharp from "sharp";
@@ -8,6 +8,7 @@ import { AuthenticatedUser } from "./auth/auth.types";
 import { CurrentUser } from "./auth/current-user.decorator";
 import { SessionGuard } from "./auth/session.guard";
 import { DatabaseService } from "./database/database.service";
+import { MediaQuotaService } from "./media/media-quota.service";
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const mediaDirectory = () => process.env.MEDIA_DIR ?? join(process.cwd(), "apps", "api", "uploads");
@@ -21,7 +22,10 @@ function sniffImage(buffer: Buffer): { mime: string; extension: string } | null 
 
 @Controller("media")
 export class MediaController {
-  constructor(private readonly database: DatabaseService) {}
+  constructor(
+    private readonly database: DatabaseService,
+    private readonly quota: MediaQuotaService,
+  ) {}
 
   @Post()
   @UseGuards(SessionGuard)
@@ -53,16 +57,14 @@ export class MediaController {
     } catch {throw new BadRequestException({code:'INVALID_IMAGE',message:'A imagem está danificada ou excede 20 milhões de píxeis.'});}
     const id = randomUUID();
     const storageKey = `${id}.webp`;
-    await mkdir(mediaDirectory(), { recursive: true });
-    await writeFile(join(mediaDirectory(), storageKey), normalized, { flag: "wx" });
+    await this.quota.reserve(user.id, { id, storageKey, mimeType: "image/webp", sizeBytes: normalized.length });
+    const filePath = join(mediaDirectory(), storageKey);
     try {
-      await this.database.query(
-        "INSERT INTO media_assets (id, owner_user_id, storage_key, mime_type, size_bytes) VALUES ($1, $2, $3, $4, $5)",
-        [id, user.id, storageKey, 'image/webp', normalized.length],
-      );
+      await mkdir(mediaDirectory(), { recursive: true });
+      await writeFile(filePath, normalized, { flag: "wx" });
     } catch (error) {
-      const { unlink } = await import("node:fs/promises");
-      await unlink(join(mediaDirectory(), storageKey)).catch(() => undefined);
+      await rm(filePath, { force: true }).catch(() => undefined);
+      await this.quota.release(id);
       throw error;
     }
     return { id, url: `/api/v1/media/${id}`, mimeType: 'image/webp', sizeBytes: normalized.length };
@@ -72,7 +74,7 @@ export class MediaController {
   async read(@Req() request: { params: { id?: string } }, @Res() response: { setHeader(name: string, value: string): void; end(data?: Buffer): void; status(code: number): { end(): void } }) {
     const id = request.params.id;
     if (!id || !/^[0-9a-f-]{36}$/i.test(id)) throw new NotFoundException();
-    const result = await this.database.query<{ storage_key: string; mime_type: string }>("SELECT storage_key, mime_type FROM media_assets WHERE id = $1", [id]);
+    const result = await this.database.query<{ storage_key: string; mime_type: string }>("SELECT storage_key, mime_type FROM media_assets WHERE id = $1 AND deleted_at IS NULL", [id]);
     const asset = result.rows[0];
     if (!asset || basename(asset.storage_key) !== asset.storage_key) throw new NotFoundException();
     let data: Buffer;

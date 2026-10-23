@@ -9,6 +9,7 @@ import { AuthModule } from "./auth/auth.module";
 import { CatalogController } from "./catalog.controller";
 import { SellerController } from "./seller.controller";
 import { MediaController } from "./media.controller";
+import { MediaQuotaService } from "./media/media-quota.service";
 import { AdminController } from "./admin.controller";
 import { ConversationsController, FavoritesController, ReportsController, ReviewsController } from "./community.controller";
 import { OrderMaintenanceService, OrdersController } from "./orders.controller";
@@ -46,6 +47,7 @@ import { MetricsService } from "./observability/metrics.service";
     OrderMaintenanceService,
     StoreContextService,
     StoreInvitationsService,
+    MediaQuotaService,
     HealthService,
     MetricsService,
     { provide: APP_INTERCEPTOR, useClass: MetricsInterceptor },

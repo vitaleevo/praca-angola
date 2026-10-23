@@ -20,6 +20,8 @@ services:
       METRICS_TOKEN: ${METRICS_TOKEN:-}
       SENTRY_DSN: ${SENTRY_DSN:-}
       MEDIA_DIR: /app/apps/api/uploads
+      MEDIA_QUOTA_BYTES_PER_USER: ${MEDIA_QUOTA_BYTES_PER_USER:-52428800}
+      MEDIA_QUOTA_ASSETS_PER_USER: ${MEDIA_QUOTA_ASSETS_PER_USER:-100}
     command: ["sh", "-c", "node apps/api/scripts/migrate.mjs && node dist/main.js"]
     restart: unless-stopped
     volumes:

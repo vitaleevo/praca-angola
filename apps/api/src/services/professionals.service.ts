@@ -43,7 +43,7 @@ export class ProfessionalsService {
    const existing=await client.query<{id:string;status:string}>('SELECT id,status FROM professional_profiles WHERE user_id=$1',[user.id]);
    if(existing.rows[0]?.status==='suspended')throw new ForbiddenException('Perfil suspenso. Contacta o suporte.');
    const portfolio=[...new Set(b.portfolioImageIds??[])];
-   for(const id of [...portfolio,...(b.photoImageId?[b.photoImageId]:[])]){const asset=await client.query('SELECT 1 FROM media_assets WHERE id=$1 AND owner_user_id=$2',[id,user.id]);if(!asset.rowCount)throw new BadRequestException('Uma imagem não pertence à tua conta.');}
+   for(const id of [...portfolio,...(b.photoImageId?[b.photoImageId]:[])]){const asset=await client.query('SELECT 1 FROM media_assets WHERE id=$1 AND owner_user_id=$2 AND deleted_at IS NULL',[id,user.id]);if(!asset.rowCount)throw new BadRequestException('Uma imagem não pertence à tua conta.');}
    const result=await client.query<{id:string}>(`INSERT INTO professional_profiles(user_id,slug,display_name,headline,bio,category_id,provider_type,province,municipality,work_mode,starting_price,years_experience,availability,specialties,contact_phone,photo_asset_id)
     VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
     ON CONFLICT(user_id) DO UPDATE SET display_name=$3,headline=$4,bio=$5,category_id=$6,provider_type=$7,province=$8,municipality=$9,work_mode=$10,starting_price=$11,years_experience=$12,availability=$13,specialties=$14,contact_phone=$15,photo_asset_id=$16,status='pending_review',moderation_note='',updated_at=now() RETURNING id`,

@@ -114,7 +114,7 @@ export class SellerController {
     try {
       await this.database.transaction(async (client) => {
         for (const imageId of [body.logoImageId, body.coverImageId].filter((value): value is string => Boolean(value))) {
-          const ownedImage = await client.query("SELECT id FROM media_assets WHERE id = $1 AND owner_user_id = $2", [imageId, user.id]);
+          const ownedImage = await client.query("SELECT id FROM media_assets WHERE id = $1 AND owner_user_id = $2 AND deleted_at IS NULL", [imageId, user.id]);
           if (!ownedImage.rowCount) throw new BadRequestException({ code: "INVALID_STORE_IMAGE", message: "Uma das imagens da loja não está disponível." });
         }
         const existing = await client.query<{ id: string }>("SELECT id FROM seller_profiles WHERE owner_user_id = $1 AND ($2::uuid IS NULL OR id = $2) ORDER BY created_at,id LIMIT 1 FOR UPDATE", [user.id, user.activeStoreId ?? null]);
@@ -279,7 +279,7 @@ export class SellerController {
         [profile.id, category.rows[0].id, slugify(body.title), body.title.trim(), body.description.trim(), body.price, body.condition, Boolean(body.priceNegotiable), body.availableQuantity, body.province.trim(), body.municipality.trim()],
       );
       for (let i = 0; i < imageIds.length; i++) {
-        const asset = await client.query("SELECT id FROM media_assets WHERE id = $1 AND owner_user_id = $2", [imageIds[i], user.id]);
+        const asset = await client.query("SELECT id FROM media_assets WHERE id = $1 AND owner_user_id = $2 AND deleted_at IS NULL", [imageIds[i], user.id]);
         if (!asset.rowCount) throw new BadRequestException({ code: "INVALID_IMAGE", message: "Uma das imagens não está disponível." });
         await client.query("INSERT INTO listing_images (listing_id, media_asset_id, image_url, alt_text, sort_order) VALUES ($1, $2, $3, $4, $5)", [listing.rows[0].id, imageIds[i], `/api/v1/media/${imageIds[i]}`, body.title.trim(), i]);
       }
@@ -313,7 +313,7 @@ export class SellerController {
       const retainedImages = new Set(existingImages.rows.map((image) => image.media_asset_id));
       await client.query("DELETE FROM listing_images WHERE listing_id = $1", [id]);
       for (let i = 0; i < imageIds.length; i++) {
-        const asset = await client.query("SELECT id FROM media_assets WHERE id = $1 AND owner_user_id = $2", [imageIds[i], user.id]);
+        const asset = await client.query("SELECT id FROM media_assets WHERE id = $1 AND owner_user_id = $2 AND deleted_at IS NULL", [imageIds[i], user.id]);
         if (!asset.rowCount && !retainedImages.has(imageIds[i])) throw new BadRequestException({ code: "INVALID_IMAGE", message: "Uma das imagens não está disponível." });
         await client.query("INSERT INTO listing_images (listing_id, media_asset_id, image_url, alt_text, sort_order) VALUES ($1, $2, $3, $4, $5)", [id, imageIds[i], `/api/v1/media/${imageIds[i]}`, body.title.trim(), i]);
       }

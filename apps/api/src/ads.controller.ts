@@ -36,7 +36,7 @@ export class AdsController {
   if(target.protocol!=='https:'||target.username||target.password||!target.hostname||target.hostname==='localhost'||/^(127|10|192\.168)\./.test(target.hostname))throw new BadRequestException('Usa uma URL HTTPS pública.');
   if(Date.parse(b.endsAt)<=Date.parse(b.startsAt))throw new BadRequestException('O fim deve ser posterior ao início.');
   return this.db.transaction(async client=>{
-   const asset=await client.query(`SELECT 1 FROM media_assets WHERE id=$1 AND owner_user_id=$2`,[b.imageAssetId,user.id]);if(!asset.rowCount)throw new BadRequestException('Carrega uma imagem tua para a campanha.');
+   const asset=await client.query(`SELECT 1 FROM media_assets WHERE id=$1 AND owner_user_id=$2 AND deleted_at IS NULL`,[b.imageAssetId,user.id]);if(!asset.rowCount)throw new BadRequestException('Carrega uma imagem tua para a campanha.');
    const result=await client.query(`INSERT INTO ad_campaigns(marketplace_slug,placement,advertiser_name,headline,target_url,image_asset_id,starts_at,ends_at,priority,created_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id,status`,[b.marketplaceSlug,b.placement,b.advertiserName.trim(),b.headline.trim(),target.href,b.imageAssetId,b.startsAt,b.endsAt,b.priority,user.id]);
    await client.query(`INSERT INTO audit_events(actor_id,action,entity_type,entity_id) VALUES($1,'ad.created','ad_campaign',$2)`,[user.id,result.rows[0].id]);return result.rows[0];
   });
