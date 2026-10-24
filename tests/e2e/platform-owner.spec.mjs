@@ -71,7 +71,7 @@ test('proprietário global: bootstrap único, áreas de administração e isolam
     const dimensions = await ownerPage.evaluate(() => ({ width: document.documentElement.clientWidth, scrollWidth: document.documentElement.scrollWidth }));
     expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.width);
     await ownerPage.screenshot({ path: 'output/playwright/platform-owner-320.png', fullPage: true });
-    await ownerPage.getByRole('button', { name: 'Abrir menu' }).click();
+    await ownerPage.getByRole('button', { name: 'Abrir navegação' }).click();
     await expect(ownerPage.getByRole('link', { name: 'Painel global' })).toBeVisible();
 
     buyerContext = await context(browser, buyer);

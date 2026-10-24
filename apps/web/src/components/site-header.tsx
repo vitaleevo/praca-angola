@@ -2,14 +2,14 @@ import { CartLink, HeaderAuth } from "./header-actions";
 import Link from "next/link";
 import { SiteNav } from './site-nav';
 
-export function SiteHeader({services=false}:{services?:boolean}={}) {
+export function SiteHeader({services=false,workspace=false}:{services?:boolean;workspace?:boolean}={}) {
   return <>
     <div className={`announcement ${services?'service-announcement':''}`}><span className="announcement-dot" /> {services?'Conectamos pessoas, talento e empresas':'Plataforma Única de Vendas Online'} <span className="announcement-separator">·</span> {services?'Por uma Angola que faz mais.':'Descobre o que está perto de ti'}</div>
     <header className={`site-header ${services?'service-header':''}`}>
       <Link className="brand" href="/" aria-label="PUVO — Plataforma Única de Vendas Online, início"><span className="brand-mark" aria-hidden="true">P</span><span className="brand-name">PUVO</span></Link>
       <SiteNav services={services}/>
       <form className="header-market-search" action={services?'/servicos':'/produtos'}><label className="sr-only" htmlFor="header-search">Pesquisa rápida</label><input id="header-search" name="q" placeholder={services?'Que serviço procuras?':'Pesquisar produtos, lojas ou serviços…'} maxLength={140}/><button aria-label="Pesquisar" type="submit">⌕</button></form>
-      <div className="header-actions"><Link className="header-messages" href={services?'/servicos/pedidos':'/conta/mensagens'}>Mensagens</Link><HeaderAuth/><Link className="sell-button" href={services?'/servicos/pedidos/novo':'/vendedor'}>{services?'Publicar pedido':'Vender'} <span aria-hidden="true">＋</span></Link>{!services&&<CartLink/>}</div>
+      <div className="header-actions">{!workspace&&<Link className="header-messages" href={services?'/servicos/pedidos':'/conta/mensagens'}>Mensagens</Link>}<HeaderAuth workspace={workspace}/>{!workspace&&<Link className="sell-button" href={services?'/servicos/pedidos/novo':'/vendedor'}>{services?'Publicar pedido':'Vender'} <span aria-hidden="true">＋</span></Link>}{!services&&<CartLink/>}</div>
     </header>
   </>;
 }
