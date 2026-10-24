@@ -14,12 +14,13 @@ Implementação local de contactos públicos, condições comerciais e equipa. A
 | Consultar encomendas e responder a conversas | Sim | Sim | Sim |
 | Confirmar transferências, reembolsos e entrega | Sim | Sim | Não |
 
-Somente o comprador elegível recebe o destino MCX completo de uma encomenda. O proprietário vê no perfil apenas o número mascarado. A API não publica dados MCX no catálogo.
+Somente o comprador elegível recebe o destino completo do método de pagamento escolhido na encomenda. O proprietário vê os dados da própria loja no painel e o identificador mascarado. A API não publica dados de recebimento no catálogo.
 
 ## Contratos
 
 - `GET /api/v1/seller/profile`: perfil e papel da loja selecionada na sessão; sem seleção válida, prioriza loja própria e depois associação mais antiga. Seletor disponível em `/vendedor`, com GET `/seller/stores` e PUT `/seller/active-store`.
-- `PUT /api/v1/seller/profile`: aceita `contactEmail`, `contactEmailPublic`, `contactPhone`, `contactPhonePublic`, `deliveryPolicy`, `returnsPolicy` e `termsPolicy`, além dos campos existentes. Desativar a publicação elimina o contacto guardado. Checkbox ativa exige valor válido. A resposta conserva o contrato de leitura, incluindo papel e máscara MCX.
+- `PUT /api/v1/seller/profile`: aceita `contactEmail`, `contactEmailPublic`, `contactPhone`, `contactPhonePublic`, `deliveryPolicy`, `returnsPolicy`, `termsPolicy` e as configurações manuais `mcxEnabled` / `clearPaymentDestination` e `bankTransferEnabled` / `clearBankTransfer`. Dados recebidos são cifrados; atualizações parciais preservam campos não alterados. A resposta inclui métodos ativados, nome de destinatário e identificador mascarado apenas para o proprietário.
+- `POST /api/v1/orders/payment-options`: requer sessão, valida até 20 produtos publicados e o stock, e lista os métodos ativos por loja sem divulgar os dados de recebimento. `POST /api/v1/orders` valida novamente as opções e grava o destino escolhido cifrado na encomenda.
 - `GET /api/v1/seller/team`: até 50 membros, disponível ao proprietário.
 - `POST /api/v1/seller/team`: deixou de conceder acesso direto; responde 400 `INVITATION_REQUIRED`. Usar POST `/seller/invitations`, seguido de aceitação autenticada com o e-mail confirmado destinatário. Limite de 50 membros incluindo proprietário; token expira em sete dias e pode ser revogado.
 - `PUT /api/v1/seller/team/:userId`: muda papel de um membro da loja do proprietário.

@@ -1,5 +1,5 @@
 import { BadRequestException, Body, Controller, Get, Injectable, NotFoundException, OnModuleDestroy, OnModuleInit, Param, Patch, Post, UseGuards } from "@nestjs/common";
-import { ArrayMaxSize, ArrayMinSize, IsArray, IsInt, IsOptional, IsString, IsUUID, Length, Max, MaxLength, Min, ValidateNested } from "class-validator";
+import { ArrayMaxSize, ArrayMinSize, IsArray, IsIn, IsInt, IsOptional, IsString, IsUUID, Length, Max, MaxLength, Min, ValidateNested } from "class-validator";
 import { Type } from "class-transformer";
 import { randomBytes } from "node:crypto";
 import { DatabaseService } from "./database/database.service";
@@ -8,16 +8,26 @@ import { CurrentUser } from "./auth/current-user.decorator";
 import { SessionGuard } from "./auth/session.guard";
 import { RateLimit } from "./rate-limit/rate-limit.decorator";
 import { RateLimitGuard } from "./rate-limit/rate-limit.guard";
-import { decryptPrivateValue } from "./auth/auth.crypto";
+import { decryptPrivateValue, encryptPrivateValue } from "./auth/auth.crypto";
+import { MANUAL_PAYMENT_METHODS, ManualPaymentMethod, PaymentDestinationSnapshot, paymentMethodLabel } from "./payments/payment-methods";
 
 class CheckoutItemDto {
   @IsUUID("4") listingId!: string;
   @Type(() => Number) @IsInt() @Min(1) @Max(100) quantity!: number;
 }
 
-class CheckoutDto {
+class CheckoutItemsDto {
   @IsArray() @ArrayMinSize(1) @ArrayMaxSize(20) @ValidateNested({ each: true }) @Type(() => CheckoutItemDto) items!: CheckoutItemDto[];
+}
+
+class PaymentMethodSelectionDto {
+  @IsUUID("4") sellerProfileId!: string;
+  @IsIn(MANUAL_PAYMENT_METHODS) method!: ManualPaymentMethod;
+}
+
+class CheckoutDto extends CheckoutItemsDto {
   @IsOptional() @IsString() @MaxLength(1000) buyerNote?: string;
+  @IsOptional() @IsArray() @ArrayMaxSize(20) @ValidateNested({ each: true }) @Type(() => PaymentMethodSelectionDto) paymentMethods?: PaymentMethodSelectionDto[];
 }
 
 class TransferReportDto {
@@ -92,6 +102,51 @@ export class OrdersController {
     return { items: result.rows };
   }
 
+  @Post("payment-options")
+  @RateLimit({ scope: "checkout-options", limit: 60, windowSeconds: 60 })
+  @UseGuards(RateLimitGuard)
+  async paymentOptions(@Body() body: CheckoutItemsDto, @CurrentUser() user: AuthenticatedUser) {
+    const ids = body.items.map((item) => item.listingId);
+    if (new Set(ids).size !== ids.length) throw new BadRequestException({ code: "DUPLICATE_LISTING", message: "Combina as quantidades de produtos repetidos no carrinho." });
+    const listings = await this.database.query<{
+      id: string;
+      seller_profile_id: string;
+      store_name: string;
+      status: string;
+      seller_status: string;
+      available_quantity: number;
+    }>(
+      `SELECT l.id, l.seller_profile_id, s.display_name AS store_name, l.status, s.status AS seller_status, l.available_quantity
+       FROM listings l JOIN seller_profiles s ON s.id = l.seller_profile_id WHERE l.id = ANY($1::uuid[])`,
+      [ids],
+    );
+    if (listings.rowCount !== ids.length || listings.rows.some((listing) => listing.status !== "published" || listing.seller_status !== "active")) {
+      throw new BadRequestException({ code: "LISTING_UNAVAILABLE", message: "Um dos produtos já não está disponível." });
+    }
+    if (listings.rows.some((listing) => listing.available_quantity < body.items.find((item) => item.listingId === listing.id)!.quantity)) {
+      throw new BadRequestException({ code: "INSUFFICIENT_STOCK", message: "O stock de um dos produtos já não chega para esta quantidade." });
+    }
+    const sellerIds = [...new Set(listings.rows.map((listing) => listing.seller_profile_id))];
+    const ownStores = await this.database.query<{ seller_profile_id: string }>(
+      "SELECT seller_profile_id FROM store_memberships WHERE user_id = $1 AND seller_profile_id = ANY($2::uuid[])",
+      [user.id, sellerIds],
+    );
+    if (ownStores.rowCount) throw new BadRequestException({ code: "CANNOT_BUY_FROM_OWN_STORE", message: "Não podes finalizar uma compra na tua própria loja." });
+    const methods = await this.database.query<{ seller_profile_id: string; method: ManualPaymentMethod }>(
+      `SELECT seller_profile_id, method FROM seller_payment_methods
+       WHERE seller_profile_id = ANY($1::uuid[]) AND enabled = true ORDER BY seller_profile_id, method`,
+      [sellerIds],
+    );
+    const shops = new Map<string, { sellerProfileId: string; storeName: string; methods: Array<{ method: ManualPaymentMethod; label: string }> }>();
+    for (const listing of listings.rows) {
+      if (!shops.has(listing.seller_profile_id)) shops.set(listing.seller_profile_id, { sellerProfileId: listing.seller_profile_id, storeName: listing.store_name, methods: [] });
+    }
+    for (const method of methods.rows) {
+      shops.get(method.seller_profile_id)?.methods.push({ method: method.method, label: paymentMethodLabel(method.method) });
+    }
+    return { shops: [...shops.values()] };
+  }
+
   @Post()
   @RateLimit({ scope: "checkout", limit: 10, windowSeconds: 60 })
   @UseGuards(RateLimitGuard)
@@ -99,11 +154,10 @@ export class OrdersController {
     const ids = body.items.map((item) => item.listingId);
     if (new Set(ids).size !== ids.length) throw new BadRequestException({ code: "DUPLICATE_LISTING", message: "Combina as quantidades de produtos repetidos no carrinho." });
     return this.database.transaction(async (client) => {
-      const listingRows: Array<{ id: string; seller_profile_id: string; title: string; price: string; currency: string; available_quantity: number; status: string; seller_status: string; has_payment_destination: boolean }> = [];
+      const listingRows: Array<{ id: string; seller_profile_id: string; title: string; price: string; currency: string; available_quantity: number; status: string; seller_status: string }> = [];
       for (const listingId of [...ids].sort()) {
-        const result = await client.query<{ id: string; seller_profile_id: string; title: string; price: string; currency: string; available_quantity: number; status: string; seller_status: string; has_payment_destination: boolean }>(
-          `SELECT l.id, l.seller_profile_id, l.title, l.price::text, l.currency, l.available_quantity, l.status, s.status AS seller_status,
-                  (s.mcx_phone_ciphertext IS NOT NULL AND s.mcx_recipient_name_ciphertext IS NOT NULL) AS has_payment_destination
+        const result = await client.query<{ id: string; seller_profile_id: string; title: string; price: string; currency: string; available_quantity: number; status: string; seller_status: string }>(
+          `SELECT l.id, l.seller_profile_id, l.title, l.price::text, l.currency, l.available_quantity, l.status, s.status AS seller_status
            FROM listings l JOIN seller_profiles s ON s.id = l.seller_profile_id WHERE l.id = $1 FOR UPDATE OF l, s`, [listingId],
         );
         if (!result.rowCount || result.rows[0].status !== "published" || result.rows[0].seller_status !== "active") throw new BadRequestException({ code: "LISTING_UNAVAILABLE", message: "Um dos produtos já não está disponível." });
@@ -113,7 +167,41 @@ export class OrdersController {
       for (const sellerId of sellerIds) {
         const ownStore = await client.query("SELECT 1 FROM store_memberships WHERE seller_profile_id = $1 AND user_id = $2", [sellerId, user.id]);
         if (ownStore.rowCount) throw new BadRequestException({ code: "CANNOT_BUY_FROM_OWN_STORE", message: "Não podes finalizar uma compra na tua própria loja." });
-        if (!listingRows.some((row) => row.seller_profile_id === sellerId && row.has_payment_destination)) throw new BadRequestException({ code: "SELLER_PAYMENT_NOT_CONFIGURED", message: "Uma loja ainda não configurou o Multicaixa Express para receber transferências." });
+      }
+      const requestedMethods = new Map<string, ManualPaymentMethod>();
+      for (const selection of body.paymentMethods ?? []) {
+        if (requestedMethods.has(selection.sellerProfileId)) throw new BadRequestException({ code: "DUPLICATE_PAYMENT_METHOD", message: "Escolhe apenas um método de pagamento por loja." });
+        requestedMethods.set(selection.sellerProfileId, selection.method);
+      }
+      if (body.paymentMethods && (requestedMethods.size !== sellerIds.length || [...requestedMethods.keys()].some((sellerId) => !sellerIds.includes(sellerId)))) {
+        throw new BadRequestException({ code: "INVALID_PAYMENT_METHOD_SELECTION", message: "Escolhe um método de pagamento para cada loja do carrinho." });
+      }
+      const selectedMethods = new Map<string, { method: ManualPaymentMethod; destinationCiphertext: string }>();
+      for (const sellerId of sellerIds) {
+        const available = await client.query<{
+          method: ManualPaymentMethod;
+          recipient_name_ciphertext: string;
+          recipient_identifier_ciphertext: string;
+          provider_name_ciphertext: string | null;
+        }>(
+          `SELECT method, recipient_name_ciphertext, recipient_identifier_ciphertext, provider_name_ciphertext
+           FROM seller_payment_methods WHERE seller_profile_id = $1 AND enabled = true ORDER BY method FOR SHARE`,
+          [sellerId],
+        );
+        if (!available.rowCount) throw new BadRequestException({ code: "SELLER_PAYMENT_NOT_CONFIGURED", message: "Uma loja ainda não ativou um método de pagamento." });
+        const requested = requestedMethods.get(sellerId);
+        const selected = requested
+          ? available.rows.find((method) => method.method === requested)
+          : available.rows.find((method) => method.method === "manual_multicaixa_express_transfer") ?? (available.rowCount === 1 ? available.rows[0] : undefined);
+        if (!selected) {
+          throw new BadRequestException({ code: requested ? "PAYMENT_METHOD_UNAVAILABLE" : "PAYMENT_METHOD_REQUIRED", message: requested ? "Esse método já não está disponível nesta loja." : "Escolhe o método de pagamento de cada loja." });
+        }
+        const destination: PaymentDestinationSnapshot = {
+          recipientName: decryptPrivateValue(selected.recipient_name_ciphertext),
+          recipientIdentifier: decryptPrivateValue(selected.recipient_identifier_ciphertext),
+          providerName: selected.provider_name_ciphertext ? decryptPrivateValue(selected.provider_name_ciphertext) : null,
+        };
+        selectedMethods.set(sellerId, { method: selected.method, destinationCiphertext: encryptPrivateValue(JSON.stringify(destination)) });
       }
       const lines = body.items.map((item) => {
         const listing = listingRows.find((row) => row.id === item.listingId)!;
@@ -126,10 +214,11 @@ export class OrdersController {
         const sellerLines = lines.filter((line) => line.listing.seller_profile_id === sellerId);
         const totalCents = sellerLines.reduce((sum, line) => sum + line.lineCents, 0n);
         const reference = `PA-${randomBytes(6).toString("hex").toUpperCase()}`;
+        const payment = selectedMethods.get(sellerId)!;
         const order = await client.query<{ id: string; reference: string }>(
-          `INSERT INTO orders (reference, buyer_id, seller_profile_id, total_amount, payment_deadline, buyer_note)
-           VALUES ($1, $2, $3, $4, now() + interval '30 minutes', $5) RETURNING id, reference`,
-          [reference, user.id, sellerId, fromCents(totalCents), body.buyerNote?.trim() ?? ""],
+          `INSERT INTO orders (reference, buyer_id, seller_profile_id, total_amount, payment_deadline, buyer_note, payment_method, payment_destination_ciphertext)
+           VALUES ($1, $2, $3, $4, now() + interval '30 minutes', $5, $6, $7) RETURNING id, reference`,
+          [reference, user.id, sellerId, fromCents(totalCents), body.buyerNote?.trim() ?? "", payment.method, payment.destinationCiphertext],
         );
         for (const line of sellerLines) {
           await client.query("UPDATE listings SET available_quantity = available_quantity - $2, updated_at = now() WHERE id = $1", [line.listing.id, line.quantity]);
@@ -137,7 +226,7 @@ export class OrdersController {
         }
         await client.query("INSERT INTO order_events (order_id, actor_id, event_type, note) VALUES ($1, $2, 'order.created', 'Encomenda criada; stock reservado por 30 minutos.')", [order.rows[0].id, user.id]);
         await client.query("INSERT INTO audit_events (actor_id, action, entity_type, entity_id) VALUES ($1, 'order.created', 'order', $2)", [user.id, order.rows[0].id]);
-        orders.push({ ...order.rows[0], totalAmount: fromCents(totalCents), currency: "AOA", status: "awaiting_payment", paymentDeadlineMinutes: 30, paymentMethod: "manual_multicaixa_express_transfer" });
+        orders.push({ ...order.rows[0], totalAmount: fromCents(totalCents), currency: "AOA", status: "awaiting_payment", paymentDeadlineMinutes: 30, paymentMethod: payment.method });
       }
       return { orders };
     });
@@ -148,9 +237,10 @@ export class OrdersController {
     const orderResult = await this.database.query<{
       id: string; reference: string; buyer_id: string; seller_profile_id: string; status: string; payment_status: string;
       total_amount: string; currency: string; payment_deadline: Date; buyer_note: string; created_at: Date;
-      store_name: string; store_slug: string; can_manage: boolean; mcx_recipient_name_ciphertext: string | null; mcx_phone_ciphertext: string | null;
+      store_name: string; store_slug: string; can_manage: boolean; payment_method: ManualPaymentMethod; payment_destination_ciphertext: string | null;
+      mcx_recipient_name_ciphertext: string | null; mcx_phone_ciphertext: string | null;
     }>(
-      `SELECT o.id, o.reference, o.buyer_id, o.seller_profile_id, o.status, o.payment_status, o.total_amount::text, o.currency,
+      `SELECT o.id, o.reference, o.buyer_id, o.seller_profile_id, o.status, o.payment_status, o.payment_method, o.payment_destination_ciphertext, o.total_amount::text, o.currency,
               o.payment_deadline, o.buyer_note, o.created_at, s.display_name AS store_name, s.slug AS store_slug,
               s.mcx_recipient_name_ciphertext, s.mcx_phone_ciphertext,
               EXISTS (SELECT 1 FROM store_memberships sm WHERE sm.seller_profile_id = s.id AND sm.user_id = $2 AND sm.role IN ('owner', 'editor')) AS can_manage
@@ -165,12 +255,28 @@ export class OrdersController {
       this.database.query<{ event_type: string; transfer_reference: string; note: string; created_at: Date | string }>("SELECT event_type, transfer_reference, note, created_at FROM manual_payment_events WHERE order_id = $1 ORDER BY created_at", [id]),
     ]);
     const isBuyer = order.buyer_id === user.id;
-    let paymentDestination: { recipientName: string; phone: string } | null = null;
-    if (isBuyer && order.mcx_recipient_name_ciphertext && order.mcx_phone_ciphertext && order.payment_status !== "expired" && order.payment_status !== "rejected") {
-      paymentDestination = { recipientName: decryptPrivateValue(order.mcx_recipient_name_ciphertext), phone: decryptPrivateValue(order.mcx_phone_ciphertext) };
+    let paymentDestination: (PaymentDestinationSnapshot & { method: ManualPaymentMethod; phone?: string }) | null = null;
+    if (isBuyer && order.payment_status !== "expired" && order.payment_status !== "rejected") {
+      let destination: PaymentDestinationSnapshot | null = null;
+      if (order.payment_destination_ciphertext) {
+        destination = JSON.parse(decryptPrivateValue(order.payment_destination_ciphertext)) as PaymentDestinationSnapshot;
+      } else if (order.payment_method === "manual_multicaixa_express_transfer" && order.mcx_recipient_name_ciphertext && order.mcx_phone_ciphertext) {
+        destination = {
+          recipientName: decryptPrivateValue(order.mcx_recipient_name_ciphertext),
+          recipientIdentifier: decryptPrivateValue(order.mcx_phone_ciphertext),
+          providerName: null,
+        };
+      }
+      if (destination) {
+        paymentDestination = {
+          ...destination,
+          method: order.payment_method,
+          ...(order.payment_method === "manual_multicaixa_express_transfer" ? { phone: destination.recipientIdentifier } : {}),
+        };
+      }
     }
     return {
-      order: { canManage: order.can_manage, id: order.id, reference: order.reference, status: order.status, paymentStatus: order.payment_status, totalAmount: order.total_amount, currency: order.currency, paymentDeadline: order.payment_deadline, buyerNote: order.buyer_note, createdAt: order.created_at, store: { name: order.store_name, slug: order.store_slug }, isBuyer, paymentMethod: "manual_multicaixa_express_transfer", paymentDestination },
+      order: { canManage: order.can_manage, id: order.id, reference: order.reference, status: order.status, paymentStatus: order.payment_status, totalAmount: order.total_amount, currency: order.currency, paymentDeadline: order.payment_deadline, buyerNote: order.buyer_note, createdAt: order.created_at, store: { name: order.store_name, slug: order.store_slug }, isBuyer, paymentMethod: order.payment_method, paymentDestination },
       items: items.rows,
       timeline: [...events.rows, ...payments.rows.map((event) => ({ ...event, event_type: `payment.${event.event_type}` }))].sort((a, b) => new Date(a.created_at as string).getTime() - new Date(b.created_at as string).getTime()),
     };
@@ -183,7 +289,7 @@ export class OrdersController {
       if (!order.rowCount) throw new BadRequestException({ code: "ORDER_PAYMENT_NOT_OPEN", message: "Esta encomenda já não aguarda uma transferência." });
       await client.query("UPDATE orders SET status = 'payment_reported', payment_status = 'buyer_reported', updated_at = now() WHERE id = $1", [id]);
       await client.query("INSERT INTO manual_payment_events (order_id, actor_id, event_type, transfer_reference, note) VALUES ($1, $2, 'buyer_reported_transfer', $3, $4)", [id, user.id, body.transferReference.trim(), body.note?.trim() ?? ""]);
-      await client.query("INSERT INTO order_events (order_id, actor_id, event_type, note) VALUES ($1, $2, 'payment.reported', 'O comprador reportou a transferência. A loja deve confirmar no seu extrato Multicaixa Express.')", [id, user.id]);
+      await client.query("INSERT INTO order_events (order_id, actor_id, event_type, note) VALUES ($1, $2, 'payment.reported', 'O comprador reportou a transferência. A loja deve confirmar o crédito no seu extrato.')", [id, user.id]);
       return { id, status: "payment_reported", message: "A loja foi notificada. O report do comprador não confirma a receção dos fundos." };
     });
   }
