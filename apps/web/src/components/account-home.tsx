@@ -1,19 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 type AccountUser = { displayName: string; email: string };
-
-const accountLinks = [
-  { title: "Perfil profissional", description: "Mostra o teu talento e recebe pedidos.", href: "/profissional", icon: "✦" },
-  { title: "Serviços e propostas", description: "Gere pedidos, propostas e trabalhos.", href: "/servicos/pedidos", icon: "↔" },
-  { title: "Encomendas", description: "Acompanha compras e vendas.", href: "/conta/encomendas", icon: "↗" },
-  { title: "Mensagens", description: "Continua as conversas com as lojas.", href: "/conta/mensagens", icon: "•••" },
-  { title: "Favoritos", description: "Encontra os produtos que guardaste.", href: "/conta/favoritos", icon: "♡" },
-  { title: "A minha loja", description: "Configura a montra e gere anúncios.", href: "/vendedor", icon: "⌂" },
-];
 
 export function AccountHome() {
   const router = useRouter();
@@ -67,17 +57,9 @@ export function AccountHome() {
         <div><span className="eyebrow eyebrow-dark">A tua conta</span><h2>{user.displayName}</h2><p>{user.email}</p></div>
         <span className="account-status"><i aria-hidden="true"/> Conta ativa</span>
       </section>
-      <section className="account-hub-section" aria-labelledby="account-hub-title">
-        <div className="section-heading"><div><h2 id="account-hub-title">O que queres fazer?</h2><p>As tuas áreas pessoais estão reunidas aqui.</p></div></div>
-        <div className="account-hub-grid">
-          {accountLinks.map((link) => (
-            <Link className="account-hub-card" href={link.href} key={link.href}>
-              <span className="account-hub-icon" aria-hidden="true">{link.icon}</span>
-              <span className="account-hub-copy"><b>{link.title}</b><small>{link.description}</small></span>
-              <span className="account-hub-arrow" aria-hidden="true">→</span>
-            </Link>
-          ))}
-        </div>
+      <section className="panel account-overview" aria-labelledby="account-overview-title">
+        <h2 id="account-overview-title">Bem-vindo à tua conta</h2>
+        <p>Usa a navegação lateral para acompanhar encomendas, responder a mensagens, consultar favoritos e gerir as tuas áreas de venda e serviços.</p>
       </section>
     </div>
   );

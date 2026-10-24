@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 type Overview = {
@@ -21,13 +20,6 @@ const cards: [string, string][] = [
   ["serviceReportsOpen", "Denúncias de serviços abertas"],
   ["adsLive", "Anúncios ativos"],
   ["notificationsFailed", "Notificações falhadas"],
-];
-
-const adminAreas = [
-  { href: "/admin/moderacao", title: "Moderação de produtos", description: "Rever anúncios e denúncias de produtos." },
-  { href: "/admin/profissionais", title: "Profissionais", description: "Rever perfis profissionais e empresariais." },
-  { href: "/admin/denuncias-servicos", title: "Denúncias de serviços", description: "Investigar denúncias e registar decisões." },
-  { href: "/admin/publicidade", title: "Publicidade", description: "Gerir campanhas e os espaços publicitários." },
 ];
 
 export function PlatformOwnerDashboard() {
@@ -75,14 +67,6 @@ export function PlatformOwnerDashboard() {
         </div>
       </section>
 
-      <section aria-labelledby="platform-admin-heading">
-        <div className="section-heading platform-owner-section-heading"><div><h2 id="platform-admin-heading">Áreas de administração</h2><p>Acesso direto às operações atuais dos dois marketplaces.</p></div></div>
-        <nav className="platform-owner-areas" aria-label="Áreas administrativas">
-          {adminAreas.map((area) => <Link className="platform-owner-area panel" href={area.href} key={area.href}>
-            <strong>{area.title}<span aria-hidden="true"> →</span></strong><span>{area.description}</span>
-          </Link>)}
-        </nav>
-      </section>
     </div>
   );
 }
