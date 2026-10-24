@@ -38,7 +38,11 @@ As referências fornecidas orientaram os catálogos: verde para Produtos, azul p
 5. Cliente e autor da proposta conversam numa thread privada. Cliente pode recusar proposta; autor pode retirá-la. Aceitação bloqueia o pedido em transação e recusa as restantes propostas pendentes, impedindo duas adjudicações concorrentes.
 6. Cliente conclui ou cancela. Conversa encerrada conserva histórico. Só cliente de trabalho concluído e adjudicado pode deixar uma avaliação, uma vez.
 
-Pagamento de produtos continua por transferência Multicaixa Express manual, com confirmação pelo vendedor. Nos serviços, pagamento e condições são combinados diretamente; não existe checkout, custódia ou confirmação automática de pagamentos de serviços.
+Pagamento de produtos usa métodos manuais ativados por cada loja: Multicaixa Express e/ou transferência bancária. O checkout mostra apenas métodos ativos, cria uma encomenda por loja e guarda um destino cifrado como fotografia da escolha. Só o comprador dessa encomenda recebe os dados completos; o vendedor confirma o crédito no extrato. A PUVO não processa nem guarda o valor. PayPal e outros métodos integrados não estão ativos: exigem integração e confirmação de elegibilidade do vendedor e do país.
+
+Em `/vendedor`, o proprietário pode ativar/desativar cada método e manter os dados bancários cifrados. Métodos sem dados completos não podem ser ativados. Os pedidos de opções de pagamento validam disponibilidade/stock e devolvem apenas nomes de métodos, sem dados de recebimento. Encomendas MCX anteriores à migração conservam o destino legado enquanto estiverem pendentes.
+
+Nos serviços, pagamento e condições são combinados diretamente; não existe checkout, custódia ou confirmação automática de pagamentos de serviços.
 
 ## Dados e implantação
 

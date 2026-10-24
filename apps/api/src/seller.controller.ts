@@ -8,6 +8,7 @@ import { AuthenticatedUser } from "./auth/auth.types";
 import { CurrentUser } from "./auth/current-user.decorator";
 import { SessionGuard } from "./auth/session.guard";
 import { decryptPrivateValue, encryptPrivateValue } from "./auth/auth.crypto";
+import { maskPaymentIdentifier } from "./payments/payment-methods";
 
 class StoreDto {
   @IsIn(["individual", "business"]) profileType!: "individual" | "business";
@@ -20,8 +21,14 @@ class StoreDto {
   @IsOptional() @IsBoolean() clearLogo?: boolean;
   @IsOptional() @IsBoolean() clearCover?: boolean;
   @IsOptional() @IsString() @MaxLength(100) mcxRecipientName?: string;
-  @IsOptional() @IsString() @Matches(/^(?:\+244)?9\d{8}$/) mcxPhone?: string;
+  @IsOptional() @IsString() @Matches(/^(?:\+244)?9\d{8}$/) mcxPhone?: string | null;
+  @IsOptional() @IsBoolean() mcxEnabled?: boolean;
   @IsOptional() @IsBoolean() clearPaymentDestination?: boolean;
+  @IsOptional() @IsString() @Length(2, 100) bankName?: string | null;
+  @IsOptional() @IsString() @Length(2, 100) bankAccountHolder?: string | null;
+  @IsOptional() @IsString() @Length(5, 64) @Matches(/^[A-Za-z0-9][A-Za-z0-9\s/-]{4,63}$/) bankAccountIdentifier?: string | null;
+  @IsOptional() @IsBoolean() bankTransferEnabled?: boolean;
+  @IsOptional() @IsBoolean() clearBankTransfer?: boolean;
   @IsOptional() @IsEmail() @MaxLength(254) contactEmail?: string | null;
   @IsOptional() @IsBoolean() contactEmailPublic?: boolean;
   @IsOptional() @IsString() @Matches(/^(?:\+244)?9\d{8}$/) contactPhone?: string | null;
@@ -84,6 +91,30 @@ export class SellerController {
     if (ciphertext) {
       try { const phone = decryptPrivateValue(ciphertext); maskedPhone = `•••• ${phone.slice(-4)}`; } catch { maskedPhone = "configured"; }
     }
+    const paymentMethodRows = row.is_owner
+      ? await this.database.query<{
+          method: string;
+          enabled: boolean;
+          recipient_name_ciphertext: string;
+          recipient_identifier_ciphertext: string;
+          provider_name_ciphertext: string | null;
+        }>(
+          `SELECT method, enabled, recipient_name_ciphertext, recipient_identifier_ciphertext, provider_name_ciphertext
+           FROM seller_payment_methods WHERE seller_profile_id = $1 ORDER BY method`,
+          [row.id],
+        )
+      : { rows: [] as Array<{ method: string; enabled: boolean; recipient_name_ciphertext: string; recipient_identifier_ciphertext: string; provider_name_ciphertext: string | null }> };
+    const paymentMethods = paymentMethodRows.rows.map((method) => {
+      let recipientName: string | null = null;
+      let providerName: string | null = null;
+      let maskedIdentifier = "configurado";
+      try { recipientName = decryptPrivateValue(method.recipient_name_ciphertext); } catch { /* Keep private values out of fallback responses. */ }
+      try { maskedIdentifier = maskPaymentIdentifier(decryptPrivateValue(method.recipient_identifier_ciphertext)); } catch { /* Keep the method status visible without exposing ciphertext. */ }
+      if (method.provider_name_ciphertext) {
+        try { providerName = decryptPrivateValue(method.provider_name_ciphertext); } catch { /* Keep private values out of fallback responses. */ }
+      }
+      return { method: method.method, enabled: method.enabled, configured: true, recipientName, providerName, maskedIdentifier };
+    });
     return {
       profile: {
         ...row,
@@ -91,6 +122,7 @@ export class SellerController {
         contact_phone: row.contact_phone_public ? row.contact_phone : null,
         has_payment_destination: Boolean(ciphertext),
         masked_phone: maskedPhone,
+        payment_methods: paymentMethods,
       },
     };
   }
@@ -98,8 +130,11 @@ export class SellerController {
   @Put("profile")
   async saveProfile(@Body() body: StoreDto, @CurrentUser() user: AuthenticatedUser) {
     if (user.activeStoreId) await this.context.owner(user);
-    if (Boolean(body.mcxPhone) !== Boolean(body.mcxRecipientName) && !body.clearPaymentDestination) {
-      throw new BadRequestException({ code: "MCX_FIELDS_REQUIRED_TOGETHER", message: "Indica o nome e o número Multicaixa Express juntos." });
+    if (body.clearPaymentDestination && (body.mcxRecipientName?.trim() || body.mcxPhone?.trim() || body.mcxEnabled)) {
+      throw new BadRequestException({ code: "MCX_CLEAR_CONFLICT", message: "Desativa o Multicaixa Express antes de apagar os dados guardados." });
+    }
+    if (body.clearBankTransfer && ([body.bankName, body.bankAccountHolder, body.bankAccountIdentifier].some((value) => Boolean(value?.trim())) || body.bankTransferEnabled)) {
+      throw new BadRequestException({ code: "BANK_TRANSFER_CLEAR_CONFLICT", message: "Desativa a transferência bancária antes de apagar os dados guardados." });
     }
     if (body.contactEmailPublic && !body.contactEmail?.trim()) {
       throw new BadRequestException({ code: "PUBLIC_EMAIL_REQUIRED", message: "Indica o e-mail que autorizas a publicar." });
@@ -117,7 +152,13 @@ export class SellerController {
           const ownedImage = await client.query("SELECT id FROM media_assets WHERE id = $1 AND owner_user_id = $2 AND deleted_at IS NULL", [imageId, user.id]);
           if (!ownedImage.rowCount) throw new BadRequestException({ code: "INVALID_STORE_IMAGE", message: "Uma das imagens da loja não está disponível." });
         }
-        const existing = await client.query<{ id: string }>("SELECT id FROM seller_profiles WHERE owner_user_id = $1 AND ($2::uuid IS NULL OR id = $2) ORDER BY created_at,id LIMIT 1 FOR UPDATE", [user.id, user.activeStoreId ?? null]);
+        const existing = await client.query<{ id: string; mcx_recipient_name_ciphertext: string | null; mcx_phone_ciphertext: string | null }>("SELECT id, mcx_recipient_name_ciphertext, mcx_phone_ciphertext FROM seller_profiles WHERE owner_user_id = $1 AND ($2::uuid IS NULL OR id = $2) ORDER BY created_at,id LIMIT 1 FOR UPDATE", [user.id, user.activeStoreId ?? null]);
+        if (!body.clearPaymentDestination && Boolean(body.mcxPhone) !== Boolean(body.mcxRecipientName)) {
+          const counterpartExists = body.mcxPhone
+            ? Boolean(existing.rows[0]?.mcx_recipient_name_ciphertext)
+            : Boolean(existing.rows[0]?.mcx_phone_ciphertext);
+          if (!counterpartExists) throw new BadRequestException({ code: "MCX_FIELDS_REQUIRED_TOGETHER", message: "Indica o nome e o número Multicaixa Express juntos." });
+        }
         let profile;
         if (existing.rowCount) {
           profile = await client.query(
@@ -155,12 +196,124 @@ export class SellerController {
           );
           await client.query("INSERT INTO store_memberships (seller_profile_id, user_id, role) VALUES ($1, $2, 'owner') ON CONFLICT DO NOTHING", [profile.rows[0].id, user.id]);
         }
+        await this.syncPaymentMethods(client, profile.rows[0].id as string, body);
+        await client.query(
+          "INSERT INTO audit_events (actor_id, action, entity_type, entity_id) VALUES ($1, 'store.profile.saved', 'store', $2)",
+          [user.id, profile.rows[0].id],
+        );
         return profile.rows[0];
       });
       return this.getProfile(user);
     } catch (error) {
       if ((error as { code?: string })?.code === "23505") throw new ConflictException({ code: "STORE_NAME_CONFLICT", message: "Não foi possível criar esta montra. Tenta outro nome." });
       throw error;
+    }
+  }
+
+  private async syncPaymentMethods(client: import("pg").PoolClient, sellerProfileId: string, body: StoreDto) {
+    if (body.clearPaymentDestination) {
+      const pendingLegacyOrders = await client.query(
+        `SELECT 1 FROM orders WHERE seller_profile_id = $1 AND payment_method = 'manual_multicaixa_express_transfer'
+         AND payment_destination_ciphertext IS NULL AND payment_status IN ('awaiting_transfer', 'buyer_reported') LIMIT 1`,
+        [sellerProfileId],
+      );
+      if (pendingLegacyOrders.rowCount) {
+        throw new ConflictException({ code: "PENDING_MCX_ORDERS", message: "Termina as encomendas MCX pendentes antes de apagar estes dados." });
+      }
+      await client.query("DELETE FROM seller_payment_methods WHERE seller_profile_id = $1 AND method = 'manual_multicaixa_express_transfer'", [sellerProfileId]);
+    } else {
+      const legacyMcx = await client.query<{ mcx_recipient_name_ciphertext: string | null; mcx_phone_ciphertext: string | null }>(
+        "SELECT mcx_recipient_name_ciphertext, mcx_phone_ciphertext FROM seller_profiles WHERE id = $1 FOR UPDATE",
+        [sellerProfileId],
+      );
+      const method = await client.query<{ enabled: boolean }>(
+        "SELECT enabled FROM seller_payment_methods WHERE seller_profile_id = $1 AND method = 'manual_multicaixa_express_transfer' FOR UPDATE",
+        [sellerProfileId],
+      );
+      const recipientNameCiphertext = legacyMcx.rows[0]?.mcx_recipient_name_ciphertext;
+      const phoneCiphertext = legacyMcx.rows[0]?.mcx_phone_ciphertext;
+      const currentEnabled = method.rows[0]?.enabled ?? Boolean(recipientNameCiphertext && phoneCiphertext);
+      const mcxConfigurationChanged = Boolean(body.clearPaymentDestination || body.mcxRecipientName?.trim() || body.mcxPhone?.trim())
+        || (body.mcxEnabled !== undefined && body.mcxEnabled !== currentEnabled);
+      if (mcxConfigurationChanged) {
+        const pendingLegacyOrders = await client.query(
+          `SELECT 1 FROM orders WHERE seller_profile_id = $1 AND payment_method = 'manual_multicaixa_express_transfer'
+           AND payment_destination_ciphertext IS NULL AND payment_status IN ('awaiting_transfer', 'buyer_reported') LIMIT 1`,
+          [sellerProfileId],
+        );
+        if (pendingLegacyOrders.rowCount) {
+          throw new ConflictException({ code: "PENDING_MCX_ORDERS", message: "Termina as encomendas MCX pendentes antes de alterar ou desativar estes dados." });
+        }
+      }
+      if (recipientNameCiphertext && phoneCiphertext) {
+        const enabled = body.mcxEnabled ?? method.rows[0]?.enabled ?? true;
+        await client.query(
+          `INSERT INTO seller_payment_methods (
+             seller_profile_id, method, enabled, recipient_name_ciphertext, recipient_identifier_ciphertext
+           ) VALUES ($1, 'manual_multicaixa_express_transfer', $2, $3, $4)
+           ON CONFLICT (seller_profile_id, method) DO UPDATE SET
+             enabled = EXCLUDED.enabled,
+             recipient_name_ciphertext = EXCLUDED.recipient_name_ciphertext,
+             recipient_identifier_ciphertext = EXCLUDED.recipient_identifier_ciphertext,
+             updated_at = now()`,
+          [sellerProfileId, enabled, recipientNameCiphertext, phoneCiphertext],
+        );
+      } else {
+        if (body.mcxEnabled) throw new BadRequestException({ code: "MCX_DETAILS_REQUIRED", message: "Indica o nome e o número antes de ativares o Multicaixa Express." });
+        await client.query("DELETE FROM seller_payment_methods WHERE seller_profile_id = $1 AND method = 'manual_multicaixa_express_transfer'", [sellerProfileId]);
+      }
+    }
+
+    if (body.clearBankTransfer) {
+      await client.query("DELETE FROM seller_payment_methods WHERE seller_profile_id = $1 AND method = 'manual_bank_transfer'", [sellerProfileId]);
+      return;
+    }
+
+    const existingBank = await client.query<{
+      enabled: boolean;
+      recipient_name_ciphertext: string;
+      recipient_identifier_ciphertext: string;
+      provider_name_ciphertext: string;
+    }>(
+      `SELECT enabled, recipient_name_ciphertext, recipient_identifier_ciphertext, provider_name_ciphertext
+       FROM seller_payment_methods WHERE seller_profile_id = $1 AND method = 'manual_bank_transfer' FOR UPDATE`,
+      [sellerProfileId],
+    );
+    const suppliedBankFields = [body.bankName?.trim(), body.bankAccountHolder?.trim(), body.bankAccountIdentifier?.replace(/\s/g, "").toUpperCase()];
+    if (suppliedBankFields.some(Boolean)) {
+      const storedBankFields = existingBank.rows[0]
+        ? [
+            decryptPrivateValue(existingBank.rows[0].provider_name_ciphertext),
+            decryptPrivateValue(existingBank.rows[0].recipient_name_ciphertext),
+            decryptPrivateValue(existingBank.rows[0].recipient_identifier_ciphertext),
+          ]
+        : [null, null, null];
+      const bankFields = suppliedBankFields.map((value, index) => value || storedBankFields[index]);
+      if (bankFields.some((value) => !value)) {
+        throw new BadRequestException({ code: "BANK_TRANSFER_FIELDS_REQUIRED_TOGETHER", message: "Indica o banco, o titular e o IBAN ou número de conta juntos." });
+      }
+      const enabled = body.bankTransferEnabled ?? existingBank.rows[0]?.enabled ?? true;
+      await client.query(
+        `INSERT INTO seller_payment_methods (
+           seller_profile_id, method, enabled, provider_name_ciphertext, recipient_name_ciphertext, recipient_identifier_ciphertext
+         ) VALUES ($1, 'manual_bank_transfer', $2, $3, $4, $5)
+         ON CONFLICT (seller_profile_id, method) DO UPDATE SET
+           enabled = EXCLUDED.enabled,
+           provider_name_ciphertext = EXCLUDED.provider_name_ciphertext,
+           recipient_name_ciphertext = EXCLUDED.recipient_name_ciphertext,
+           recipient_identifier_ciphertext = EXCLUDED.recipient_identifier_ciphertext,
+           updated_at = now()`,
+        [sellerProfileId, enabled, encryptPrivateValue(bankFields[0]!), encryptPrivateValue(bankFields[1]!), encryptPrivateValue(bankFields[2]!)],
+      );
+    } else if (existingBank.rowCount) {
+      if (body.bankTransferEnabled !== undefined) {
+        await client.query(
+          "UPDATE seller_payment_methods SET enabled = $2, updated_at = now() WHERE seller_profile_id = $1 AND method = 'manual_bank_transfer'",
+          [sellerProfileId, body.bankTransferEnabled],
+        );
+      }
+    } else if (body.bankTransferEnabled) {
+      throw new BadRequestException({ code: "BANK_TRANSFER_DETAILS_REQUIRED", message: "Indica o banco, o titular e o IBAN ou número de conta antes de ativares a transferência bancária." });
     }
   }
 

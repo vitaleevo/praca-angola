@@ -67,7 +67,7 @@ O comando `admin:grant` promove uma conta existente e ativa. Executa-o apenas pa
 - Anúncios passam por revisão antes de aparecer no catálogo. Denúncias e decisões de moderação têm registo.
 - Favoritos, mensagens por produto, encomendas, estados de preparação/entrega, avaliações de encomendas concluídas e histórico estão disponíveis.
 - O carrinho cria uma encomenda por cada loja e reserva stock por 30 minutos. A loja define levantamento ou envio e o comprador confirma a receção.
-- Para já, o pagamento é **transferência Multicaixa Express feita diretamente pelo comprador ao vendedor**. O destino fica cifrado e só é mostrado ao comprador daquela encomenda. O comprador reporta a transferência; o vendedor confirma depois de verificar o seu próprio extrato. A PUVO não recebe nem guarda fundos, não usa o comprovativo como confirmação e não aceita PIN, OTP ou dados de cartão.
+- Cada loja pode ativar **Multicaixa Express e/ou transferência bancária manual**. O comprador escolhe um dos métodos disponíveis no checkout e transfere diretamente para o vendedor. O destino fica cifrado e só é mostrado ao comprador daquela encomenda. O comprador reporta a transferência; o vendedor confirma depois de verificar o seu próprio extrato. A PUVO não recebe nem guarda fundos, não usa o comprovativo como confirmação e não aceita PIN, OTP ou dados de cartão. PayPal não está integrado.
 - Cancelamentos antes do pagamento e reembolsos manuais têm estados e histórico. O vendedor faz a devolução fora da PUVO e só depois confirma o reembolso no pedido.
 
 ## Rotas principais
