@@ -8,7 +8,7 @@ import { MobileMenu } from "./mobile-menu";
 type SessionUser = { id: string; displayName: string; email: string; roles: string[] };
 type SessionResponse = { user?: SessionUser | null };
 
-export function HeaderAuth() {
+export function HeaderAuth({ workspace = false }: { workspace?: boolean }) {
   const router = useRouter();
   const [user, setUser] = useState<SessionUser | null>(null);
   const [loading, setLoading] = useState(true);
@@ -63,8 +63,8 @@ export function HeaderAuth() {
         <span className="account-nav-placeholder" aria-label="A verificar sessão" />
       ) : user ? (
         <nav className="account-nav" aria-label={`Sessão de ${user.displayName}`}>
-          <Link href="/conta">A minha conta</Link>
-          {user.roles.includes("platform_owner") && <Link href="/admin">Painel global</Link>}
+          {!workspace && <Link href="/conta">A minha conta</Link>}
+          {!workspace && user.roles.includes("platform_owner") && <Link href="/admin">Painel global</Link>}
           <button type="button" className="text-button" onClick={() => void logout()} disabled={loggingOut}>
             {loggingOut ? "A sair…" : "Sair"}
           </button>
@@ -75,7 +75,7 @@ export function HeaderAuth() {
           <Link className="account-create-link" href="/registar">Criar conta</Link>
         </nav>
       )}
-      <MobileMenu user={user} loading={loading || sessionError} loggingOut={loggingOut} onLogout={logout} />
+      <MobileMenu user={user} loading={loading || sessionError} loggingOut={loggingOut} onLogout={logout} workspace={workspace} />
       {logoutError && <p className="logout-error" role="alert">{logoutError}</p>}
     </div>
   );

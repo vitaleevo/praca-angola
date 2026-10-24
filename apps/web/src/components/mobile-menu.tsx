@@ -10,11 +10,13 @@ export function MobileMenu({
   loading,
   loggingOut,
   onLogout,
+  workspace = false,
 }: {
   user: SessionUser | null;
   loading: boolean;
   loggingOut: boolean;
   onLogout: () => Promise<void>;
+  workspace?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const triggerRef=useRef<HTMLButtonElement>(null);
@@ -49,12 +51,14 @@ export function MobileMenu({
               {links.map(([label, href]) => <Link href={href} key={href} onClick={() => setOpen(false)}>{label}</Link>)}
               <span className="mobile-menu-divider" />
               <p className="mobile-account-greeting">Olá, {user.displayName}</p>
-              <Link href="/conta" onClick={() => setOpen(false)}>A minha conta</Link>
-              <Link href="/conta/encomendas" onClick={() => setOpen(false)}>Encomendas</Link>
-              <Link href="/conta/mensagens" onClick={() => setOpen(false)}>Mensagens</Link>
-              <Link href="/conta/favoritos" onClick={() => setOpen(false)}>Favoritos</Link>
-              {user.roles.includes("platform_owner") && <Link href="/admin" onClick={() => setOpen(false)}>Painel global</Link>}
-              <Link href="/vendedor" onClick={() => setOpen(false)}>Vender na PUVO</Link>
+              {!workspace && <>
+                <Link href="/conta" onClick={() => setOpen(false)}>A minha conta</Link>
+                <Link href="/conta/encomendas" onClick={() => setOpen(false)}>Encomendas</Link>
+                <Link href="/conta/mensagens" onClick={() => setOpen(false)}>Mensagens</Link>
+                <Link href="/conta/favoritos" onClick={() => setOpen(false)}>Favoritos</Link>
+                {user.roles.includes("platform_owner") && <Link href="/admin" onClick={() => setOpen(false)}>Painel global</Link>}
+                <Link href="/vendedor" onClick={() => setOpen(false)}>Vender na PUVO</Link>
+              </>}
               <button type="button" className="mobile-logout" disabled={loggingOut} onClick={() => void onLogout()}>
                 {loggingOut ? "A terminar sessão…" : "Terminar sessão"}
               </button>

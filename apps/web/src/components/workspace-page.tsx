@@ -11,7 +11,7 @@ type Props = {
 export function WorkspacePage({ area, children, services = false, className = "" }: Props) {
   return (
     <main className={`${services ? "market-shell services-shell" : ""} ${className}`}>
-      <SiteHeader services={services} />
+      <SiteHeader services={services} workspace />
       <div className="workspace-layout">
         <WorkspaceNavigation area={area} />
         <div className={`workspace-content page-wrap ${services ? "service-workspace" : ""}`}>{children}</div>
