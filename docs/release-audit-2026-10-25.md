@@ -1,5 +1,9 @@
 # Publicação PUVO — 25/10/2026
 
+## Integração Meta posterior
+
+A app Meta própria PUVO (`2161321067754105`) foi criada no negócio Agência Holyweb. O webhook foi preparado para processar todos os eventos do lote e deduplicar reentregas pela migração 022. A ativação de mensagens continua pendente do App Secret da nova app e da subscrição da conta WhatsApp Business. Consultar `docs/meta-webhook-puvo.md`; a app “Agentes” existente não foi modificada.
+
 ## Estado
 
 **Publicado em produção** a partir da revisão `ddb1d84` (`codex/account-sidebars`). A API e o worker de IA estão no Railway; o site e a gestão estão no Vercel.
