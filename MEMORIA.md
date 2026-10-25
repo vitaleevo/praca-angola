@@ -1,4 +1,10 @@
-# Auditoria de publicação — 25/10/2026 (atualização)
+# Publicação concluída — 25/10/2026
+
+Revisão de aplicação `ddb1d84` publicada em produção: [site](https://puvo.vitaleevo.ao), [gestão](https://gestao.puvo.vitaleevo.ao), API Railway e worker de IA privado. Domínios e DNS respondem; site, gestão, API readiness e `ai/status` passaram smoke HTTP. Migrações 020–021 aplicadas, com backup prévio `ba337715-0f37-4bed-8afa-5d07b384ece6`. Testes locais: API 55/55, worker 7/7, builds/typecheck/lint; E2E 21/22 na suite e o último isoladamente. O webhook Meta requer credenciais ainda ausentes, e o fluxo de pagamento real não foi executado em produção. Estado detalhado e IDs em `docs/release-audit-2026-10-25.md`. Os parágrafos históricos abaixo descrevem etapas anteriores e não o estado atual.
+
+---
+
+# Auditoria de publicação — 25/10/2026 (histórico anterior ao deploy)
 
 A revisão local passou typecheck, lint, 55 testes API, 7 testes Python e build Web/Admin/API. A primeira suite E2E passou 20/20 antes dos últimos ajustes; a segunda teve 17/20, e os três casos afetados passaram isoladamente após corrigir o checkout e reiniciar o Docker. As migrações 001–020 passaram numa base descartável. As falhas de autorização/PIN na logística, o acesso ao chat público, o destino de IA personalizado e o webhook Meta foram endurecidos localmente. **Produção continua na versão anterior:** o checkout com estafeta mostra um total com frete que a API não grava, o Railway ainda não tem `ai-worker`, e faltam uma suite E2E integral verde na revisão final, configuração remota e Git/CI estáveis. Ver `docs/release-audit-2026-10-25.md` para evidência e sequência de release. Jev devolveu HTTP 401; substituir a chave antes de novo uso.
 
