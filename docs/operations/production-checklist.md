@@ -1,5 +1,7 @@
 # Checklist de produção — Praça Angola
 
+> **Topologia vigente:** a produção documentada da PUVO usa Vercel para a Web e Railway para API/dados. Esta checklist descreve um deployment self-hosted com Docker Compose/Caddy e não deve ser executada contra Railway. Para gates e evidência da implantação vigente, consulte [`current-production-status.md`](current-production-status.md). Atualize os procedimentos deste documento antes de usá-los como runbook de produção.
+
 Este documento é a lista de verificação para colocar a Praça Angola em produção com o Compose de `docker-compose.prod.yml`, Caddy no host e segredos fora do Git.
 
 ## Regra de ouro

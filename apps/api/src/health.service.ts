@@ -26,9 +26,10 @@ export class HealthService {
 
     try {
       const result = await this.db.query<{ lag: number }>(
-        `SELECT COALESCE(EXTRACT(EPOCH FROM (now() - min(next_attempt_at))), 0)::int AS lag
-         FROM service_notification_outbox
-         WHERE status IN ('pending', 'processing', 'failed')`,
+        `SELECT COALESCE(EXTRACT(EPOCH FROM (now() - min(n.created_at))), 0)::int AS lag
+         FROM service_notification_outbox o
+         JOIN service_notifications n ON n.id = o.notification_id
+         WHERE o.status IN ('pending', 'processing', 'failed')`,
       );
       outboxLagSeconds = Math.max(0, result.rows[0]?.lag ?? 0);
     } catch {

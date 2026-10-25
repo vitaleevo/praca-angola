@@ -1,4 +1,45 @@
-# Estado mais recente — PUVO público (23/10/2026)
+# Estado mais recente — consolidação dos marketplaces (25/10/2026)
+
+## Fase 1 — foco em Produtos e Serviços
+
+Pedido: avançar o plano de consolidação de Produtos e Serviços, deixando clara a prioridade na experiência pública. O plano detalhado está em `docs/plano-consolidacao-produtos-servicos.md`.
+
+- Criado `apps/web/src/components/marketplace-focus-cards.tsx` para expor apenas Produtos e Serviços quando a API os marca ativos. Os links de destino são explicitamente associados aos slugs suportados; setores futuros não caem por engano na rota de Produtos.
+- Homepage agora mostra os dois destinos ativos como cartões principais, substitui o atalho de “emprego” por pesquisas de Produtos e Serviços, e dá acesso tanto a criar loja como a criar perfil profissional. A ilustração deixou de anunciar Casas e espaços.
+- `/marketplaces` agora destaca destinos ativos e recolhe os setores futuros numa lista sem links, evitando cartões que pareçam funcionais. O aviso de área em preparação continua compatível com links antigos.
+- Adicionado `apps/web/src/app/marketplace-focus.css` e importação no layout. As alterações anteriores não commitadas do cabeçalho/menu foram preservadas.
+- Verificação: typecheck da Web e ESLint direcionado passaram após a correção da chave da lista (o endpoint não devolve `id`; usa-se o `slug` único). Revisão visual manual em preview isolado: `/marketplaces` a 1440, 768 e 320 px; homepage a 320 px; roadmap expandido. Sem transbordamento horizontal visível. Não foram executados testes E2E nem Lighthouse.
+- Console do preview apresentou POSTs de CSP report-only limitados a 429; acompanhar na fase operacional, sem desativar ou enfraquecer CSP. `/marketplaces` em `localhost:3100` continua falhando porque o container ativo está vinculado a `C:\Users\alexa\Videos\Mercado Angolano`, outro checkout, com erro de compilação preexistente. A página foi revista no preview isolado da worktree em `3101`; não alterar o outro checkout nesta tarefa.
+- O gate de foco/UX responsiva da Fase 1 está implementado e visualmente conferido neste recorte. Auditoria WCAG integral e validação de produção permanecem pendentes. Os gates operacionais da Fase 3 e liquidez da Fase 4 continuam abertos; Empregos continua candidato posterior, não lançamento autorizado.
+
+## Avanço dos gates operacionais da Fase 3 — 25/10/2026
+
+- Criado `docs/operations/current-production-status.md` como matriz canónica do estado operacional. Regista a topologia vigente Vercel (Web) + Railway (API/dados), separando evidência pública desta revisão de configurações que precisam de confirmação nos painéis dos provedores. Os comandos Compose/Caddy dos runbooks são explicitamente identificados como self-hosted, para não serem aplicados por engano à produção atual.
+- Verificação pública pontual: Web `https://puvo.vitaleevo.ao/` 200; API `/api/v1/health/ready` 200 com `db:ok`, `media:ok`, `outboxLagSeconds:0`; `/api/v1/metrics` público sem token 404. A Web devolveu HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy e Permissions-Policy. CSP continua Report-Only. Isso não certifica monitorização nem configuração nos painéis.
+- Hardening P0: a ponta de `hardening/p0` é ancestral de `main`; não existe diff entre os dois tips. Corrige o registo histórico que dizia que a branch ainda estava separada.
+- Corrigida localmente a idade da outbox em `apps/api/src/health.service.ts` e `apps/api/src/observability/metrics.service.ts`: mede `service_notifications.created_at`; `next_attempt_at` pode estar no futuro devido a backoff e ocultava mensagens antigas. Ainda não publicada; validação registada abaixo.
+- Os documentos `docs/operations/production-checklist.md` e `go-live.md` agora apontam que o seu procedimento é Compose/Caddy self-hosted; o plano de consolidação liga à matriz operacional atual.
+- Validação após continuação: `pnpm --filter @puvo/api typecheck` passou; `pnpm --filter @puvo/api test -- src/health.service.spec.ts` correu a suite unitária toda (8 ficheiros/24 testes), todos passaram. O Vitest avisou sobre a configuração native loader; sem E2E.
+- Railway: PITR habilitado, bucket ligado e arquivador saudável. Snapshot diário de PostgreSQL e media tem retenção de 6 dias; semanal, 27 dias. O PITR foi restaurado para um serviço temporário em 25/10 às 02:10 UTC; contagens de users/listings/orders/service_requests iguais às de produção (`3/1/0/0`). Serviço temporário removido logo após a verificação; os serviços Postgres/API originais continuaram `SUCCESS`.
+- Railway observabilidade: workspace no plano `PRO`. Criado e verificado o dashboard padrão em `production`, com CPU, memória, disco, rede, logs de erro e uso do projeto. O utilizador escolheu email + app Railway para os administradores. A consulta continua a encontrar zero `notificationRules`; faltam ativar email/app nas contas dos administradores, criar monitores nos widgets e testar entrega. A API GraphQL não expõe mutação para criar monitores; não inventar a configuração JSON dos canais de notificação.
+- Vercel: `puvo.vitaleevo.ao` segue no deployment READY do commit `a9df3fca` (PR #9). O commit `85697cef` (PR #10) foi cancelado porque não afetava este projeto monorepo; não foi falha do build. As mudanças locais da UX e a correção de outbox continuam sem publicação. Readiness pública continuou em 200 (`db:ok`, `media:ok`, atraso zero); métricas sem token continuam em 404.
+- Resend: `GET /domains`, usando em memória o `SMTP_PASSWORD` existente na Railway, respondeu `401`; não repetir com essa chave. O utilizador autorizou gerar uma chave nova de envio e atualizar a variável, mas a política Computer Use exige handoff para criar/introduzir credenciais e o Work desativa navegação local. O utilizador deve criar uma chave `Sending access` limitada a `vitaleevo.ao` e atualizar `SMTP_PASSWORD`; depois podemos validar sem revelar a chave. Sem envio de email.
+- Validação local atual: API e Web typecheck, lint da Web e builds de produção passaram; suite unitária API: 8 ficheiros/24 testes. Preview visual da homepage e de `/marketplaces` em desktop, 390 px e 320 px sem overflow visível; Lighthouse/Core Web Vitals e WCAG integral não medidos. O preview gerou muitos POSTs CSP `Report-Only` limitados a 429; não enfraquecer a política.
+- O serviço temporário `puvo-restore-drill-20261025` foi removido após validar contagens (`3/1/0/0`); Postgres/API originais mantiveram `SUCCESS`. Nesta continuação, o único recurso persistente novo da Railway foi o dashboard padrão; não houve deploy de aplicação.
+- Bloqueadores restantes: utilizador criar/introduzir a nova chave SMTP no gestor do Resend/Railway e sinalizar para validação; ativar preferências email/app e monitores de limites pelo painel Railway e testar entrega; ensaiar ficheiros de media/cópia independente; nomear on-call; medir CWV, carga, funil sem dados pessoais e WCAG. Preparar o preview/release das alterações locais, mas manter produção não certificada para piloto enquanto estes gates estiverem abertos.
+
+## Estado do projeto
+
+- Fase/trilha atual: gates operacionais da Fase 3 para Produtos e Serviços.
+- Sólido agora: foco visual da Fase 1; disponibilidade/readiness pública; hardening P0 em `main`; backups diários/semanais e PITR confirmados; restauro PostgreSQL isolado conferido; dashboard Railway padrão criado; bug de idade da outbox corrigido localmente; typecheck/build e 24 testes unitários aprovados.
+- Falta imediato: chave SMTP válida (a atual deu 401), ativar alertas Railway email/app e testar, restore de media/cópia independente, release das alterações locais e concluir desempenho/acessibilidade/funil. Não começar o piloto de Empregos antes da decisão operacional.
+- Distância do fim: Fase 3 não está fechada e produção não está certificada para piloto. Fase 4 (liquidez e piloto Empregos) ainda não começou.
+
+AVISO: O utilizador deve criar uma chave Resend `Sending access` limitada a `vitaleevo.ao`, atualizar `SMTP_PASSWORD` na Railway e ativar email/app mais monitores nos widgets do dashboard Pro; depois validar entrega, executar restore de media/cópia independente e publicar as alterações reconciliadas. Antes de iniciar, leia `MEMORIA.md` para continuar exatamente de onde o projeto parou, entender o que já foi feito e integrar a solução com o sistema atual sem reler todo o repositório.
+
+---
+
+# Estado anterior — PUVO público (23/10/2026)
 
 O endereço canónico confirmado pelo utilizador é **https://puvo.vitaleevo.ao**. O DNS de `vitaleevo.ao` está delegado à Vercel; o subdomínio PUVO foi associado ao projeto `praca-angola-web` e responde por HTTPS. `https://praca.vitaleevo.ao` redireciona para o novo domínio com 308. Na API Railway, `WEB_ORIGIN` e `PUBLIC_SITE_URL` foram atualizados para o domínio PUVO; `API_PORT=4000` e `PORT=4000` alinham o servidor ao healthcheck. Na Vercel, `PUBLIC_SITE_URL` de produção também foi atualizado. Redeploys anteriores ainda produziram sitemap com `localhost`; a Web fixa o domínio PUVO em produção nos geradores de sitemap e robots. Confirmar a saída após publicar essa correção.
 
