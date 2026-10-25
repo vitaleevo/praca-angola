@@ -9,7 +9,9 @@
 - Backup PostgreSQL anterior à migração: `pre-meta-webhook-022`, ID `1ae42bcf-7c82-4af6-8b49-2476e045ed2e`, sem expiração.
 - **Pendente:** obter o App Secret no painel Meta e guardá-lo como `META_APP_SECRET` no mesmo serviço Railway. Até lá, POST falha fechado com 503. O token de verificação sozinho não autentica eventos.
 - A app “Agentes” (`1627041295300870`) permanece ligada ao CRM em `api-crm.vitaleevo.ao`; não alterar as suas subscrições.
-- Para publicar a app Meta, preencher no painel a política de privacidade `https://puvo.vitaleevo.ao/privacidade` e concluir a verificação do email de contacto. A Meta reporta a política ausente e a app ainda em modo de desenvolvimento.
+- A política de privacidade `https://puvo.vitaleevo.ao/privacidade` já foi preenchida no painel. A app continua em modo de desenvolvimento e o email de contacto ainda não está verificado.
+- O Configuration ID `1120855583871113` é de Facebook Login for Business; não substitui o App Secret nem configura os webhooks WhatsApp.
+- Um Access Token temporário do WhatsApp foi partilhado numa conversa em 25/10/2026. Tratar esse token como comprometido, revogá-lo e criar um token permanente de System User para a API apenas quando a conta/número estiverem prontos. Nunca copiar tokens para este ficheiro, Git ou chat.
 
 ## Ativação
 
