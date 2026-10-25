@@ -1,4 +1,35 @@
 /* CRM & Omnichannel Live Inbox Styles */
+
+.crm-channel-manager { margin: 0 0 24px; padding: 20px; border: 1px solid #dbe5df; border-radius: 16px; background: #fff; box-shadow: 0 4px 16px rgba(23, 36, 31, .05); }
+.crm-channel-manager-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.crm-channel-manager h2 { margin: 0; color: #17241f; font-size: 1.1rem; }
+.crm-channel-manager-heading p { margin: 6px 0 0; color: #607167; font-size: .875rem; max-width: 620px; }
+.crm-channel-kicker { color: #d9573b !important; font-weight: 800; font-size: .72rem !important; letter-spacing: .08em; text-transform: uppercase; }
+.crm-channel-manager-actions, .crm-channel-row-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.crm-channel-feedback { margin: 14px 0 0; border-radius: 10px; padding: 10px 12px; font-size: .875rem; }
+.crm-channel-feedback.error { background: #fff1ef; color: #a13320; border: 1px solid #f6b8aa; }
+.crm-channel-feedback.success { background: #edf9f0; color: #176536; border: 1px solid #a9dfb8; }
+.crm-channel-selection, .crm-whatsapp-form { display: grid; gap: 12px; margin-top: 16px; padding: 16px; border: 1px solid #dbe5df; border-radius: 12px; background: #f7faf7; }
+.crm-channel-selection h3, .crm-channel-selection p, .crm-whatsapp-form p { margin: 0; }
+.crm-channel-selection > p, .crm-whatsapp-form p { color: #607167; font-size: .82rem; }
+.crm-meta-page-option { display: flex; align-items: flex-start; gap: 10px; padding: 12px; border: 1px solid #dbe5df; border-radius: 10px; background: #fff; cursor: pointer; }
+.crm-meta-page-option input { width: 18px; height: 18px; margin-top: 1px; accent-color: #d9573b; }
+.crm-meta-page-option span { display: grid; gap: 3px; }
+.crm-meta-page-option small, .crm-channel-row small { color: #607167; }
+.crm-whatsapp-form { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.crm-whatsapp-form label { display: grid; gap: 6px; color: #17241f; font-size: .82rem; font-weight: 700; }
+.crm-whatsapp-form input { min-width: 0; padding: 10px 11px; border: 1px solid #b9c9bf; border-radius: 8px; background: #fff; color: #17241f; }
+.crm-whatsapp-form p, .crm-whatsapp-form button { grid-column: 1 / -1; }
+.crm-channel-list { display: grid; gap: 8px; margin-top: 16px; }
+.crm-channel-row { display: flex; justify-content: space-between; gap: 16px; align-items: center; padding: 12px; border: 1px solid #e3ebe5; border-radius: 10px; }
+.crm-channel-row > div:first-child { display: grid; gap: 2px; }
+.crm-channel-row span { color: #53665b; font-size: .875rem; }
+.crm-channel-status { padding: 4px 8px; border-radius: 999px; font-weight: 800; font-size: .72rem !important; }
+.crm-channel-status.connected { color: #176536; background: #e8f7ed; }
+.crm-channel-status.expired { color: #994c00; background: #fff4de; }
+.crm-channel-status.disconnected { color: #59655d; background: #eef1ef; }
+.crm-channel-empty { margin: 0; padding: 12px 0; color: #607167; font-size: .875rem; }
+@media (max-width: 760px) { .crm-channel-manager-heading, .crm-channel-row { align-items: stretch; flex-direction: column; } .crm-whatsapp-form { grid-template-columns: 1fr; } .crm-channel-row-actions { justify-content: space-between; } }
 .crm-container {
   display: flex;
   flex-direction: column;

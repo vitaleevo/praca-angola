@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import "../app/crm.css";
+import { CrmChannelManager } from "./crm-channel-manager";
 
 interface Conversation {
   id: string;
@@ -247,6 +248,7 @@ export function CrmLiveInbox() {
 
   return (
     <div className="crm-container">
+      <CrmChannelManager />
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>

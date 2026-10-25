@@ -1,4 +1,5 @@
-import { BadRequestException, forwardRef, Inject, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, forwardRef, Inject, Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
+import { createHash, randomBytes } from "node:crypto";
 import { DatabaseService } from "../database/database.service";
 import { AiClientService } from "../ai/ai-client.service";
 import { CrmAutomationsService } from "./crm-automations.service";
@@ -16,6 +17,7 @@ import {
   CreateKnowledgeDto,
 } from "./crm.types";
 import { decryptPrivateValue, encryptPrivateValue } from "../auth/auth.crypto";
+import { MetaGraphService } from "./meta-graph.service";
 
 const DEFAULT_STAGES = [
   { name: "Novo Lead", slug: "new", color: "#3b82f6", sort_order: 1 },
@@ -33,6 +35,7 @@ export class CrmService {
     private readonly aiClient: AiClientService,
     @Inject(forwardRef(() => CrmAutomationsService))
     private readonly automations: CrmAutomationsService,
+    private readonly metaGraph: MetaGraphService,
   ) {}
 
   async resolveWorkspaceForUser(userId: string): Promise<CrmWorkspace> {
@@ -216,7 +219,7 @@ export class CrmService {
   }
 
   async createContact(workspaceId: string, dto: CreateContactDto) {
-    return this.database.transaction(async (client) => {
+    const result = await this.database.transaction(async (client) => {
       const contactResult = await client.query<{ id: string; full_name: string }>(
         `INSERT INTO crm_contacts (workspace_id, full_name, phone, email, origin_channel, province, municipality, notes, tags)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
@@ -275,6 +278,7 @@ export class CrmService {
 
       return contact;
     });
+    return result;
   }
 
   async getConversations(workspaceId: string) {
@@ -319,10 +323,68 @@ export class CrmService {
   }
 
   async sendMessage(workspaceId: string, conversationId: string, senderUserId: string, dto: SendMessageDto) {
+    const conversation = await this.database.query<{
+      channel: "whatsapp" | "instagram_dm" | "facebook_messenger" | "puvo_chat";
+      external_thread_id: string | null;
+      channel_connection_id: string | null;
+    }>(
+      `SELECT channel, external_thread_id, channel_connection_id
+       FROM crm_conversations WHERE id = $1 AND workspace_id = $2`,
+      [conversationId, workspaceId],
+    );
+    const target = conversation.rows[0];
+    if (!target) throw new NotFoundException({ code: "CONVERSATION_NOT_FOUND", message: "Conversa não encontrada." });
+
+    let providerMessageId: string | undefined;
+    const externalChannel = target.channel === "whatsapp" ? "whatsapp_cloud"
+      : target.channel === "instagram_dm" ? "instagram_direct"
+      : target.channel === "facebook_messenger" ? "facebook_page" : null;
+
+    if (externalChannel) {
+      if (!target.channel_connection_id || !target.external_thread_id) {
+        throw new BadRequestException({ code: "CHANNEL_NOT_CONNECTED", message: "Esta conversa não tem uma ligação Meta ativa." });
+      }
+      if (dto.mediaUrl || !["text", "catalog_product", "payment_request"].includes(dto.messageType || "text")) {
+        throw new BadRequestException({ code: "UNSUPPORTED_MESSAGE_TYPE", message: "Este canal aceita respostas de texto nesta versão." });
+      }
+      const connection = await this.database.query<{ external_account_id: string; credentials_ciphertext: string; status: string }>(
+        `SELECT external_account_id, credentials_ciphertext, status
+         FROM crm_channel_connections WHERE id = $1 AND workspace_id = $2 AND channel_type = $3`,
+        [target.channel_connection_id, workspaceId, externalChannel],
+      );
+      const linked = connection.rows[0];
+      if (!linked || linked.status !== "connected") {
+        throw new BadRequestException({ code: "CHANNEL_NOT_CONNECTED", message: "A ligação deste canal expirou ou foi removida." });
+      }
+      let accessToken: string;
+      try {
+        const credentials = decryptPrivateValue(linked.credentials_ciphertext);
+        accessToken = JSON.parse(credentials).accessToken || credentials;
+      } catch {
+        throw new BadRequestException({ code: "CHANNEL_CREDENTIALS_INVALID", message: "As credenciais guardadas deste canal são inválidas. Liga a conta novamente." });
+      }
+      try {
+        providerMessageId = await this.metaGraph.sendText(externalChannel, linked.external_account_id, target.external_thread_id, accessToken, dto.content.trim());
+      } catch (error) {
+        await this.persistOutgoingMessage(workspaceId, conversationId, senderUserId, dto, "failed");
+        throw error;
+      }
+    }
+    return this.persistOutgoingMessage(workspaceId, conversationId, senderUserId, dto, "sent", providerMessageId);
+  }
+
+  private async persistOutgoingMessage(
+    workspaceId: string,
+    conversationId: string,
+    senderUserId: string,
+    dto: SendMessageDto,
+    status: "sent" | "failed",
+    providerMessageId?: string,
+  ) {
     return this.database.transaction(async (client) => {
       const msg = await client.query<CrmMessage>(
         `INSERT INTO crm_messages (conversation_id, workspace_id, direction, message_type, content, media_url, metadata, status, sent_by_user_id)
-         VALUES ($1, $2, 'outbound', $3, $4, $5, $6, 'sent', $7)
+         VALUES ($1, $2, 'outbound', $3, $4, $5, $6, $7, $8)
          RETURNING id, conversation_id, workspace_id, direction, message_type, content, media_url, metadata, status, sent_by_user_id, sent_by_ai, created_at`,
         [
           conversationId,
@@ -330,7 +392,8 @@ export class CrmService {
           dto.messageType || "text",
           dto.content.trim(),
           dto.mediaUrl || null,
-          JSON.stringify(dto.metadata || {}),
+          JSON.stringify({ ...(dto.metadata || {}), ...(providerMessageId ? { meta_message_id: providerMessageId } : {}) }),
+          status,
           senderUserId,
         ],
       );
@@ -454,6 +517,198 @@ export class CrmService {
     );
 
     return result.rows[0];
+  }
+
+  async startMetaConnection(userId: string, workspaceId: string) {
+    const state = randomBytes(32).toString("base64url");
+    const stateHash = createHash("sha256").update(state).digest("hex");
+    await this.database.query(
+      `INSERT INTO crm_meta_oauth_attempts (workspace_id, user_id, state_hash, expires_at)
+       VALUES ($1, $2, $3, now() + interval '10 minutes')`,
+      [workspaceId, userId, stateHash],
+    );
+    return { authorizationUrl: this.metaGraph.createAuthorizationUrl(state) };
+  }
+
+  async finishMetaAuthorization(state: string, code: string): Promise<{ attemptId: string; userId: string }> {
+    const stateHash = createHash("sha256").update(state).digest("hex");
+    const attempt = await this.database.query<{ id: string; user_id: string }>(
+      `SELECT id, user_id FROM crm_meta_oauth_attempts
+       WHERE state_hash = $1 AND expires_at > now() AND authorized_at IS NULL AND completed_at IS NULL
+       LIMIT 1`,
+      [stateHash],
+    );
+    if (!attempt.rows.length) throw new UnauthorizedException({ code: "META_OAUTH_STATE_INVALID", message: "A ligação Meta expirou. Inicia novamente no CRM." });
+    const pages = await this.metaGraph.exchangeCodeForPages(code);
+    await this.database.query(
+      `UPDATE crm_meta_oauth_attempts
+       SET accounts_ciphertext = $2, authorized_at = now(), expires_at = now() + interval '10 minutes'
+       WHERE id = $1`,
+      [attempt.rows[0].id, encryptPrivateValue(JSON.stringify(pages))],
+    );
+    return { attemptId: attempt.rows[0].id, userId: attempt.rows[0].user_id };
+  }
+
+  async getMetaConnectionPreview(userId: string, workspaceId: string, attemptId: string) {
+    const attempt = await this.loadMetaAttempt(userId, workspaceId, attemptId);
+    const pages = this.decryptMetaPages(attempt.accounts_ciphertext);
+    return {
+      pages: pages.map((page) => ({
+        id: page.id,
+        name: page.name,
+        instagram: page.instagram ? { id: page.instagram.id, name: page.instagram.name, username: page.instagram.username } : null,
+      })),
+    };
+  }
+
+  async completeMetaConnections(userId: string, workspaceId: string, attemptId: string, pageIds: string[]) {
+    const attempt = await this.loadMetaAttempt(userId, workspaceId, attemptId);
+    const selected = this.decryptMetaPages(attempt.accounts_ciphertext).filter((page) => pageIds.includes(page.id));
+    if (!selected.length) throw new BadRequestException({ code: "META_PAGE_REQUIRED", message: "Seleciona pelo menos uma Página Facebook." });
+    if (selected.length !== new Set(pageIds).size) throw new BadRequestException({ code: "META_PAGE_INVALID", message: "Uma Página selecionada não pertence a esta autorização." });
+
+    const connected = await this.database.transaction(async (client) => {
+      const result: Array<{ channelType: string; accountName: string }> = [];
+      for (const page of selected) {
+        await this.metaGraph.subscribeAccount("facebook_page", page.id, page.pageAccessToken);
+        const credentials = encryptPrivateValue(JSON.stringify({ accessToken: page.pageAccessToken }));
+        await client.query(
+          `INSERT INTO crm_channel_connections (workspace_id, channel_type, account_name, external_account_id, credentials_ciphertext, status, last_sync_at)
+           VALUES ($1, 'facebook_page', $2, $3, $4, 'connected', now())
+           ON CONFLICT (workspace_id, channel_type, external_account_id)
+           DO UPDATE SET account_name = EXCLUDED.account_name, credentials_ciphertext = EXCLUDED.credentials_ciphertext,
+                         status = 'connected', last_sync_at = now(), updated_at = now()`,
+          [workspaceId, page.name, page.id, credentials],
+        );
+        result.push({ channelType: "facebook_page", accountName: page.name });
+        if (page.instagram) {
+          await this.metaGraph.subscribeAccount("instagram_direct", page.instagram.id, page.pageAccessToken);
+          await client.query(
+            `INSERT INTO crm_channel_connections (workspace_id, channel_type, account_name, external_account_id, credentials_ciphertext, status, last_sync_at)
+             VALUES ($1, 'instagram_direct', $2, $3, $4, 'connected', now())
+             ON CONFLICT (workspace_id, channel_type, external_account_id)
+             DO UPDATE SET account_name = EXCLUDED.account_name, credentials_ciphertext = EXCLUDED.credentials_ciphertext,
+                           status = 'connected', last_sync_at = now(), updated_at = now()`,
+            [workspaceId, page.instagram.name, page.instagram.id, credentials],
+          );
+          result.push({ channelType: "instagram_direct", accountName: page.instagram.name });
+        }
+      }
+      await client.query(`UPDATE crm_meta_oauth_attempts SET completed_at = now(), accounts_ciphertext = NULL WHERE id = $1`, [attemptId]);
+      return result;
+    });
+    return { channels: connected };
+  }
+
+  async connectWhatsAppCloud(workspaceId: string, accountName: string, phoneNumberId: string, accessToken: string) {
+    if (!/^[A-Za-z0-9_-]{3,128}$/.test(phoneNumberId) || accessToken.length < 20 || accessToken.length > 4096) {
+      throw new BadRequestException({ code: "WHATSAPP_CREDENTIALS_INVALID", message: "O ID do número ou token WhatsApp é inválido." });
+    }
+    return this.connectChannel(workspaceId, "whatsapp_cloud", accountName.trim().slice(0, 120), phoneNumberId, JSON.stringify({ accessToken }));
+  }
+
+  async disconnectChannel(workspaceId: string, channelId: string) {
+    const result = await this.database.query(
+      `UPDATE crm_channel_connections SET status = 'disconnected', updated_at = now()
+       WHERE id = $1 AND workspace_id = $2 AND status <> 'disconnected' RETURNING id`,
+      [channelId, workspaceId],
+    );
+    if (!result.rowCount) throw new NotFoundException({ code: "CHANNEL_NOT_FOUND", message: "Canal não encontrado ou já desligado." });
+    return { success: true };
+  }
+
+  async ingestExternalMessage(input: {
+    channel: "facebook_messenger" | "instagram_dm";
+    accountId: string;
+    senderId: string;
+    messageId: string;
+    text?: string;
+    senderName?: string;
+  }) {
+    const channelType = input.channel === "facebook_messenger" ? "facebook_page" : "instagram_direct";
+    const connection = await this.database.query<{ id: string; workspace_id: string }>(
+      `SELECT id, workspace_id FROM crm_channel_connections
+       WHERE channel_type = $1 AND external_account_id = $2 AND status = 'connected' LIMIT 1`,
+      [channelType, input.accountId],
+    );
+    const linked = connection.rows[0];
+    if (!linked || !input.senderId || !input.messageId) return null;
+    const content = input.text?.trim() || "[Mensagem sem texto]";
+    const result = await this.database.transaction(async (client) => {
+      const event = await client.query(
+        `INSERT INTO crm_meta_webhook_events (event_key) VALUES ($1) ON CONFLICT DO NOTHING RETURNING event_key`,
+        [`${input.channel}:${input.messageId}`],
+      );
+      if (!event.rows.length) return null;
+      let identity = await client.query<{ contact_id: string }>(
+        `SELECT contact_id FROM crm_contact_external_identities
+         WHERE workspace_id = $1 AND channel = $2 AND external_user_id = $3 LIMIT 1`,
+        [linked.workspace_id, input.channel, input.senderId],
+      );
+      if (!identity.rows.length) {
+        const label = input.senderName?.trim().slice(0, 100) || `${input.channel === "instagram_dm" ? "Instagram" : "Facebook"} ${input.senderId.slice(-4)}`;
+        const contact = await client.query<{ id: string }>(
+          `INSERT INTO crm_contacts (workspace_id, full_name, origin_channel, instagram_username)
+           VALUES ($1, $2, $3, $4) RETURNING id`,
+          [linked.workspace_id, label, input.channel === "instagram_dm" ? "instagram" : "facebook", input.channel === "instagram_dm" ? label : null],
+        );
+        identity = await client.query<{ contact_id: string }>(
+          `INSERT INTO crm_contact_external_identities (workspace_id, contact_id, channel, external_user_id, display_name)
+           VALUES ($1, $2, $3, $4, $5) RETURNING contact_id`,
+          [linked.workspace_id, contact.rows[0].id, input.channel, input.senderId, input.senderName?.trim().slice(0, 100) || null],
+        );
+      }
+      const conversation = await client.query<{ id: string }>(
+        `INSERT INTO crm_conversations (workspace_id, contact_id, channel, channel_connection_id, external_thread_id, last_message_preview, last_message_at, unread_count)
+         VALUES ($1, $2, $3, $4, $5, $6, now(), 1)
+         ON CONFLICT (workspace_id, contact_id, channel)
+         DO UPDATE SET channel_connection_id = EXCLUDED.channel_connection_id, external_thread_id = EXCLUDED.external_thread_id,
+                       last_message_preview = EXCLUDED.last_message_preview, last_message_at = now(), unread_count = crm_conversations.unread_count + 1
+         RETURNING id`,
+        [linked.workspace_id, identity.rows[0].contact_id, input.channel, linked.id, input.senderId, content.slice(0, 100)],
+      );
+      const message = await client.query<CrmMessage>(
+        `INSERT INTO crm_messages (conversation_id, workspace_id, direction, message_type, content, status, metadata)
+         VALUES ($1, $2, 'inbound', 'text', $3, 'delivered', $4::jsonb)
+         RETURNING id, conversation_id, workspace_id, direction, message_type, content, status, created_at`,
+        [conversation.rows[0].id, linked.workspace_id, content, JSON.stringify({ meta_message_id: input.messageId, sender_id: input.senderId })],
+      );
+      return { workspaceId: linked.workspace_id, contactId: identity.rows[0].contact_id, conversationId: conversation.rows[0].id, message: message.rows[0], channel: input.channel };
+    });
+    if (result) {
+      void this.automations.fireTrigger({
+        workspaceId: result.workspaceId,
+        event: "new_message_inbound",
+        contactId: result.contactId,
+        conversationId: result.conversationId,
+        channel: result.channel === "instagram_dm" ? "instagram" : "facebook_lead",
+        messageContent: content,
+      }).catch(() => {});
+    }
+    return result;
+  }
+
+  private async loadMetaAttempt(userId: string, workspaceId: string, attemptId: string) {
+    const result = await this.database.query<{ accounts_ciphertext: string | null }>(
+      `SELECT accounts_ciphertext FROM crm_meta_oauth_attempts
+       WHERE id = $1 AND user_id = $2 AND workspace_id = $3 AND expires_at > now()
+         AND authorized_at IS NOT NULL AND completed_at IS NULL LIMIT 1`,
+      [attemptId, userId, workspaceId],
+    );
+    if (!result.rows.length || !result.rows[0].accounts_ciphertext) {
+      throw new NotFoundException({ code: "META_AUTHORIZATION_NOT_FOUND", message: "A autorização Meta expirou. Liga a conta novamente." });
+    }
+    return { accounts_ciphertext: result.rows[0].accounts_ciphertext };
+  }
+
+  private decryptMetaPages(ciphertext: string) {
+    try {
+      const pages = JSON.parse(decryptPrivateValue(ciphertext));
+      if (!Array.isArray(pages)) throw new Error("not an array");
+      return pages as Array<{ id: string; name: string; pageAccessToken: string; instagram?: { id: string; name: string; username?: string } }>;
+    } catch {
+      throw new BadRequestException({ code: "META_AUTHORIZATION_INVALID", message: "Não foi possível ler a autorização Meta. Liga a conta novamente." });
+    }
   }
 
   async getStoreAiConfig(workspaceId: string): Promise<StoreAiConfig> {

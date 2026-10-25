@@ -3,6 +3,8 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import type { Request, Response } from "express";
 import { DatabaseService } from "../database/database.service";
 import { CrmAutomationsService } from "./crm-automations.service";
+import { CrmRealtimeService } from "./crm-realtime.service";
+import { CrmService } from "./crm.service";
 
 interface MetaMessage {
   id?: string;
@@ -23,6 +25,10 @@ interface MetaChange {
 interface MetaEntry {
   id?: string;
   changes?: MetaChange[];
+  messaging?: Array<{
+    sender?: { id?: string };
+    message?: { mid?: string; text?: string; is_echo?: boolean };
+  }>;
 }
 
 @Controller("crm/webhooks")
@@ -30,6 +36,8 @@ export class CrmWebhooksController {
   constructor(
     private readonly database: DatabaseService,
     private readonly automations: CrmAutomationsService,
+    private readonly realtime: CrmRealtimeService,
+    private readonly crmService: CrmService,
   ) {}
 
   @Get("meta")
@@ -47,9 +55,30 @@ export class CrmWebhooksController {
     return res.status(403).send("Forbidden");
   }
 
+  @Get("meta/callback")
+  async completeMetaOAuth(
+    @Query("state") state: string,
+    @Query("code") code: string,
+    @Query("error") error: string | undefined,
+    @Res() res: Response,
+  ) {
+    const destination = new URL("/vendedor/crm/conversas", process.env.PUBLIC_SITE_URL || process.env.WEB_ORIGIN || "http://localhost:3100");
+    if (error || !state || !code) {
+      destination.searchParams.set("meta_error", "authorization_cancelled");
+      return res.redirect(302, destination.toString());
+    }
+    try {
+      const result = await this.crmService.finishMetaAuthorization(state, code);
+      destination.searchParams.set("meta_attempt", result.attemptId);
+    } catch {
+      destination.searchParams.set("meta_error", "authorization_failed");
+    }
+    return res.redirect(302, destination.toString());
+  }
+
   @Post("meta")
   @HttpCode(200)
-  async handleMetaWebhook(@Body() body: { entry?: MetaEntry[] }, @Req() request: Request & { rawBody?: Buffer }) {
+  async handleMetaWebhook(@Body() body: { object?: string; entry?: MetaEntry[] }, @Req() request: Request & { rawBody?: Buffer }) {
     const appSecret = process.env.META_APP_SECRET;
     if (!appSecret) throw new ServiceUnavailableException("Webhook not configured");
     const signature = request.header("x-hub-signature-256");
@@ -63,6 +92,20 @@ export class CrmWebhooksController {
     }
     let processed = 0;
     for (const entry of Array.isArray(body?.entry) ? body.entry : []) {
+      for (const event of Array.isArray(entry?.messaging) ? entry.messaging : []) {
+        if (!entry.id || !event.sender?.id || !event.message?.mid || event.message.is_echo) continue;
+        const inbound = await this.crmService.ingestExternalMessage({
+          channel: body.object === "instagram" ? "instagram_dm" : "facebook_messenger",
+          accountId: entry.id,
+          senderId: event.sender.id,
+          messageId: event.message.mid,
+          text: event.message.text,
+        });
+        if (inbound) {
+          processed++;
+          this.realtime.emitWorkspaceEvent(inbound.workspaceId, "new_message", { message: inbound.message, conversationId: inbound.conversationId });
+        }
+      }
       for (const change of Array.isArray(entry?.changes) ? entry.changes : []) {
         if (change.field === "leadgen" && await this.processLead(entry.id, change.value)) processed++;
         if (change.field === "messages" && Array.isArray(change.value?.messages)) {
@@ -78,8 +121,8 @@ export class CrmWebhooksController {
   private async processLead(pageId?: string, value?: MetaChange["value"]): Promise<boolean> {
     const leadgenId = value?.leadgen_id;
     if (!pageId || !leadgenId) return false;
-    const connection = await this.database.query<{ workspace_id: string }>(
-      `SELECT workspace_id FROM crm_channel_connections
+    const connection = await this.database.query<{ id: string; workspace_id: string }>(
+      `SELECT id, workspace_id FROM crm_channel_connections
        WHERE channel_type = 'facebook_page' AND external_account_id = $1 AND status = 'connected' LIMIT 1`,
       [pageId],
     );
@@ -117,8 +160,8 @@ export class CrmWebhooksController {
 
   private async processMessage(phoneNumberId?: string, message?: MetaMessage): Promise<boolean> {
     if (!phoneNumberId || !message?.id || !message.from) return false;
-    const connection = await this.database.query<{ workspace_id: string }>(
-      `SELECT workspace_id FROM crm_channel_connections
+    const connection = await this.database.query<{ id: string; workspace_id: string }>(
+      `SELECT id, workspace_id FROM crm_channel_connections
        WHERE channel_type = 'whatsapp_cloud' AND external_account_id = $1 AND status = 'connected' LIMIT 1`,
       [phoneNumberId],
     );
@@ -146,21 +189,24 @@ export class CrmWebhooksController {
         );
       }
       const conversation = await client.query<{ id: string }>(
-        `INSERT INTO crm_conversations (workspace_id, contact_id, channel, last_message_preview, last_message_at, unread_count)
-         VALUES ($1, $2, 'whatsapp', $3, now(), 1)
+        `INSERT INTO crm_conversations (workspace_id, contact_id, channel, channel_connection_id, external_thread_id, last_message_preview, last_message_at, unread_count)
+         VALUES ($1, $2, 'whatsapp', $3, $4, $5, now(), 1)
          ON CONFLICT (workspace_id, contact_id, channel)
-         DO UPDATE SET last_message_preview = $3, last_message_at = now(), unread_count = crm_conversations.unread_count + 1
+         DO UPDATE SET channel_connection_id = EXCLUDED.channel_connection_id, external_thread_id = EXCLUDED.external_thread_id,
+                       last_message_preview = EXCLUDED.last_message_preview, last_message_at = now(), unread_count = crm_conversations.unread_count + 1
          RETURNING id`,
-        [workspaceId, contact.rows[0].id, textBody.slice(0, 100)],
+        [workspaceId, contact.rows[0].id, connection.rows[0].id, fromPhone, textBody.slice(0, 100)],
       );
-      await client.query(
+      const stored = await client.query<{ id: string; conversation_id: string; workspace_id: string; direction: "inbound"; message_type: "text"; content: string; status: "delivered"; created_at: string }>(
         `INSERT INTO crm_messages (conversation_id, workspace_id, direction, message_type, content, status, metadata)
-         VALUES ($1, $2, 'inbound', 'text', $3, 'delivered', $4::jsonb)`,
+         VALUES ($1, $2, 'inbound', 'text', $3, 'delivered', $4::jsonb)
+         RETURNING id, conversation_id, workspace_id, direction, message_type, content, status, created_at`,
         [conversation.rows[0].id, workspaceId, textBody, JSON.stringify({ meta_message_id: message.id })],
       );
-      return { contactId: contact.rows[0].id, conversationId: conversation.rows[0].id };
+      return { contactId: contact.rows[0].id, conversationId: conversation.rows[0].id, message: stored.rows[0] };
     });
     if (!result) return false;
+    this.realtime.emitWorkspaceEvent(workspaceId, "new_message", { message: result.message, conversationId: result.conversationId });
     void this.automations.fireTrigger({
       workspaceId,
       event: "new_message_inbound",

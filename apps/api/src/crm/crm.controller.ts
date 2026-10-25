@@ -4,7 +4,7 @@ import { CurrentUser } from "../auth/current-user.decorator";
 import { AuthenticatedUser } from "../auth/auth.types";
 import { CrmService } from "./crm.service";
 import { CrmRealtimeService } from "./crm-realtime.service";
-import { IsArray, IsIn, IsNumber, IsOptional, IsString, Length, Max, MaxLength, Min } from "class-validator";
+import { ArrayMaxSize, IsArray, IsIn, IsNumber, IsOptional, IsString, IsUUID, Length, Max, MaxLength, Min } from "class-validator";
 
 class MoveDealStageDto {
   @IsString() newStageId!: string;
@@ -41,6 +41,17 @@ class ConnectChannelBodyDto {
   @IsString() accountName!: string;
   @IsString() externalAccountId!: string;
   @IsString() credentials!: string;
+}
+
+class CompleteMetaConnectionDto {
+  @IsUUID() attemptId!: string;
+  @IsArray() @ArrayMaxSize(50) @IsString({ each: true }) pageIds!: string[];
+}
+
+class ConnectWhatsAppCloudDto {
+  @IsString() @Length(2, 120) accountName!: string;
+  @IsString() @Length(3, 128) phoneNumberId!: string;
+  @IsString() @Length(20, 4096) accessToken!: string;
 }
 
 class SaveStoreAiConfigBodyDto {
@@ -181,6 +192,24 @@ export class CrmController {
     return this.crmService.getChannels(workspace.id);
   }
 
+  @Get("meta/connect")
+  async startMetaConnection(@CurrentUser() user: AuthenticatedUser) {
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
+    return this.crmService.startMetaConnection(user.id, workspace.id);
+  }
+
+  @Get("meta/connect/preview")
+  async getMetaConnectionPreview(@Query("attemptId") attemptId: string, @CurrentUser() user: AuthenticatedUser) {
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
+    return this.crmService.getMetaConnectionPreview(user.id, workspace.id, attemptId);
+  }
+
+  @Post("meta/connect/complete")
+  async completeMetaConnection(@Body() body: CompleteMetaConnectionDto, @CurrentUser() user: AuthenticatedUser) {
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
+    return this.crmService.completeMetaConnections(user.id, workspace.id, body.attemptId, body.pageIds);
+  }
+
   @Post("channels")
   async connectChannel(@Body() body: ConnectChannelBodyDto, @CurrentUser() user: AuthenticatedUser) {
     const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
@@ -192,6 +221,19 @@ export class CrmController {
       body.credentials,
     );
     return { channel };
+  }
+
+  @Post("channels/whatsapp-cloud")
+  async connectWhatsAppCloud(@Body() body: ConnectWhatsAppCloudDto, @CurrentUser() user: AuthenticatedUser) {
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
+    const channel = await this.crmService.connectWhatsAppCloud(workspace.id, body.accountName, body.phoneNumberId, body.accessToken);
+    return { channel };
+  }
+
+  @Delete("channels/:id")
+  async disconnectChannel(@Param("id") id: string, @CurrentUser() user: AuthenticatedUser) {
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
+    return this.crmService.disconnectChannel(workspace.id, id);
   }
 
   @Get("ai/config")

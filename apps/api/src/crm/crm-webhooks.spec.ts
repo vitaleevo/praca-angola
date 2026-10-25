@@ -10,7 +10,7 @@ afterEach(() => {
 });
 
 describe("Meta webhook authentication", () => {
-  const controller = new CrmWebhooksController({} as never, {} as never);
+  const controller = new CrmWebhooksController({} as never, {} as never, { emitWorkspaceEvent: vi.fn() } as never, {} as never);
   const rawBody = Buffer.from('{"entry":[]}');
 
   it("fails closed when the app secret is not configured", async () => {
@@ -76,12 +76,12 @@ describe("Meta webhook delivery", () => {
     const database = {
       query: vi.fn(async (sql: string) => {
         expect(sql).toContain("channel_type = 'whatsapp_cloud'");
-        return { rows: [{ workspace_id: "workspace-1" }] };
+        return { rows: [{ id: "connection-1", workspace_id: "workspace-1" }] };
       }),
       transaction: vi.fn(async (work: (connection: typeof client) => Promise<unknown>) => work(client)),
     };
     const automations = { fireTrigger: vi.fn().mockResolvedValue(undefined) };
-    const controller = new CrmWebhooksController(database as never, automations as never);
+    const controller = new CrmWebhooksController(database as never, automations as never, { emitWorkspaceEvent: vi.fn() } as never, {} as never);
 
     expect(await controller.handleMetaWebhook(payload, signedRequest(payload))).toEqual({ status: "received" });
     expect(await controller.handleMetaWebhook(payload, signedRequest(payload))).toEqual({ status: "ignored" });
@@ -93,8 +93,35 @@ describe("Meta webhook delivery", () => {
   it("returns an error when persistence fails so Meta can retry", async () => {
     process.env.META_APP_SECRET = "test-app-secret";
     const database = { query: vi.fn().mockRejectedValue(new Error("database unavailable")) };
-    const controller = new CrmWebhooksController(database as never, {} as never);
+    const controller = new CrmWebhooksController(database as never, {} as never, { emitWorkspaceEvent: vi.fn() } as never, {} as never);
     await expect(controller.handleMetaWebhook(payload, signedRequest(payload)))
       .rejects.toThrow("database unavailable");
+  });
+
+  it("routes Messenger and Instagram messages to the matching CRM channel and emits them live", async () => {
+    process.env.META_APP_SECRET = "test-app-secret";
+    const realtime = { emitWorkspaceEvent: vi.fn() };
+    const crmService = {
+      ingestExternalMessage: vi.fn().mockResolvedValue({
+        workspaceId: "workspace-1",
+        conversationId: "conversation-1",
+        message: { id: "message-1", content: "Olá" },
+      }),
+    };
+    const controller = new CrmWebhooksController({} as never, {} as never, realtime as never, crmService as never);
+    const messenger = {
+      object: "page",
+      entry: [{ id: "page-1", messaging: [{ sender: { id: "sender-1" }, message: { mid: "mid-1", text: "Olá" } }] }],
+    };
+    const instagram = {
+      object: "instagram",
+      entry: [{ id: "ig-1", messaging: [{ sender: { id: "sender-2" }, message: { mid: "mid-2", text: "Oi" } }] }],
+    };
+
+    expect(await controller.handleMetaWebhook(messenger, signedRequest(messenger))).toEqual({ status: "received" });
+    expect(await controller.handleMetaWebhook(instagram, signedRequest(instagram))).toEqual({ status: "received" });
+    expect(crmService.ingestExternalMessage).toHaveBeenNthCalledWith(1, expect.objectContaining({ channel: "facebook_messenger", accountId: "page-1" }));
+    expect(crmService.ingestExternalMessage).toHaveBeenNthCalledWith(2, expect.objectContaining({ channel: "instagram_dm", accountId: "ig-1" }));
+    expect(realtime.emitWorkspaceEvent).toHaveBeenCalledTimes(2);
   });
 });

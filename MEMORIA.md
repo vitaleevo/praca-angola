@@ -1,6 +1,6 @@
 # Integração Meta PUVO — 25/10/2026
 
-App Meta própria PUVO (`2161321067754105`) criada na Agência Holyweb. API com webhook corrigido publicada no Railway (`70599fb7-6cf2-48b5-8940-7a4e645c72e7`), migração 022 aplicada e backup `1ae42bcf-7c82-4af6-8b49-2476e045ed2e`. O token de verificação está no Railway; GET de desafio e readiness deram HTTP 200. Pendente: App Secret da nova app, política de privacidade no painel Meta, verificação do email e subscrição da conta WhatsApp. O POST continua a falhar fechado com 503. Ver `docs/meta-webhook-puvo.md`. Não mexer na app “Agentes” ligada ao CRM existente.
+App Meta própria PUVO (`2161321067754105`) criada na Agência Holyweb e em modo Live. API com webhook corrigido publicada no Railway (`039edb45-3b13-4bd9-ab3e-101110395b20`), migração 022 aplicada e backup `1ae42bcf-7c82-4af6-8b49-2476e045ed2e`. `META_APP_SECRET` e `META_WEBHOOK_VERIFY_TOKEN` estão configurados em `@praca/api`; a subscrição Meta `messages` foi confirmada pelo utilizador. Verificação em produção: desafio correto HTTP 200, POST HMAC válido HTTP 200 e assinatura inválida HTTP 403. Falta operacional: associar a ligação CRM `whatsapp_cloud` ao `phone_number_id` e, só para envio ativo, configurar `WHATSAPP_CLOUD_ACCESS_TOKEN` e `WHATSAPP_CLOUD_PHONE_NUMBER_ID`. A política de privacidade já está preenchida; o email de contacto ainda aparece como não verificado. Ver `docs/meta-webhook-puvo.md`. Não mexer na app “Agentes” ligada ao CRM existente.
 
 ---
 
