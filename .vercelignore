@@ -1,9 +1,15 @@
 .git/
+node_modules/
 .data/
 .deploy-inspect/
 output/
 wiza.pdf
 **/node_modules/
+apps/api/src/
+apps/api/migrations/
+apps/ai-worker/
+tests/
+docs/
 **/.next/
 **/dist/
 .env
