@@ -64,7 +64,6 @@ export function HeaderAuth({ workspace = false }: { workspace?: boolean }) {
       ) : user ? (
         <nav className="account-nav" aria-label={`Sessão de ${user.displayName}`}>
           {!workspace && <Link href="/conta">A minha conta</Link>}
-          {!workspace && user.roles.includes("platform_owner") && <Link href="/admin">Painel global</Link>}
           <button type="button" className="text-button" onClick={() => void logout()} disabled={loggingOut}>
             {loggingOut ? "A sair…" : "Sair"}
           </button>

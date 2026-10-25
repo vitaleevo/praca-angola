@@ -75,12 +75,12 @@ O comando `admin:grant` promove uma conta existente e ativa. Executa-o apenas pa
 - Públicas: `/`, `/produtos`, `/produtos/[slug]`, `/categorias/[slug]`, `/lojas`, `/lojas/[slug]`, `/marketplaces`.
 - Conta: `/entrar`, `/registar`, `/confirmar-email`, `/verificar-email`, `/recuperar-palavra-passe`, `/redefinir-palavra-passe`, `/conta`, `/conta/favoritos`, `/conta/mensagens`, `/conta/encomendas`.
 - Vendedor: `/vendedor`, `/vendedor/anuncios/novo`, `/vendedor/anuncios/[id]`.
-- Operações: `/admin/moderacao`.
+- Operações da equipa: `https://gestao.puvo.vitaleevo.ao/moderacao` (consola separada; sem páginas administrativas no marketplace público).
 
 - Serviços públicos: `/servicos`, `/servicos/profissionais/[slug]`.
 - Profissional e contratação: `/profissional`, `/servicos/pedidos`, `/servicos/pedidos/novo`, `/servicos/pedidos/[id]`, `/servicos/notificacoes`.
 - Convites: `/convites/aceitar`; seleção de loja e gestão de convites em `/vendedor`.
-- Moderação de profissionais e denúncias de serviços: `/admin/profissionais`, `/admin/denuncias-servicos`.
+- Moderação de profissionais e denúncias de serviços: `https://gestao.puvo.vitaleevo.ao/profissionais` e `https://gestao.puvo.vitaleevo.ao/denuncias-servicos`.
 
 O catálogo de produtos mostra apenas anúncios publicados, com stock, pertencentes a uma loja ativa. Serviços permite perfil moderado, portefólio, disponibilidade, pedidos gerais/dirigidos, propostas comparáveis, conversa privada, aceitação/recusa, conclusão, avaliação elegível, notificações privadas com preferência de email e denúncias moderadas. Pagamento dos serviços é combinado diretamente. Empresas como marketplace independente, imóveis, automóveis e os restantes mercados continuam em preparação.
 
@@ -94,7 +94,7 @@ pnpm test:e2e
 
 Os testes criam contas fictícias no PostgreSQL local e removem dados/uploads no fim. Não executar contra produção. A suite cobre conta, convites e lojas, contratação de serviços, compra por transferência manual, publicidade/uploads, notificações/denúncias e responsividade. Relatório em `output/playwright/report/index.html`. Contratos e pendências: [entrega de marketplaces e convites](docs/marketplaces-v2.md) e [notificações/denúncias de Serviços](docs/service-notifications-reports.md).
 
-O [plano de operação dos dois mercados](docs/plano-marketplaces-operacionais.md) define as etapas para lançamento. A faixa de categorias usa setas e gesto/teclado, com a barra de scroll oculta. Os catálogos reservam posições de publicidade premium, secundária e terciária, geridas em `/admin/publicidade`; só campanhas aprovadas e dentro da validade aparecem. Publicidade Google exige conta, identificadores de unidades e consentimento antes de carregar scripts externos. Uploads de imagem são descodificados, limitados a 20 milhões de píxeis e normalizados para WebP sem metadados.
+O [plano de operação dos dois mercados](docs/plano-marketplaces-operacionais.md) define as etapas para lançamento. A faixa de categorias usa setas e gesto/teclado, com a barra de scroll oculta. Os catálogos reservam posições de publicidade premium, secundária e terciária, geridas na consola da equipa; só campanhas aprovadas e dentro da validade aparecem. Publicidade Google exige conta, identificadores de unidades e consentimento antes de carregar scripts externos. Uploads de imagem são descodificados, limitados a 20 milhões de píxeis e normalizados para WebP sem metadados.
 
 ## Preview local de produção
 

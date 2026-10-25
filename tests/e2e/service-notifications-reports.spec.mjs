@@ -49,7 +49,6 @@ test('serviços: notificações privadas, preferência de email, outbox e denún
   expect((await json(await x.request.get('/api/v1/services/reports/mine'))).items).toHaveLength(0);
   expect((await json(await m.request.get('/api/v1/services/reports/moderation'))).items).toHaveLength(3);
   const notificationsPage=await p.newPage();await notificationsPage.goto('/servicos/notificacoes');await expect(notificationsPage.getByRole('heading',{name:'Notificações de serviços'})).toBeVisible();await expect(notificationsPage.getByText('Recebeste um pedido de serviço')).toBeVisible();await notificationsPage.screenshot({path:'output/playwright/service-notifications-desktop.png',fullPage:true});
-  const moderationPage=await m.newPage();await moderationPage.goto('/admin/denuncias-servicos');await expect(moderationPage.getByRole('heading',{name:'Denúncias de serviços'})).toBeVisible();await expect(moderationPage.getByText('Podemos alinhar as cores da marca?')).toBeVisible();await moderationPage.screenshot({path:'output/playwright/service-reports-moderation-desktop.png',fullPage:true});
   await json(await m.request.patch(`/api/v1/services/reports/moderation/${report.id}`,{data:{status:'resolved',note:'Mensagem revista pela equipa de moderação.'}}));
   expect((await json(await b.request.get('/api/v1/services/reports/mine'))).items.find(r=>r.id===report.id).status).toBe('resolved');
   expect((await json(await m.request.get('/api/v1/services/reports/moderation'))).items).toHaveLength(2);
