@@ -45,7 +45,7 @@ O perfil de vendedor público não deve expor endereço residencial, telefone ou
 - `/entrar`, `/registar`, `/recuperar-acesso`.
 - `/conta/favoritos`, `/conta/mensagens`, `/conta/definicoes`.
 - `/vendedor/anuncios`, `/vendedor/anuncios/novo`, `/vendedor/loja`, `/vendedor/mensagens`.
-- `/admin/anuncios`, `/admin/denuncias`, `/admin/utilizadores`, `/admin/auditoria`.
+- Fila de moderação e auditoria operacional: consola privada em `https://gestao.puvo.vitaleevo.ao/moderacao`.
 
 As páginas privadas devem validar sessão, propriedade do recurso e papel do utilizador no servidor, não apenas esconder botões na interface.
 

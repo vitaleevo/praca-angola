@@ -14,7 +14,7 @@ Estado: implementado e exercitado no ambiente local de desenvolvimento em 22/10/
 
 - Perfil publicado, pedido visível ao profissional e mensagem recebida numa conversa própria podem ser denunciados por contas autenticadas. O autor não pode denunciar o seu próprio perfil, pedido ou mensagem. Há limite de cinco denúncias por conta em 24 horas e unicidade de denúncia aberta por pessoa/conteúdo.
 - `POST /services/reports` grava o relato e auditoria. `GET /services/reports/mine` devolve apenas id, motivo, estado e data ao autor. A fila `GET /services/reports/moderation` e decisão `PATCH /services/reports/moderation/:id` exigem papel `administrator` ou `moderator`.
-- A fila `/admin/denuncias-servicos` mostra o relato e, para mensagem denunciada, até 1000 caracteres **da mensagem específica**. Não fornece histórico completo da conversa nem abre pedido privado a um moderador sem participação. Uma decisão regista nota e autor na auditoria; não suspende conteúdo automaticamente. Ação sobre perfil ou conta exige revisão específica.
+- A fila `https://gestao.puvo.vitaleevo.ao/denuncias-servicos` mostra o relato e, para mensagem denunciada, até 1000 caracteres **da mensagem específica**. Não fornece histórico completo da conversa nem abre pedido privado a um moderador sem participação. Uma decisão regista nota e autor na auditoria; não suspende conteúdo automaticamente. Ação sobre perfil ou conta exige revisão específica.
 - O texto de denúncias só aparece ao autor no resultado inicial e à equipa de moderação; a consulta do autor mostra apenas o estado. Retenção/eliminação de relatos e critérios de ação exigem política operacional antes do lançamento público.
 
 ## Contratos e verificação

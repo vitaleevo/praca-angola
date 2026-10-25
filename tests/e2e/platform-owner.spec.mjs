@@ -14,7 +14,7 @@ function bootstrap(email, confirm = true) {
   });
 }
 
-test('proprietário global: bootstrap único, áreas de administração e isolamento', async ({ browser }) => {
+test('proprietário global: bootstrap único, páginas públicas sem administração e isolamento da API', async ({ browser }) => {
   const owner = await account('Proprietário E2E');
   const buyer = await account('Cliente E2E');
   let ownerContext;
@@ -57,22 +57,12 @@ test('proprietário global: bootstrap único, áreas de administração e isolam
       expect(response.status(), path).toBe(200);
     }
 
-    await ownerPage.setViewportSize({ width: 1440, height: 1000 });
-    await ownerPage.goto('/admin');
-    await expect(ownerPage.getByRole('heading', { name: 'Painel global' })).toBeVisible();
-    await expect(ownerPage.getByRole('heading', { name: 'Estado geral' })).toBeVisible();
-    await expect(ownerPage.getByRole('link', { name: /Painel global/ })).toBeVisible();
-    await expect(ownerPage.getByRole('link', { name: /Publicidade/ })).toHaveAttribute('href', '/admin/publicidade');
-    await ownerPage.screenshot({ path: 'output/playwright/platform-owner-1440.png', fullPage: true });
-
-    await ownerPage.setViewportSize({ width: 320, height: 900 });
-    await ownerPage.reload();
-    await expect(ownerPage.getByRole('heading', { name: 'Estado geral' })).toBeVisible();
-    const dimensions = await ownerPage.evaluate(() => ({ width: document.documentElement.clientWidth, scrollWidth: document.documentElement.scrollWidth }));
-    expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.width);
-    await ownerPage.screenshot({ path: 'output/playwright/platform-owner-320.png', fullPage: true });
-    await ownerPage.getByRole('button', { name: 'Abrir navegação' }).click();
-    await expect(ownerPage.getByRole('link', { name: 'Painel global' })).toBeVisible();
+    for (const path of ['/admin', '/admin/moderacao', '/admin/profissionais', '/admin/denuncias-servicos', '/admin/publicidade']) {
+      const response = await ownerPage.goto(path);
+      expect(response?.status(), path).toBe(404);
+    }
+    await ownerPage.goto('/');
+    await expect(ownerPage.getByRole('link', { name: /Painel global|Produtos e denúncias|Publicidade/ })).toHaveCount(0);
 
     buyerContext = await context(browser, buyer);
     for (const path of paths) {
@@ -80,8 +70,8 @@ test('proprietário global: bootstrap único, áreas de administração e isolam
       expect(response.status(), path).toBe(403);
     }
     const buyerPage = await buyerContext.newPage();
-    await buyerPage.goto('/admin');
-    await expect(buyerPage.locator('.platform-owner-error')).toContainText('Acesso reservado ao proprietário global');
+    await buyerPage.goto('/');
+    await expect(buyerPage.getByRole('link', { name: /Painel global|Produtos e denúncias|Publicidade/ })).toHaveCount(0);
   } finally {
     await ownerContext?.close();
     await buyerContext?.close();

@@ -17,7 +17,7 @@ As referências fornecidas orientaram os catálogos: verde para Produtos, azul p
 | Pedidos próprios/oportunidades | `/servicos/pedidos` | GET `/services/requests?scope=mine` ou `market` |
 | Criar pedido | `/servicos/pedidos/novo` | POST `/services/requests` |
 | Pedido, propostas e conversa | `/servicos/pedidos/[id]` | `/services/requests/:id`, `/services/proposals/:id/messages` |
-| Moderação de profissionais | `/admin/profissionais` | `/services/moderation` |
+| Moderação de profissionais | `https://gestao.puvo.vitaleevo.ao/profissionais` | `/services/moderation` |
 | Equipa e loja atual | `/vendedor` | `/seller/stores`, `/seller/active-store`, `/seller/invitations` |
 | Aceitar convite | `/convites/aceitar?token=…` | `/team-invitations/:token`, `/team-invitations/accept` |
 
@@ -49,7 +49,7 @@ Nos serviços, pagamento e condições são combinados diretamente; não existe 
 - `005_teams_and_services.sql`: contexto da sessão, convites, categorias, perfis/portefólio, pedidos/propostas/mensagens/avaliações e ativação de Serviços.
 - `006_service_access_indexes.sql`: índices de acesso e chaves estrangeiras complementares.
 - `007_targeted_service_decline.sql`: recusa de pedido dirigido e motivo limitado.
-- `008_ad_campaigns.sql`: campanhas próprias por marketplace e posição, com aprovação, período, prioridade, anunciante, imagem e destino HTTPS. Administração em `/admin/publicidade`. A API pública devolve apenas a campanha elegível de cada posição.
+- `008_ad_campaigns.sql`: campanhas próprias por marketplace e posição, com aprovação, período, prioridade, anunciante, imagem e destino HTTPS. Administração em `https://gestao.puvo.vitaleevo.ao/publicidade`. A API pública devolve apenas a campanha elegível de cada posição.
 - `009_service_notifications_reports.sql`: notificações privadas, preferência de email, outbox e denúncias de perfil/pedido/mensagem com fila moderada. Contratos e privacidade em `docs/service-notifications-reports.md`.
 - Aplicadas apenas ao PostgreSQL de desenvolvimento. Relações, checks e unicidades protegem os dados; FK composta garante que a proposta adjudicada pertence ao pedido.
 - Upload agora descodifica a imagem com Sharp, rejeita conteúdo corrompido/animações, limita a 20 milhões de píxeis, orienta/reduz para até 2560 px e grava WebP sem EXIF. O limite de entrada permanece 5 MB; os ficheiros antigos continuam acessíveis no formato original. A nova dependência exigiu uma reconstrução única da imagem API.

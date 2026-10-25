@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-export type WorkspaceArea = "account" | "seller" | "services" | "admin";
+export type WorkspaceArea = "account" | "seller" | "services";
 
 type NavigationItem = { href: string; label: string };
 type NavigationGroup = { label: string; items: NavigationItem[] };
@@ -56,23 +56,10 @@ const navigation: Record<WorkspaceArea, { title: string; groups: NavigationGroup
       sharedAreas,
     ],
   },
-  admin: {
-    title: "Administração",
-    groups: [
-      { label: "Plataforma", items: [
-        { href: "/admin", label: "Painel global" },
-        { href: "/admin/moderacao", label: "Moderação de produtos" },
-        { href: "/admin/profissionais", label: "Profissionais" },
-        { href: "/admin/denuncias-servicos", label: "Denúncias de serviços" },
-        { href: "/admin/publicidade", label: "Publicidade" },
-      ] },
-      sharedAreas,
-    ],
-  },
 };
 
 function isActive(pathname: string, item: NavigationItem): boolean {
-  if (item.href === "/conta" || item.href === "/admin") return pathname === item.href;
+  if (item.href === "/conta") return pathname === item.href;
   if (item.href === "/vendedor") {
     return pathname === item.href || (pathname.startsWith("/vendedor/anuncios/") && pathname !== "/vendedor/anuncios/novo");
   }
@@ -86,7 +73,7 @@ export function WorkspaceNavigation({ area }: { area: WorkspaceArea }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const config = navigation[area];
-  const ownAreaLinks = area === "services" ? ["/profissional", "/servicos/pedidos"] : [`/${area === "account" ? "conta" : area === "seller" ? "vendedor" : "admin"}`];
+  const ownAreaLinks = area === "services" ? ["/profissional", "/servicos/pedidos"] : [`/${area === "account" ? "conta" : "vendedor"}`];
   return (
     <aside className="workspace-sidebar">
       <div className="workspace-sidebar-heading"><span className="workspace-sidebar-mark" aria-hidden="true">P</span><div><small>PUVO</small><strong>{config.title}</strong></div></div>
