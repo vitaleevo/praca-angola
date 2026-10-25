@@ -1,3 +1,9 @@
+# Integração Meta PUVO — 25/10/2026
+
+App Meta própria PUVO (`2161321067754105`) criada na Agência Holyweb. API com webhook corrigido publicada no Railway (`70599fb7-6cf2-48b5-8940-7a4e645c72e7`), migração 022 aplicada e backup `1ae42bcf-7c82-4af6-8b49-2476e045ed2e`. O token de verificação está no Railway; GET de desafio e readiness deram HTTP 200. Pendente: App Secret da nova app, política de privacidade no painel Meta, verificação do email e subscrição da conta WhatsApp. O POST continua a falhar fechado com 503. Ver `docs/meta-webhook-puvo.md`. Não mexer na app “Agentes” ligada ao CRM existente.
+
+---
+
 # Publicação concluída — 25/10/2026
 
 Revisão de aplicação `ddb1d84` publicada em produção: [site](https://puvo.vitaleevo.ao), [gestão](https://gestao.puvo.vitaleevo.ao), API Railway e worker de IA privado. Domínios e DNS respondem; site, gestão, API readiness e `ai/status` passaram smoke HTTP. Migrações 020–021 aplicadas, com backup prévio `ba337715-0f37-4bed-8afa-5d07b384ece6`. Testes locais: API 55/55, worker 7/7, builds/typecheck/lint; E2E 21/22 na suite e o último isoladamente. O webhook Meta requer credenciais ainda ausentes, e o fluxo de pagamento real não foi executado em produção. Estado detalhado e IDs em `docs/release-audit-2026-10-25.md`. Os parágrafos históricos abaixo descrevem etapas anteriores e não o estado atual.
