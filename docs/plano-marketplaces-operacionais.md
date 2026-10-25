@@ -2,7 +2,7 @@
 
 Estado inicial: 22/10/2026. Base: `MEMORIA.md` e `docs/marketplaces-v2.md`. Objetivo: tornar os dois mercados operacionais e mensuráveis sem perder isolamento entre contas, qualidade visual nem Fast Refresh.
 
-Progresso: faixa com setas, anúncios próprios nos três níveis, painel `/admin/publicidade` e normalização segura de uploads implementados em desenvolvimento. Migrações `008_ad_campaigns.sql` e `009_service_notifications_reports.sql` aplicadas no banco dev. Notificações/preferências/outbox e denúncias moderadas de Serviços implementadas e testadas; detalhes em `docs/service-notifications-reports.md`. A integração de Google Ads permanece dependente de identificadores e consentimento.
+Progresso: faixa com setas, anúncios próprios nos três níveis, gestão na consola `https://gestao.puvo.vitaleevo.ao/publicidade` e normalização segura de uploads implementados. As páginas antigas de administração foram removidas de `apps/web`; a API continua protegida por papel e partilhada com `apps/admin`. Migrações `008_ad_campaigns.sql` e `009_service_notifications_reports.sql` aplicadas no banco dev. Notificações/preferências/outbox e denúncias moderadas de Serviços implementadas; detalhes em `docs/service-notifications-reports.md`. A integração de Google Ads permanece dependente de identificadores e consentimento.
 
 ## Ordem de execução e aceitação
 

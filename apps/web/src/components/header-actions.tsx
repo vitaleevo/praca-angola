@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { MobileMenu } from "./mobile-menu";
 
-type SessionUser = { id: string; displayName: string; email: string; roles: string[] };
+type SessionUser = { id: string; displayName: string; email: string };
 type SessionResponse = { user?: SessionUser | null };
 
 export function HeaderAuth({ workspace = false }: { workspace?: boolean }) {
@@ -64,7 +64,6 @@ export function HeaderAuth({ workspace = false }: { workspace?: boolean }) {
       ) : user ? (
         <nav className="account-nav" aria-label={`Sessão de ${user.displayName}`}>
           {!workspace && <Link href="/conta">A minha conta</Link>}
-          {!workspace && user.roles.includes("platform_owner") && <Link href="/admin">Painel global</Link>}
           <button type="button" className="text-button" onClick={() => void logout()} disabled={loggingOut}>
             {loggingOut ? "A sair…" : "Sair"}
           </button>

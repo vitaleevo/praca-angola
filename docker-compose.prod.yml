@@ -24,6 +24,8 @@ services:
       MEDIA_QUOTA_BYTES_PER_USER: ${MEDIA_QUOTA_BYTES_PER_USER:-52428800}
       MEDIA_QUOTA_ASSETS_PER_USER: ${MEDIA_QUOTA_ASSETS_PER_USER:-100}
       RATE_LIMIT_ENABLED: ${RATE_LIMIT_ENABLED:-true}
+      AI_WORKER_URL: ${AI_WORKER_URL:-http://ai-worker:8000}
+      AI_INTERNAL_SECRET: ${AI_INTERNAL_SECRET:?Define AI_INTERNAL_SECRET}
     command: ["sh", "-c", "node apps/api/scripts/migrate.mjs && node dist/main.js"]
     restart: unless-stopped
     volumes:
@@ -126,7 +128,27 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+  ai-worker:
+    build:
+      context: ./apps/ai-worker
+      dockerfile: Dockerfile
+    command: ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
+    environment:
+      AI_INTERNAL_SECRET: ${AI_INTERNAL_SECRET:?Define AI_INTERNAL_SECRET}
+      CUSTOM_AI_ALLOWED_HOSTS: ${CUSTOM_AI_ALLOWED_HOSTS:-}
+      REDIS_URL: ${REDIS_URL:?Define REDIS_URL}
+      DATABASE_URL: ${DATABASE_URL:?Define DATABASE_URL}
+    expose:
+      - "8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
     restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
 
 volumes:
   postgres_data:

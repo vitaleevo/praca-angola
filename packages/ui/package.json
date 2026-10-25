@@ -1,0 +1,16 @@
+{
+  "name": "@puvo/ui",
+  "private": true,
+  "version": "0.0.0",
+  "exports": {
+    "./workspace-sidebar": "./src/workspace-sidebar.tsx"
+  },
+  "peerDependencies": {
+    "next": ">=16",
+    "react": ">=19"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "next": "16.4.2"
+  }
+}

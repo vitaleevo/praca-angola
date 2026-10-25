@@ -6,6 +6,10 @@ node_modules
 .turbo
 .git
 .data/
+.deploy-inspect/
+output/
+wiza.pdf
+.vercel/
 coverage
 .env
 .env.*

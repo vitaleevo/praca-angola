@@ -26,9 +26,16 @@ import { MetricsService } from "./observability/metrics.service";
 import { RateLimitModule } from "./rate-limit/rate-limit.module";
 import { PlatformOwnerController } from "./platform-owner.controller";
 import { PlatformOwnerService } from "./platform-owner.service";
+import { AiModule } from "./ai/ai.module";
+import { CrmModule } from "./crm/crm.module";
+import { RecommendationsController } from "./recommendations.controller";
+
+import { ModerationAlertsService } from "./moderation-alerts.service";
+import { NotificationsModule } from "./notifications/notifications.module";
+import { LogisticsModule } from "./logistics/logistics.module";
 
 @Module({
-  imports: [LoggerModule.forRoot(loggerConfig), DatabaseModule, AuthModule, ServicesModule, RateLimitModule],
+  imports: [LoggerModule.forRoot(loggerConfig), DatabaseModule, AuthModule, ServicesModule, RateLimitModule, AiModule, CrmModule, NotificationsModule, LogisticsModule],
   controllers: [
     HealthController,
     MetricsController,
@@ -46,6 +53,7 @@ import { PlatformOwnerService } from "./platform-owner.service";
     StoreInvitationsController,
     AdsController,
     PlatformOwnerController,
+    RecommendationsController,
   ],
   providers: [
     OrderMaintenanceService,
@@ -55,7 +63,9 @@ import { PlatformOwnerService } from "./platform-owner.service";
     PlatformOwnerService,
     HealthService,
     MetricsService,
+    ModerationAlertsService,
     { provide: APP_INTERCEPTOR, useClass: MetricsInterceptor },
   ],
+  exports: [ModerationAlertsService],
 })
 export class AppModule {}

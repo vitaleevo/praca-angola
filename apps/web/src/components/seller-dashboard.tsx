@@ -140,7 +140,94 @@ export function ListingForm({ listingId, initial }: { listingId?: string; initia
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
-  useEffect(() => { fetch("/api/v1/catalog/categories").then((response) => response.json()).then((data: Category[]) => setCategories(data)).catch(() => setError("Não foi possível carregar categorias.")); }, []);
+
+  const [title, setTitle] = useState(initial?.title ?? "");
+  const [categorySlug, setCategorySlug] = useState(initial?.category_slug ?? "");
+  const [description, setDescription] = useState(initial?.description ?? "");
+  const [price, setPrice] = useState(initial?.price ? String(initial.price) : "");
+  const [condition, setCondition] = useState(initial?.condition ?? "new");
+  const [province, setProvince] = useState(initial?.province ?? "Luanda");
+  const [municipality, setMunicipality] = useState(initial?.municipality ?? "Luanda");
+  const [priceNegotiable, setPriceNegotiable] = useState(initial?.price_negotiable ?? false);
+  const [availableQuantity, setAvailableQuantity] = useState(initial?.available_quantity ?? 1);
+
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiNotice, setAiNotice] = useState("");
+
+  useEffect(() => {
+    fetch("/api/v1/catalog/categories")
+      .then((response) => response.json())
+      .then((data: Category[]) => setCategories(data))
+      .catch(() => setError("Não foi possível carregar categorias."));
+  }, []);
+
+  useEffect(() => {
+    if (initial) {
+      setTitle(initial.title || "");
+      setCategorySlug(initial.category_slug || "");
+      setDescription(initial.description || "");
+      setPrice(initial.price ? String(initial.price) : "");
+      setCondition(initial.condition || "new");
+      setProvince(initial.province || "Luanda");
+      setMunicipality(initial.municipality || "Luanda");
+      setPriceNegotiable(Boolean(initial.price_negotiable));
+      setAvailableQuantity(initial.available_quantity ?? 1);
+    }
+  }, [initial]);
+
+  async function handleAiSuggest() {
+    if (!aiPrompt.trim()) return;
+    setAiLoading(true);
+    setAiNotice("");
+    setError("");
+    try {
+      const response = await fetch("/api/v1/ai/catalog/suggest", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          rawPrompt: aiPrompt.trim(),
+          province,
+          municipality,
+        }),
+      });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({})) as { message?: string };
+        throw new Error(errData.message || "Não foi possível contactar o assistente de IA.");
+      }
+
+      const suggestion = await response.json() as {
+        suggestedTitle: string;
+        suggestedDescription: string;
+        suggestedCategorySlug: string;
+        suggestedPriceAoa: number;
+        suggestedCondition: string;
+      };
+
+      if (suggestion.suggestedTitle) setTitle(suggestion.suggestedTitle);
+      if (suggestion.suggestedDescription) setDescription(suggestion.suggestedDescription);
+      if (suggestion.suggestedCategorySlug) {
+        const match = categories.find((c) => c.slug === suggestion.suggestedCategorySlug);
+        if (match) {
+          setCategorySlug(match.slug);
+        } else if (categories.length > 0 && !categorySlug) {
+          setCategorySlug(categories[0].slug);
+        }
+      }
+      if (suggestion.suggestedPriceAoa) setPrice(String(suggestion.suggestedPriceAoa));
+      if (suggestion.suggestedCondition) setCondition(suggestion.suggestedCondition);
+
+      setAiNotice("✨ Sugestão da IA aplicada! Revê os dados antes de submeter.");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Erro ao contactar assistente de IA.";
+      setAiNotice(`Aviso: ${msg} Podes continuar a preencher manualmente.`);
+    } finally {
+      setAiLoading(false);
+    }
+  }
+
   async function upload(files: FileList | null) {
     if (!files) return;
     setError(""); setBusy(true);
@@ -152,19 +239,240 @@ export function ListingForm({ listingId, initial }: { listingId?: string; initia
     }
     setBusy(false);
   }
+
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault(); setError(""); setStatus(""); setBusy(true);
-    const formData = new FormData(event.currentTarget);
-    const payload = { title: String(formData.get("title") ?? ""), description: String(formData.get("description") ?? ""), categorySlug: String(formData.get("categorySlug") ?? ""), price: Number(formData.get("price")), condition: String(formData.get("condition")), priceNegotiable: formData.get("priceNegotiable") === "on", availableQuantity: Number(formData.get("availableQuantity")), province: String(formData.get("province") ?? ""), municipality: String(formData.get("municipality") ?? ""), imageIds: images.map((image) => image.id) };
-    const response = await fetch(listingId ? `/api/v1/seller/listings/${listingId}` : "/api/v1/seller/listings", { method: listingId ? "PUT" : "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+    const payload = {
+      title,
+      description,
+      categorySlug,
+      price: Number(price),
+      condition,
+      priceNegotiable,
+      availableQuantity: Number(availableQuantity),
+      province,
+      municipality,
+      imageIds: images.map((image) => image.id),
+    };
+    const response = await fetch(listingId ? `/api/v1/seller/listings/${listingId}` : "/api/v1/seller/listings", {
+      method: listingId ? "PUT" : "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
     const data = await response.json().catch(() => ({})) as { id?: string; message?: string | string[] };
     if (response.status === 401) { router.replace("/entrar?next=/vendedor/anuncios/novo"); return; }
-    if (!response.ok) { setError(Array.isArray(data.message) ? data.message.join(" ") : data.message ?? "Não foi possível guardar o anúncio."); setBusy(false); return; }
+    if (!response.ok) {
+      setError(Array.isArray(data.message) ? data.message.join(" ") : data.message ?? "Não foi possível guardar o anúncio.");
+      setBusy(false);
+      return;
+    }
     setStatus("Anúncio enviado para revisão. A equipa vai verificar o conteúdo antes de o publicar.");
     setBusy(false);
     if (!listingId) window.setTimeout(() => router.push("/vendedor"), 1600);
   }
-  return <form className="stack-form listing-form" onSubmit={submit}><label>Título<input name="title" defaultValue={initial?.title} required minLength={4} maxLength={140} placeholder="Ex.: Sofá de 3 lugares"/></label><label>Categoria<select name="categorySlug" required defaultValue={initial?.category_slug ?? ""}><option value="" disabled>Escolhe uma categoria</option>{categories.map((category) => <option key={category.id} value={category.slug}>{category.name}</option>)}</select></label><label>Descrição<textarea name="description" defaultValue={initial?.description} required minLength={10} maxLength={8000} rows={6} placeholder="Descreve o estado, características e condições de venda."/></label><div className="two-column-fields"><label>Preço em Kz<input name="price" type="number" min="1" step="0.01" defaultValue={initial?.price} required/></label><label>Estado<select name="condition" defaultValue={initial?.condition ?? "new"}><option value="new">Novo</option><option value="used">Usado</option><option value="refurbished">Recondicionado</option></select></label><label>Quantidade disponível<input name="availableQuantity" type="number" min="1" max="100000" defaultValue={initial?.available_quantity ?? 1} required/></label><label>Província<input name="province" defaultValue={initial?.province ?? "Luanda"} required minLength={2} maxLength={100}/></label><label>Município<input name="municipality" defaultValue={initial?.municipality ?? "Luanda"} required minLength={2} maxLength={100}/></label></div><label className="checkbox-label"><input name="priceNegotiable" type="checkbox" defaultChecked={initial?.price_negotiable}/> Aceito negociar o preço</label><div><label htmlFor="listing-images">Fotografias <small>JPEG, PNG ou WebP, até 5 MB por imagem (máximo 8)</small></label><input id="listing-images" type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={busy || images.length >= 8} onChange={(event) => void upload(event.target.files)}/><div className="uploaded-images">{images.map((image) => <div key={image.id}><Image src={image.url} alt={image.name} width={96} height={96} sizes="96px"/><button type="button" aria-label={`Remover ${image.name}`} onClick={() => setImages(images.filter((item) => item.id !== image.id))}>×</button></div>)}</div></div>{error && <p className="form-error" role="alert">{error}</p>}{status && <p className="success-message" role="status">{status}</p>}<button className="button button-primary" type="submit" disabled={busy || categories.length === 0}>{busy ? "A guardar…" : listingId ? "Guardar alterações" : "Enviar para revisão"}</button><p className="legal-note">Não publiques artigos proibidos, falsificados ou com informações enganosas. Os anúncios são moderados antes da publicação.</p></form>;
+
+  return (
+    <div className="listing-form-wrapper">
+      <div className="panel" style={{ marginBottom: "1.5rem", border: "1px solid #bfdbfe", background: "linear-gradient(135deg, #eff6ff 0%, #f8fafc 100%)", borderRadius: "12px", padding: "1.25rem" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
+          <span style={{ fontSize: "1.25rem" }}>✨</span>
+          <h3 style={{ margin: 0, fontSize: "1.05rem", fontWeight: 700, color: "#1e3a8a" }}>Assistente de IA PUVO</h3>
+        </div>
+        <p style={{ margin: "0 0 0.75rem 0", fontSize: "0.875rem", color: "#334155" }}>
+          Descreve resumidamente o artigo (ex.: <em>&quot;iPhone 13 128gb azul usado mas impecável com carregador em Luanda&quot;</em>) e a IA gera título, descrição profissional, categoria e estimativa de preço em Kz.
+        </p>
+        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+          <input
+            type="text"
+            placeholder="Ex.: Gerador Toyama 3.5kVA a gasolina novo em Talatona..."
+            value={aiPrompt}
+            onChange={(e) => setAiPrompt(e.target.value)}
+            disabled={aiLoading}
+            style={{ flex: "1 1 280px", padding: "0.625rem 0.875rem", borderRadius: "8px", border: "1px solid #93c5fd", background: "#ffffff", fontSize: "0.9375rem" }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                void handleAiSuggest();
+              }
+            }}
+          />
+          <button
+            type="button"
+            className="button button-secondary"
+            onClick={() => void handleAiSuggest()}
+            disabled={aiLoading || !aiPrompt.trim()}
+            style={{ whiteSpace: "nowrap" }}
+          >
+            {aiLoading ? "A gerar…" : "✨ Preencher com IA"}
+          </button>
+        </div>
+        {aiNotice && (
+          <p style={{ margin: "0.625rem 0 0 0", fontSize: "0.85rem", color: aiNotice.startsWith("✨") ? "#047857" : "#b45309", fontWeight: 600 }}>
+            {aiNotice}
+          </p>
+        )}
+      </div>
+
+      <form className="stack-form listing-form" onSubmit={submit}>
+        <label>
+          Título
+          <input
+            name="title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            required
+            minLength={4}
+            maxLength={140}
+            placeholder="Ex.: Sofá de 3 lugares"
+          />
+        </label>
+
+        <label>
+          Categoria
+          <select
+            name="categorySlug"
+            required
+            value={categorySlug}
+            onChange={(e) => setCategorySlug(e.target.value)}
+          >
+            <option value="" disabled>Escolhe uma categoria</option>
+            {categories.map((category) => (
+              <option key={category.id} value={category.slug}>{category.name}</option>
+            ))}
+          </select>
+        </label>
+
+        <label>
+          Descrição
+          <textarea
+            name="description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            required
+            minLength={10}
+            maxLength={8000}
+            rows={6}
+            placeholder="Descreve o estado, características e condições de venda."
+          />
+        </label>
+
+        <div className="two-column-fields">
+          <label>
+            Preço em Kz
+            <input
+              name="price"
+              type="number"
+              min="1"
+              step="0.01"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              required
+            />
+          </label>
+          <label>
+            Estado
+            <select
+              name="condition"
+              value={condition}
+              onChange={(e) => setCondition(e.target.value)}
+            >
+              <option value="new">Novo</option>
+              <option value="used">Usado</option>
+              <option value="refurbished">Recondicionado</option>
+            </select>
+          </label>
+          <label>
+            Quantidade disponível
+            <input
+              name="availableQuantity"
+              type="number"
+              min="1"
+              max="100000"
+              value={availableQuantity}
+              onChange={(e) => setAvailableQuantity(Number(e.target.value))}
+              required
+            />
+          </label>
+          <label>
+            Província
+            <input
+              name="province"
+              value={province}
+              onChange={(e) => setProvince(e.target.value)}
+              required
+              minLength={2}
+              maxLength={100}
+            />
+          </label>
+          <label>
+            Município
+            <input
+              name="municipality"
+              value={municipality}
+              onChange={(e) => setMunicipality(e.target.value)}
+              required
+              minLength={2}
+              maxLength={100}
+            />
+          </label>
+        </div>
+
+        <label className="checkbox-label">
+          <input
+            name="priceNegotiable"
+            type="checkbox"
+            checked={priceNegotiable}
+            onChange={(e) => setPriceNegotiable(e.target.checked)}
+          />
+          Aceito negociar o preço
+        </label>
+
+        <div>
+          <label htmlFor="listing-images">
+            Fotografias <small>JPEG, PNG ou WebP, até 5 MB por imagem (máximo 8)</small>
+          </label>
+          <input
+            id="listing-images"
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            multiple
+            disabled={busy || images.length >= 8}
+            onChange={(event) => void upload(event.target.files)}
+          />
+          <div className="uploaded-images">
+            {images.map((image) => (
+              <div key={image.id}>
+                <Image src={image.url} alt={image.name} width={96} height={96} sizes="96px" />
+                <button
+                  type="button"
+                  aria-label={`Remover ${image.name}`}
+                  onClick={() => setImages(images.filter((item) => item.id !== image.id))}
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {error && <p className="form-error" role="alert">{error}</p>}
+        {status && <p className="success-message" role="status">{status}</p>}
+
+        <button
+          className="button button-primary"
+          type="submit"
+          disabled={busy || categories.length === 0}
+        >
+          {busy ? "A guardar…" : listingId ? "Guardar alterações" : "Enviar para revisão"}
+        </button>
+
+        <p className="legal-note">
+          Não publiques artigos proibidos, falsificados ou com informações enganosas. Os anúncios são moderados antes da publicação.
+        </p>
+      </form>
+    </div>
+  );
 }
 
 export function EditListingForm({ listingId }: { listingId: string }) {

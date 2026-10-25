@@ -3,6 +3,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   output: "standalone",
   poweredByHeader: false,
+  transpilePackages: ["@puvo/ui"],
   images: {
     formats: ["image/avif", "image/webp"],
     minimumCacheTTL: 604800,
@@ -14,6 +15,7 @@ const nextConfig: NextConfig = {
     return [{ source: "/api/v1/:path*", destination: `${api}/:path*` }];
   },
   async headers() {
+    const development = process.env.NODE_ENV !== "production";
     return [
       {
         source: "/(.*)",
@@ -25,7 +27,7 @@ const nextConfig: NextConfig = {
           {
             key: "Content-Security-Policy-Report-Only",
             value:
-              "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'; report-uri /api/v1/csp-report",
+              `default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'${development ? " 'unsafe-eval'" : ""}; connect-src 'self'${development ? " ws:" : ""}; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'; report-uri /api/v1/csp-report`,
           },
         ],
       },

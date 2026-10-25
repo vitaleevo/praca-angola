@@ -9,6 +9,8 @@ import { CurrentUser } from "./auth/current-user.decorator";
 import { SessionGuard } from "./auth/session.guard";
 import { decryptPrivateValue, encryptPrivateValue } from "./auth/auth.crypto";
 import { maskPaymentIdentifier } from "./payments/payment-methods";
+import { AiClientService } from "./ai/ai-client.service";
+import { ModerationAlertsService } from "./moderation-alerts.service";
 
 class StoreDto {
   @IsIn(["individual", "business"]) profileType!: "individual" | "business";
@@ -67,7 +69,12 @@ function slugify(value: string): string {
 @Controller("seller")
 @UseGuards(SessionGuard)
 export class SellerController {
-  constructor(private readonly database: DatabaseService, private readonly context: StoreContextService) {}
+  constructor(
+    private readonly database: DatabaseService,
+    private readonly context: StoreContextService,
+    private readonly aiClient: AiClientService,
+    private readonly moderationAlerts: ModerationAlertsService,
+  ) {}
 
   @Get("profile")
   async getProfile(@CurrentUser() user: AuthenticatedUser) {
@@ -425,21 +432,62 @@ export class SellerController {
     );
     if (!category.rowCount) throw new BadRequestException({ code: "INVALID_CATEGORY", message: "Escolhe uma categoria disponível." });
     const imageIds = [...new Set(body.imageIds ?? [])];
+
+    // Moderação preliminar via IA
+    const aiMod = await this.aiClient.moderateContent({
+      title: body.title,
+      description: body.description,
+      price: body.price,
+    });
+    const isAutoRejected = aiMod.action === "auto_reject";
+    const initialStatus = isAutoRejected ? "rejected" : "pending_review";
+    const rejectionReason = isAutoRejected ? aiMod.flaggedReasons.join(". ") : null;
+
     const id = await this.database.transaction(async (client) => {
       const listing = await client.query<{ id: string; slug: string }>(
-        `INSERT INTO listings (seller_profile_id, category_id, slug, title, description, price, condition, price_negotiable, available_quantity, status, province, municipality)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'pending_review', $10, $11) RETURNING id, slug`,
-        [profile.id, category.rows[0].id, slugify(body.title), body.title.trim(), body.description.trim(), body.price, body.condition, Boolean(body.priceNegotiable), body.availableQuantity, body.province.trim(), body.municipality.trim()],
+        `INSERT INTO listings (seller_profile_id, category_id, slug, title, description, price, condition, price_negotiable, available_quantity, status, rejection_reason, province, municipality, ai_risk_score, ai_flagged_reasons, ai_suggested_action)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16) RETURNING id, slug`,
+        [
+          profile.id,
+          category.rows[0].id,
+          slugify(body.title),
+          body.title.trim(),
+          body.description.trim(),
+          body.price,
+          body.condition,
+          Boolean(body.priceNegotiable),
+          body.availableQuantity,
+          initialStatus,
+          rejectionReason,
+          body.province.trim(),
+          body.municipality.trim(),
+          aiMod.riskScore,
+          aiMod.flaggedReasons,
+          aiMod.suggestedModeratorAction ?? null,
+        ],
       );
       for (let i = 0; i < imageIds.length; i++) {
         const asset = await client.query("SELECT id FROM media_assets WHERE id = $1 AND owner_user_id = $2 AND deleted_at IS NULL", [imageIds[i], user.id]);
         if (!asset.rowCount) throw new BadRequestException({ code: "INVALID_IMAGE", message: "Uma das imagens não está disponível." });
         await client.query("INSERT INTO listing_images (listing_id, media_asset_id, image_url, alt_text, sort_order) VALUES ($1, $2, $3, $4, $5)", [listing.rows[0].id, imageIds[i], `/api/v1/media/${imageIds[i]}`, body.title.trim(), i]);
       }
-      await client.query("INSERT INTO audit_events (actor_id, action, entity_type, entity_id) VALUES ($1, 'listing.created', 'listing', $2)", [user.id, listing.rows[0].id]);
+      const auditAction = isAutoRejected ? "listing.ai_auto_rejected" : "listing.created";
+      await client.query("INSERT INTO audit_events (actor_id, action, entity_type, entity_id) VALUES ($1, $2, 'listing', $3)", [user.id, auditAction, listing.rows[0].id]);
       return listing.rows[0];
     });
-    return { ...id, status: "pending_review" };
+
+    if (aiMod.riskScore >= 70 || isAutoRejected) {
+      this.moderationAlerts.emitAlert({
+        type: "high_risk_listing",
+        entityId: id.id,
+        title: body.title.trim(),
+        riskScore: aiMod.riskScore,
+        reasons: aiMod.flaggedReasons,
+        suggestedAction: aiMod.suggestedModeratorAction ?? undefined,
+      });
+    }
+
+    return { ...id, status: initialStatus, rejectionReason };
   }
 
   @Put("listings/:id")
@@ -449,7 +497,17 @@ export class SellerController {
     const category = await this.database.query<{ id: string }>("SELECT c.id FROM categories c JOIN marketplaces m ON m.id = c.marketplace_id WHERE c.slug = $1 AND c.is_active AND m.slug = 'produtos'", [body.categorySlug]);
     if (!category.rowCount) throw new BadRequestException({ code: "INVALID_CATEGORY", message: "Escolhe uma categoria disponível." });
     const imageIds = [...new Set(body.imageIds ?? [])];
-    return this.database.transaction(async (client) => {
+
+    const aiMod = await this.aiClient.moderateContent({
+      title: body.title,
+      description: body.description,
+      price: body.price,
+    });
+    const isAutoRejected = aiMod.action === "auto_reject";
+    const status = isAutoRejected ? "rejected" : "pending_review";
+    const rejectionReason = isAutoRejected ? aiMod.flaggedReasons.join(". ") : null;
+
+    const result = await this.database.transaction(async (client) => {
       const owns = await client.query<{ id: string }>(
         `SELECT l.id FROM listings l JOIN store_memberships sm ON sm.seller_profile_id = l.seller_profile_id
          JOIN seller_profiles s ON s.id = l.seller_profile_id
@@ -458,9 +516,26 @@ export class SellerController {
       if (!owns.rowCount) throw new BadRequestException({ code: "LISTING_NOT_FOUND", message: "Anúncio não encontrado." });
       await client.query(
         `UPDATE listings SET category_id = $2, title = $3, description = $4, price = $5, condition = $6, price_negotiable = $7,
-         available_quantity = $8, status = 'pending_review', rejection_reason = NULL, province = $9, municipality = $10, updated_at = now()
+         available_quantity = $8, status = $9, rejection_reason = $10, province = $11, municipality = $12,
+         ai_risk_score = $13, ai_flagged_reasons = $14, ai_suggested_action = $15, updated_at = now()
          WHERE id = $1`,
-        [id, category.rows[0].id, body.title.trim(), body.description.trim(), body.price, body.condition, Boolean(body.priceNegotiable), body.availableQuantity, body.province.trim(), body.municipality.trim()],
+        [
+          id,
+          category.rows[0].id,
+          body.title.trim(),
+          body.description.trim(),
+          body.price,
+          body.condition,
+          Boolean(body.priceNegotiable),
+          body.availableQuantity,
+          status,
+          rejectionReason,
+          body.province.trim(),
+          body.municipality.trim(),
+          aiMod.riskScore,
+          aiMod.flaggedReasons,
+          aiMod.suggestedModeratorAction ?? null,
+        ],
       );
       const existingImages = await client.query<{ media_asset_id: string }>("SELECT media_asset_id FROM listing_images WHERE listing_id = $1", [id]);
       const retainedImages = new Set(existingImages.rows.map((image) => image.media_asset_id));
@@ -470,9 +545,23 @@ export class SellerController {
         if (!asset.rowCount && !retainedImages.has(imageIds[i])) throw new BadRequestException({ code: "INVALID_IMAGE", message: "Uma das imagens não está disponível." });
         await client.query("INSERT INTO listing_images (listing_id, media_asset_id, image_url, alt_text, sort_order) VALUES ($1, $2, $3, $4, $5)", [id, imageIds[i], `/api/v1/media/${imageIds[i]}`, body.title.trim(), i]);
       }
-      await client.query("INSERT INTO audit_events (actor_id, action, entity_type, entity_id) VALUES ($1, 'listing.updated', 'listing', $2)", [user.id, id]);
-      return { id, status: "pending_review" };
+      const auditAction = isAutoRejected ? "listing.ai_auto_rejected" : "listing.updated";
+      await client.query("INSERT INTO audit_events (actor_id, action, entity_type, entity_id) VALUES ($1, $2, 'listing', $3)", [user.id, auditAction, id]);
+      return { id, status, rejectionReason };
     });
+
+    if (aiMod.riskScore >= 70 || isAutoRejected) {
+      this.moderationAlerts.emitAlert({
+        type: "high_risk_listing",
+        entityId: id,
+        title: body.title.trim(),
+        riskScore: aiMod.riskScore,
+        reasons: aiMod.flaggedReasons,
+        suggestedAction: aiMod.suggestedModeratorAction ?? undefined,
+      });
+    }
+
+    return result;
   }
 
   @Patch("listings/:id/status")

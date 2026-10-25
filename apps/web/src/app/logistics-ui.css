@@ -1,0 +1,694 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   PUVO Logistics, Delivery Handshake & Courier Portal Styles
+   Designed for modern Angolan e-commerce, mobile responsiveness & high contrast
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Checkout Delivery & Freight Calculator ── */
+.checkout-delivery-section {
+  display: block;
+  min-width: 0;
+  margin: 18px 0;
+  padding: 16px;
+  background: #f8faf8;
+  border: 1px solid #dce5dd;
+  border-radius: 10px;
+}
+
+.checkout-summary > .checkout-delivery-section {
+  display: block;
+}
+
+.checkout-delivery-section h3 {
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #17251e;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.delivery-type-toggle {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.delivery-type-option {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 12px;
+  border: 1.5px solid #d9e3db;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  font-size: 11px;
+}
+
+.delivery-type-option:hover {
+  border-color: #137a4b;
+}
+
+.delivery-type-option.selected {
+  border-color: #137a4b;
+  background: #eef7f2;
+  box-shadow: 0 2px 8px rgba(19, 122, 75, 0.12);
+}
+
+.delivery-type-option strong {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #112a20;
+  font-size: 12px;
+}
+
+.delivery-type-option span {
+  color: #617368;
+  font-size: 10px;
+}
+
+.freight-estimate-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: #eaf3ec;
+  border-left: 4px solid #137a4b;
+  margin: 12px 0;
+  font-size: 11px;
+}
+
+.freight-estimate-banner.free-shipping {
+  background: #fcf6e8;
+  border-left-color: #f5b82e;
+}
+
+.freight-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 11px;
+  background: #137a4b;
+  color: #fff;
+}
+
+.freight-badge.free {
+  background: #b8860b;
+}
+
+.freight-time {
+  color: #496353;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.delivery-address-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.delivery-address-full {
+  grid-column: 1 / -1;
+}
+
+.delivery-landmark-tip {
+  font-size: 10px;
+  color: #7b887f;
+  margin-top: 4px;
+}
+
+/* ── Buyer Order Tracking & PIN Display ── */
+.tracking-card {
+  padding: 20px;
+  border: 1px solid #dce5dd;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 4px 16px rgba(19, 37, 30, 0.04);
+}
+
+.tracking-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #edf2ee;
+}
+
+.tracking-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.tracking-status-pill.assigned {
+  background: #e9f0fc;
+  color: #1754b5;
+}
+
+.tracking-status-pill.picked_up,
+.tracking-status-pill.in_transit {
+  background: #fcf4e4;
+  color: #9c6800;
+  animation: pulse-border 2s infinite;
+}
+
+.tracking-status-pill.delivered {
+  background: #e8f5ec;
+  color: #137a4b;
+}
+
+@keyframes pulse-border {
+  0% { box-shadow: 0 0 0 0 rgba(245, 184, 46, 0.4); }
+  70% { box-shadow: 0 0 0 6px rgba(245, 184, 46, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(245, 184, 46, 0); }
+}
+
+/* Security PIN Box (The Core Handshake Guard) */
+.secure-pin-card {
+  margin: 16px 0;
+  padding: 18px;
+  background: linear-gradient(135deg, #0f3627 0%, #17251e 100%);
+  color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 10px 24px rgba(15, 54, 39, 0.25);
+  position: relative;
+  overflow: hidden;
+}
+
+.secure-pin-card:before {
+  content: "";
+  position: absolute;
+  top: -20px;
+  right: -20px;
+  width: 110px;
+  height: 110px;
+  background: rgba(245, 184, 46, 0.15);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.secure-pin-card h4 {
+  margin: 0 0 6px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #f5b82e;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.secure-pin-digits {
+  display: flex;
+  gap: 12px;
+  margin: 12px 0 14px;
+}
+
+.secure-pin-digit {
+  width: 52px;
+  height: 60px;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1.5px solid rgba(245, 184, 46, 0.5);
+  border-radius: 10px;
+  font-size: 28px;
+  font-weight: 800;
+  font-family: monospace;
+  color: #fff;
+  backdrop-filter: blur(4px);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.secure-pin-warning {
+  margin: 0;
+  font-size: 10.5px;
+  line-height: 1.55;
+  color: #d1e5db;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.secure-pin-warning span {
+  color: #f5b82e;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+/* Courier Profile Card */
+.courier-info-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 16px;
+  background: #f8faf8;
+  border: 1px solid #e2ebe4;
+  border-radius: 10px;
+  margin: 16px 0;
+}
+
+.courier-identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.courier-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #137a4b;
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.courier-details b {
+  display: block;
+  font-size: 13px;
+  color: #17251e;
+}
+
+.courier-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  color: #63756a;
+  margin-top: 3px;
+}
+
+.vehicle-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: #edf2ed;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.courier-actions-row {
+  display: flex;
+  gap: 8px;
+}
+
+.call-button, .whatsapp-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: transform 0.15s ease;
+}
+
+.call-button {
+  background: #fff;
+  border: 1px solid #d5ded7;
+  color: #27382f;
+}
+
+.whatsapp-button {
+  background: #25d366;
+  color: #fff;
+  border: none;
+}
+
+.call-button:hover, .whatsapp-button:hover {
+  transform: translateY(-1px);
+}
+
+/* Delivery Visual Timeline */
+.delivery-steps {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin: 20px 0 12px;
+  position: relative;
+}
+
+.delivery-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+  position: relative;
+}
+
+.delivery-step-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  background: #eaefeb;
+  color: #8b9990;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 2px #dbe3dc;
+  z-index: 2;
+  transition: all 0.2s ease;
+}
+
+.delivery-step.done .delivery-step-icon {
+  background: #137a4b;
+  color: #fff;
+  box-shadow: 0 0 0 2px #137a4b;
+}
+
+.delivery-step.current .delivery-step-icon {
+  background: #f5b82e;
+  color: #17251e;
+  box-shadow: 0 0 0 3px #f5b82e;
+  animation: pulse-border 1.8s infinite;
+}
+
+.delivery-step-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: #647369;
+}
+
+.delivery-step.done .delivery-step-label,
+.delivery-step.current .delivery-step-label {
+  color: #17251e;
+}
+
+/* ── Courier Dashboard & Mobile Runs ── */
+.courier-dashboard-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.courier-status-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-radius: 12px;
+  background: #17251e;
+  color: #fff;
+  box-shadow: 0 8px 24px rgba(23, 37, 30, 0.12);
+}
+
+.courier-summary-info h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.courier-summary-info p {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: #9cb5a8;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.courier-switch-button {
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  border: 2px solid transparent;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.18s ease;
+}
+
+.courier-switch-button.is-active {
+  background: #25d366;
+  color: #0d381c;
+}
+
+.courier-switch-button.is-offline {
+  background: #394d42;
+  color: #e4eee7;
+}
+
+.courier-stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.courier-stat-card {
+  padding: 14px;
+  background: #fff;
+  border: 1px solid #dce5dd;
+  border-radius: 10px;
+  text-align: center;
+}
+
+.courier-stat-card span {
+  display: block;
+  font-size: 10px;
+  color: #6e7d73;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.courier-stat-card strong {
+  display: block;
+  font-size: 20px;
+  color: #17251e;
+  margin-top: 4px;
+}
+
+/* Delivery Run Cards */
+.run-card {
+  border: 1px solid #dce5dd;
+  border-radius: 12px;
+  background: #fff;
+  padding: 18px;
+  margin-bottom: 14px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.run-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);
+}
+
+.run-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f0f4f1;
+}
+
+.run-reference {
+  font-size: 14px;
+  font-weight: 700;
+  color: #17251e;
+}
+
+.run-fee-badge {
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: #eef7f2;
+  color: #137a4b;
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.run-points {
+  margin: 14px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.run-point {
+  display: flex;
+  gap: 10px;
+  font-size: 11px;
+}
+
+.point-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.point-pickup .point-icon {
+  background: #e7effc;
+  color: #1557bf;
+}
+
+.point-dropoff .point-icon {
+  background: #fdf3e2;
+  color: #b37400;
+}
+
+.point-content b {
+  display: block;
+  font-size: 12px;
+  color: #17251e;
+}
+
+.point-content span {
+  color: #617066;
+  font-size: 11px;
+}
+
+.point-landmark {
+  display: block;
+  font-size: 10.5px;
+  color: #966b07;
+  margin-top: 2px;
+}
+
+.run-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid #f0f4f1;
+}
+
+.run-actions .button {
+  flex: 1;
+}
+
+/* PIN Verification Modal / Drawer */
+.pin-verify-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 34, 25, 0.65);
+  backdrop-filter: blur(4px);
+  z-index: 999;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+
+.pin-verify-modal {
+  width: min(100%, 420px);
+  background: #fff;
+  border-radius: 14px;
+  padding: 24px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  text-align: center;
+}
+
+.pin-verify-modal h3 {
+  margin: 0 0 8px;
+  font-size: 18px;
+  color: #17251e;
+}
+
+.pin-verify-modal p {
+  margin: 0 0 18px;
+  font-size: 11px;
+  color: #69786f;
+  line-height: 1.55;
+}
+
+.pin-input-group {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin: 20px 0;
+}
+
+.pin-input-box {
+  width: 56px;
+  height: 64px;
+  border: 2px solid #c9d8ce;
+  border-radius: 10px;
+  font-size: 28px;
+  font-weight: 800;
+  text-align: center;
+  color: #17251e;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.pin-input-box:focus {
+  border-color: #137a4b;
+  box-shadow: 0 0 0 3px rgba(19, 122, 75, 0.15);
+}
+
+.pin-attempts-alert {
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: #fdf2f0;
+  border: 1px solid #f5c4be;
+  color: #a82e24;
+  font-size: 11px;
+  margin-bottom: 16px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 760px) {
+  .delivery-address-grid {
+    grid-template-columns: 1fr;
+  }
+  .delivery-steps {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  .delivery-step {
+    flex-direction: row;
+    text-align: left;
+  }
+  .courier-info-box {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .courier-actions-row {
+    width: 100%;
+    margin-top: 10px;
+  }
+  .courier-actions-row a {
+    flex: 1;
+    justify-content: center;
+  }
+  .courier-stats-row {
+    grid-template-columns: 1fr;
+  }
+  .courier-status-banner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+  }
+}

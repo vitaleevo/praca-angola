@@ -1,0 +1,10 @@
+.git/
+.data/
+.deploy-inspect/
+output/
+wiza.pdf
+**/node_modules/
+**/.next/
+**/dist/
+.env
+.env.*

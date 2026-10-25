@@ -14,7 +14,7 @@ O papel `platform_owner` dá acesso ao painel global da PUVO e às rotas de mode
 
 O comando aceita apenas uma conta ativa com email confirmado, cria o papel e o evento de auditoria na mesma transação e recusa uma segunda concessão. O PostgreSQL também impõe a existência de, no máximo, um proprietário global. Não existe endpoint público para conceder este papel.
 
-Depois da implantação, abrir `/admin`. A API `GET /api/v1/platform-owner/overview` deve responder 200 para o proprietário e 403 para uma conta comum. O painel liga a `/admin/moderacao`, `/admin/profissionais`, `/admin/denuncias-servicos` e `/admin/publicidade`.
+Depois da implantação, abrir `https://gestao.puvo.vitaleevo.ao/`. A API `GET /api/v1/platform-owner/overview` deve responder 200 para o proprietário e 403 para uma conta comum. O painel liga a `/moderacao`, `/profissionais`, `/denuncias-servicos` e `/publicidade` nesse domínio. O marketplace público não contém páginas nem ligações administrativas.
 
 ## Estado desta entrega
 

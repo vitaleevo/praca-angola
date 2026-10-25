@@ -16,6 +16,7 @@ const sharedAreas: NavigationGroup = {
     { href: "/vendedor", label: "A minha loja" },
     { href: "/profissional", label: "Perfil profissional" },
     { href: "/servicos/pedidos", label: "Serviços e propostas" },
+    { href: "/estafeta", label: "Painel do Estafeta" },
   ],
 };
 
@@ -40,6 +41,14 @@ const navigation: Record<WorkspaceArea, { title: string; groups: NavigationGroup
         { href: "/vendedor/anuncios/novo", label: "Publicar produto" },
         { href: "/conta/encomendas", label: "Encomendas" },
         { href: "/conta/mensagens", label: "Mensagens" },
+      ] },
+      { label: "CRM & Vendas", items: [
+        { href: "/vendedor/crm", label: "Funil de Vendas (Kanban)" },
+        { href: "/vendedor/crm/conversas", label: "Live Inbox Omnichannel" },
+        { href: "/vendedor/crm/contactos", label: "Base de Leads" },
+        { href: "/vendedor/crm/automacoes", label: "⚡ Automações" },
+        { href: "/vendedor/crm/analytics", label: "📊 Analytics & IA" },
+        { href: "/vendedor/crm/ia", label: "Configurar IA & Conhecimento" },
       ] },
       sharedAreas,
     ],

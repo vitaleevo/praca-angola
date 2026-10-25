@@ -7,6 +7,7 @@ import "./auth-ui.css";
 import "./account-access.css";
 import './marketplace-v2.css';
 import './workspace.css';
+import './logistics-ui.css';
 
 export const metadata: Metadata = {
   title: "PUVO — Plataforma Única de Vendas Online",
