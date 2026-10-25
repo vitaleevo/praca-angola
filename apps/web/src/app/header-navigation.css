@@ -1,0 +1,248 @@
+.site-header {
+  gap: clamp(12px, 2vw, 28px);
+}
+
+.site-header .desktop-nav {
+  gap: clamp(14px, 1.8vw, 26px);
+}
+
+.site-header .header-market-search {
+  flex: 1 1 220px;
+  min-width: 170px;
+  max-width: 360px;
+  height: 42px;
+  border-color: #dfe7e1;
+  border-radius: 10px;
+  background: #f8faf8;
+  transition: border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
+}
+
+.site-header .header-market-search:focus-within {
+  border-color: #83b295;
+  background: #fff;
+  box-shadow: 0 0 0 3px #137a4b18;
+}
+
+.site-header .header-market-search input {
+  height: 100%;
+  font-size: 12px;
+}
+
+.site-header .header-market-search button {
+  display: grid;
+  width: 40px;
+  height: 100%;
+  place-items: center;
+  flex: none;
+  font-size: 23px;
+}
+
+.site-header .header-actions {
+  gap: 10px;
+  margin-left: auto;
+}
+
+.header-quick-links {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.header-icon-link {
+  position: relative;
+  display: inline-flex;
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  background: transparent;
+  color: #506057;
+  transition: color 150ms ease, background-color 150ms ease, border-color 150ms ease;
+}
+
+.header-icon-link svg {
+  width: 20px;
+  height: 20px;
+}
+
+.header-icon-link:hover,
+.header-icon-link.active {
+  border-color: #e1ebe3;
+  background: #f0f6f1;
+  color: var(--green);
+}
+
+.header-icon-link:focus-visible,
+.header-logout:focus-visible {
+  outline: 3px solid #f5b82e;
+  outline-offset: 2px;
+}
+
+.header-icon-badge {
+  position: absolute;
+  top: 1px;
+  right: 0;
+  display: grid;
+  min-width: 17px;
+  height: 17px;
+  place-items: center;
+  padding: 0 4px;
+  border: 2px solid #fff;
+  border-radius: 999px;
+  background: var(--green);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 750;
+  line-height: 1;
+}
+
+.account-nav {
+  gap: 8px;
+}
+
+.header-logout {
+  min-height: 36px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #68766d;
+  font-size: 11px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.header-logout:hover {
+  background: #f4f6f4;
+  color: #26382d;
+}
+
+.header-logout:disabled {
+  cursor: wait;
+  opacity: .6;
+}
+
+.site-header .sell-button {
+  min-height: 40px;
+  padding: 0 15px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
+.service-header .header-icon-link:hover,
+.service-header .header-icon-link.active {
+  border-color: #dce7ff;
+  background: #eff4ff;
+  color: #0754ed;
+}
+
+.service-header .header-icon-badge {
+  background: #0754ed;
+}
+
+@media (max-width: 1150px) {
+  .site-header .header-market-search {
+    display: none;
+  }
+}
+
+@media (max-width: 880px) {
+  .site-header {
+    height: 68px;
+    gap: 8px;
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+
+  .site-header .desktop-nav,
+  .site-header .sell-button,
+  .site-header .auth-nav {
+    display: none;
+  }
+
+  .site-header .header-actions {
+    gap: 5px;
+  }
+
+  .header-quick-links {
+    gap: 2px;
+  }
+
+  .header-icon-link {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+  }
+
+  .header-icon-link svg {
+    width: 19px;
+    height: 19px;
+  }
+
+  .account-nav {
+    display: flex;
+    gap: 0;
+  }
+
+  .header-logout,
+  .account-nav .text-button {
+    display: none;
+  }
+
+  .mobile-menu {
+    display: block;
+  }
+
+  .mobile-menu-trigger {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+  }
+}
+
+@media (max-width: 370px) {
+  .site-header {
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+
+  .site-header .brand {
+    gap: 6px;
+    font-size: 18px;
+  }
+
+  .site-header .brand-mark {
+    width: 29px;
+    height: 29px;
+    border-radius: 9px;
+  }
+
+  .header-quick-links {
+    gap: 0;
+  }
+
+  .header-icon-link {
+    width: 32px;
+    height: 34px;
+    border-radius: 8px;
+  }
+
+  .site-header .header-actions {
+    gap: 2px;
+  }
+
+  .mobile-menu-trigger {
+    width: 32px;
+    height: 34px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .header-icon-link,
+  .site-header .header-market-search {
+    transition: none;
+  }
+}

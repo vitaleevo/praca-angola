@@ -2,14 +2,16 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { MobileMenu } from "./mobile-menu";
+import { HeaderIcon } from "./header-icon";
 
 type SessionUser = { id: string; displayName: string; email: string; roles: string[] };
 type SessionResponse = { user?: SessionUser | null };
 
 export function HeaderAuth({ workspace = false }: { workspace?: boolean }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [user, setUser] = useState<SessionUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [loggingOut, setLoggingOut] = useState(false);
@@ -63,8 +65,8 @@ export function HeaderAuth({ workspace = false }: { workspace?: boolean }) {
         <span className="account-nav-placeholder" aria-label="A verificar sessão" />
       ) : user ? (
         <nav className="account-nav" aria-label={`Sessão de ${user.displayName}`}>
-          {!workspace && <Link href="/conta">A minha conta</Link>}
-          <button type="button" className="text-button" onClick={() => void logout()} disabled={loggingOut}>
+          <Link className={`header-icon-link account-icon-link${pathname === "/conta" ? " active" : ""}`} href="/conta" aria-label="A minha conta" aria-current={pathname === "/conta" ? "page" : undefined} title="A minha conta"><HeaderIcon name="account"/></Link>
+          <button type="button" className="header-logout" onClick={() => void logout()} disabled={loggingOut}>
             {loggingOut ? "A sair…" : "Sair"}
           </button>
         </nav>
@@ -78,26 +80,4 @@ export function HeaderAuth({ workspace = false }: { workspace?: boolean }) {
       {logoutError && <p className="logout-error" role="alert">{logoutError}</p>}
     </div>
   );
-}
-
-export function CartLink() {
-  const [count, setCount] = useState(0);
-  useEffect(() => {
-    const update = () => {
-      try {
-        setCount((JSON.parse(localStorage.getItem("praca-cart") || "[]") as { quantity: number }[])
-          .reduce((sum, item) => sum + item.quantity, 0));
-      } catch {
-        setCount(0);
-      }
-    };
-    update();
-    window.addEventListener("praca-cart-updated", update);
-    window.addEventListener("storage", update);
-    return () => {
-      window.removeEventListener("praca-cart-updated", update);
-      window.removeEventListener("storage", update);
-    };
-  }, []);
-  return <Link className="cart-link" href="/carrinho">Carrinho{count > 0 ? ` · ${count}` : ""}</Link>;
 }

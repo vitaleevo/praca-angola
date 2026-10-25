@@ -1,4 +1,32 @@
 "use client";
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-export function SiteNav({services=false}:{services?:boolean}){const pathname=usePathname();const links=services?[['Explorar','/servicos'],['Profissionais','/servicos?providerType=individual'],['Empresas','/servicos?providerType=company'],['Pedidos','/servicos/pedidos']]:[['Explorar','/'],['Produtos','/produtos'],['Lojas','/lojas'],['Serviços','/servicos']];return <nav className="desktop-nav" aria-label="Navegação principal">{links.map(([label,href],i)=><Link key={href} href={href} className={(services?i===0&&pathname==='/servicos':pathname===href)?'active':''}>{label}</Link>)}</nav>;}
+
+type NavigationLink = { label: string; href: string; active: boolean };
+
+export function SiteNav({ services = false }: { services?: boolean }) {
+  const pathname = usePathname();
+  const links: NavigationLink[] = services
+    ? [
+        { label: "Explorar", href: "/servicos", active: pathname === "/servicos" },
+        { label: "Profissionais", href: "/servicos?providerType=individual", active: false },
+        { label: "Empresas", href: "/servicos?providerType=company", active: false },
+        { label: "Pedidos", href: "/servicos/pedidos", active: pathname.startsWith("/servicos/pedidos") },
+      ]
+    : [
+        { label: "Explorar", href: "/", active: pathname === "/" },
+        { label: "Produtos", href: "/produtos", active: pathname === "/produtos" || pathname.startsWith("/produtos/") },
+        { label: "Lojas", href: "/lojas", active: pathname === "/lojas" || pathname.startsWith("/lojas/") },
+        { label: "Serviços", href: "/servicos", active: pathname === "/servicos" || pathname.startsWith("/servicos/") },
+      ];
+
+  return (
+    <nav className="desktop-nav" aria-label="Navegação principal">
+      {links.map(({ label, href, active }) => (
+        <Link key={href} href={href} className={active ? "active" : undefined} aria-current={active ? "page" : undefined}>
+          {label}
+        </Link>
+      ))}
+    </nav>
+  );
+}
