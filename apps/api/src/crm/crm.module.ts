@@ -9,13 +9,14 @@ import { StorefrontChatService } from "./storefront-chat.service";
 import { CrmRealtimeService } from "./crm-realtime.service";
 import { MetaGraphService } from "./meta-graph.service";
 import { CrmSocialService } from "./crm-social.service";
+import { CrmHistoryService } from "./crm-history.service";
 import { DatabaseModule } from "../database/database.module";
 import { AuthModule } from "../auth/auth.module";
 
 @Module({
   imports: [DatabaseModule, AuthModule],
   controllers: [CrmController, CrmWebhooksController, CrmAutomationsController, StorefrontChatController],
-  providers: [CrmService, CrmAutomationsService, StorefrontChatService, CrmRealtimeService, MetaGraphService, CrmSocialService],
+  providers: [CrmService, CrmAutomationsService, StorefrontChatService, CrmRealtimeService, MetaGraphService, CrmSocialService, CrmHistoryService],
   exports: [CrmService, CrmAutomationsService, StorefrontChatService, CrmRealtimeService],
 })
 export class CrmModule {}

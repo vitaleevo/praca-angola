@@ -44,6 +44,9 @@ export function CrmChannelManager() {
   const [expanded, setExpanded] = useState(false);
   const [whatsApp, setWhatsApp] = useState({ accountName: "", phoneNumberId: "", accessToken: "" });
   const [checkingId, setCheckingId] = useState<string | null>(null);
+  const [importingId, setImportingId] = useState<string | null>(null);
+  const [historyNext, setHistoryNext] = useState<Record<string, string | null>>({});
+  const [historyResult, setHistoryResult] = useState<Record<string, string>>({});
   const [diagnostics, setDiagnostics] = useState<Record<string, ChannelDiagnostics>>({});
 
   async function loadChannels() {
@@ -185,6 +188,27 @@ export function CrmChannelManager() {
     }
   }
 
+  async function importHistory(channel: Channel) {
+    setImportingId(channel.id);
+    setError(""); setNotice("");
+    try {
+      const after = historyNext[channel.id];
+      const response = await fetch(`/api/v1/crm/channels/${channel.id}/import-history`, {
+        method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(after ? { after } : {}),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(typeof payload.message === "string" ? payload.message : "A Meta não permitiu importar estas conversas. Verifica o acesso do canal.");
+      setHistoryNext((current) => ({ ...current, [channel.id]: payload.next || null }));
+      const summary = `${payload.messages} mensagens importadas de ${payload.conversations} conversas em ${channel.account_name}.`;
+      setHistoryResult((current) => ({ ...current, [channel.id]: summary }));
+      setNotice(summary);
+      window.dispatchEvent(new Event("crm-history-imported"));
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Não foi possível importar o histórico.");
+    } finally { setImportingId(null); }
+  }
+
   return (
     <section className="crm-channel-manager" aria-labelledby="crm-channel-manager-title">
       <div className="crm-channel-manager-heading">
@@ -202,7 +226,7 @@ export function CrmChannelManager() {
       {notice && <p className="crm-channel-feedback success" role="status">{notice}</p>}
 
       <div id="crm-channel-details" hidden={!expanded && !pages && !showWhatsApp}>
-      <p className="crm-channel-help">A ligação guarda o acesso da loja e recebe mensagens novas pelo webhook. Consulta publicações e responde a comentários em Redes sociais, conforme as permissões concedidas pela Meta. As conversas anteriores à ligação ainda não são importadas.</p>
+      <p className="crm-channel-help">A ligação guarda o acesso da loja e recebe mensagens novas pelo webhook. Consulta publicações e responde a comentários em Redes sociais. Para trazer conversas anteriores, usa “Importar histórico” em cada canal Facebook ou Instagram; a Meta pode limitar o que está disponível.</p>
       <div className="crm-channel-manager-actions crm-channel-connect-actions">
         <button type="button" className="button button-secondary" onClick={() => void startMetaConnection()} disabled={working}>Ligar Facebook e Instagram</button>
         <button type="button" className="button button-primary" onClick={() => setShowWhatsApp((shown) => !shown)} disabled={working}>Ligar WhatsApp</button>
@@ -235,13 +259,14 @@ export function CrmChannelManager() {
         {loading ? <p className="crm-channel-empty">A carregar canais…</p> : channels.length ? channels.map((channel) => (
           <article className="crm-channel-row" key={channel.id}>
             <div><strong>{channelLabels[channel.channel_type]}</strong><span>{channel.account_name}</span><small>Última mensagem recebida: {channel.last_sync_at ? new Date(channel.last_sync_at).toLocaleString("pt-AO") : "nenhuma mensagem recebida"}</small></div>
-            <div className="crm-channel-row-actions"><span className={`crm-channel-status ${channel.status}`}>{channel.status === "connected" ? "Autorizado" : channel.status === "expired" ? "Expirado" : "Desligado"}</span>{["facebook_page", "instagram_direct"].includes(channel.channel_type) && <button type="button" className="button button-secondary" onClick={() => void checkChannel(channel)} disabled={checkingId === channel.id}>{checkingId === channel.id ? "A verificar…" : "Verificar acesso"}</button>}<button type="button" className="button button-secondary" onClick={() => void disconnect(channel)} disabled={working || channel.status === "disconnected"}>Desligar</button></div>
+            <div className="crm-channel-row-actions"><span className={`crm-channel-status ${channel.status}`}>{channel.status === "connected" ? "Autorizado" : channel.status === "expired" ? "Expirado" : "Desligado"}</span>{["facebook_page", "instagram_direct"].includes(channel.channel_type) && <><button type="button" className="button button-secondary" onClick={() => void checkChannel(channel)} disabled={checkingId === channel.id}>{checkingId === channel.id ? "A verificar…" : "Verificar acesso"}</button><button type="button" className="button button-secondary" onClick={() => void importHistory(channel)} disabled={channel.status !== "connected" || importingId !== null}>{importingId === channel.id ? "A importar…" : historyNext[channel.id] ? "Carregar mais histórico" : "Importar histórico"}</button></>}<button type="button" className="button button-secondary" onClick={() => void disconnect(channel)} disabled={working || channel.status === "disconnected"}>Desligar</button></div>
+            {historyResult[channel.id] && <p className="crm-channel-history-result" role="status">{historyResult[channel.id]} {historyNext[channel.id] ? "Há mais conversas disponíveis." : "Podes repetir sem criar duplicados."}</p>}
             {diagnostics[channel.id] && <div className="crm-channel-diagnostics" role="status">
               <strong>{diagnostics[channel.id].tokenValid && diagnostics[channel.id].appMatches ? "Token válido para a app PUVO" : "Token inválido ou de outra app — volta a ligar este canal"}</strong>
               <span>Mensagens: {diagnostics[channel.id].messagingMissing.length ? `faltam ${diagnostics[channel.id].messagingMissing.join(", ")}` : "permissões presentes no token"}.</span>
               <span>Comentários: {diagnostics[channel.id].commentsMissing.length ? `faltam ${diagnostics[channel.id].commentsMissing.join(", ")}` : "permissões presentes no token"}.</span>
               {channel.channel_type === "facebook_page" && <span>Webhook da Página: {diagnostics[channel.id].pageWebhookSubscribed === null ? "não foi possível verificar" : diagnostics[channel.id].pageWebhookSubscribed ? diagnostics[channel.id].pageWebhookFields.includes("messages") ? "app inscrita para mensagens" : "app inscrita, mas sem o campo messages" : "app não inscrita nesta Página"}.</span>}
-              <small>Consulta publicações e comentários em Redes sociais. Para lojas externas à equipa de testes, a Meta exige acesso aprovado no App Review. As conversas anteriores à ligação ainda não são importadas.</small>
+              <small>Consulta publicações e comentários em Redes sociais. Para lojas externas à equipa de testes, a Meta exige acesso aprovado no App Review. A importação de histórico depende das permissões deste canal e dos limites da Meta.</small>
             </div>}
           </article>
         )) : <p className="crm-channel-empty">Ainda não tens canais ligados. Liga uma Página, Instagram ou WhatsApp para começar.</p>}

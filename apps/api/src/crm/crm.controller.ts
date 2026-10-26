@@ -6,6 +6,9 @@ import { AuthenticatedUser } from "../auth/auth.types";
 import { CrmService } from "./crm.service";
 import { CrmRealtimeService } from "./crm-realtime.service";
 import { CrmSocialService } from "./crm-social.service";
+import { CrmHistoryService } from "./crm-history.service";
+import { RateLimit } from "../rate-limit/rate-limit.decorator";
+import { RateLimitGuard } from "../rate-limit/rate-limit.guard";
 import { ArrayMaxSize, IsArray, IsIn, IsNumber, IsOptional, IsString, IsUUID, Length, Max, MaxLength, Min } from "class-validator";
 
 class MoveDealStageDto {
@@ -56,6 +59,10 @@ class ConnectWhatsAppCloudDto {
   @IsString() @Length(20, 4096) accessToken!: string;
 }
 
+class ImportHistoryDto {
+  @IsOptional() @IsString() @MaxLength(2048) after?: string;
+}
+
 class ReplyToSocialCommentDto {
   @IsString() @Length(1, 1200) commentRef!: string;
   @IsString() @Length(1, 1000) message!: string;
@@ -95,6 +102,7 @@ export class CrmController {
     private readonly crmService: CrmService,
     private readonly realtimeService: CrmRealtimeService,
     private readonly socialService: CrmSocialService,
+    private readonly historyService: CrmHistoryService,
   ) {}
 
   @Sse("realtime/stream")
@@ -249,6 +257,14 @@ export class CrmController {
   async getChannelDiagnostics(@Param("id", ParseUUIDPipe) id: string, @CurrentUser() user: AuthenticatedUser) {
     const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
     return this.crmService.getChannelDiagnostics(workspace.id, id);
+  }
+
+  @Post("channels/:id/import-history")
+  @RateLimit({ scope: "crm-meta-history", limit: 12, windowSeconds: 60 })
+  @UseGuards(RateLimitGuard)
+  async importChannelHistory(@Param("id", ParseUUIDPipe) id: string, @Body() body: ImportHistoryDto, @CurrentUser() user: AuthenticatedUser) {
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
+    return this.historyService.importPage(workspace.id, id, body.after);
   }
 
   @Get("meta/connect")

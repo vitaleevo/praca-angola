@@ -42,6 +42,17 @@ export interface MetaSocialItem {
 
 export interface MetaSocialPage { data?: MetaSocialItem[]; paging?: { cursors?: { after?: string } } }
 
+export interface MetaHistoryConversation {
+  id?: string;
+  participants?: { data?: Array<{ id?: string; name?: string }> };
+}
+export interface MetaHistoryMessage {
+  id?: string;
+  message?: string;
+  created_time?: string;
+  from?: { id?: string; name?: string };
+}
+
 interface GraphErrorPayload {
   error?: { message?: string; type?: string; code?: number; error_subcode?: number };
 }
@@ -195,6 +206,27 @@ export class MetaGraphService {
     } finally {
       clearTimeout(timer);
     }
+  }
+
+  async listConversationHistory(channel: "facebook_page" | "instagram_direct", accountId: string, accessToken: string, after?: string) {
+    const pageId = channel === "instagram_direct"
+      ? (await this.graphGet<{ id?: string }>("me", { fields: "id", access_token: accessToken })).id
+      : accountId;
+    if (!pageId || !/^\d+$/.test(pageId)) throw new BadGatewayException("A Meta não devolveu a Página associada ao canal");
+    const result = await this.graphGet<{ data?: MetaHistoryConversation[]; paging?: { cursors?: { after?: string }; next?: string } }>(`${pageId}/conversations`, {
+      fields: "id,participants", limit: "1", access_token: accessToken,
+      ...(channel === "instagram_direct" ? { platform: "instagram" } : {}),
+      ...(after ? { after } : {}),
+    });
+    return { pageId, conversations: result.data ?? [], next: result.paging?.next ? result.paging.cursors?.after : undefined };
+  }
+
+  async listConversationMessages(conversationId: string, accessToken: string, after?: string) {
+    if (!/^[A-Za-z0-9_]{2,128}$/.test(conversationId)) throw new BadRequestException("Conversa Meta inválida");
+    const result = await this.graphGet<{ data?: MetaHistoryMessage[]; paging?: { cursors?: { after?: string }; next?: string } }>(`${conversationId}/messages`, {
+      fields: "id,message,created_time,from", limit: "25", access_token: accessToken, ...(after ? { after } : {}),
+    });
+    return { messages: result.data ?? [], next: result.paging?.next ? result.paging.cursors?.after : undefined };
   }
 
   async subscribeAccount(channel: MetaChannelType, accountId: string, accessToken: string): Promise<void> {

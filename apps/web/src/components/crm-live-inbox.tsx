@@ -188,6 +188,14 @@ export function CrmLiveInbox() {
   }, [workspaceState]);
 
   useEffect(() => {
+    if (workspaceState !== "ready") return;
+    const refresh = () => { void loadConversations(); if (selectedConvo) void loadMessages(selectedConvo.id); };
+    window.addEventListener("crm-history-imported", refresh);
+    return () => window.removeEventListener("crm-history-imported", refresh);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workspaceState, selectedConvo?.id]);
+
+  useEffect(() => {
     if (selectedConvo) {
       void loadMessages(selectedConvo.id);
     }
