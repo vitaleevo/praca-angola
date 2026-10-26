@@ -85,6 +85,14 @@ export class CrmHistoryService {
         );
         let count = 0;
         for (const item of valid) {
+          // Messages sent from this CRM already carry the Meta ID, but did not
+          // pass through the inbound webhook event ledger.
+          const existing = await client.query(
+            `SELECT 1 FROM crm_messages
+             WHERE conversation_id = $1 AND metadata->>'meta_message_id' = $2 LIMIT 1`,
+            [conversation.rows[0].id, item.id],
+          );
+          if (existing.rows.length) continue;
           const event = await client.query(
             `INSERT INTO crm_meta_webhook_events (event_key) VALUES ($1) ON CONFLICT DO NOTHING RETURNING event_key`,
             [`${crmChannel}:${item.id}`],
