@@ -21,6 +21,23 @@ export interface MetaPageSubscriptionDiagnostics {
   fields: string[];
 }
 
+export interface MetaSocialItem {
+  id: string;
+  text?: string;
+  message?: string;
+  caption?: string;
+  created_time?: string;
+  timestamp?: string;
+  permalink_url?: string;
+  permalink?: string;
+  media_type?: string;
+  comments_count?: number;
+  from?: { name?: string };
+  username?: string;
+}
+
+export interface MetaSocialPage { data?: MetaSocialItem[]; paging?: { cursors?: { after?: string } } }
+
 interface GraphErrorPayload {
   error?: { message?: string; type?: string; code?: number; error_subcode?: number };
 }
@@ -190,6 +207,34 @@ export class MetaGraphService {
       subscribed: Boolean(subscription),
       fields: Array.isArray(subscription?.subscribed_fields) ? subscription.subscribed_fields : [],
     };
+  }
+
+  async listSocialMedia(channel: "facebook_page" | "instagram_direct", accountId: string, accessToken: string, after?: string): Promise<MetaSocialPage> {
+    const path = channel === "facebook_page" ? `${accountId}/posts` : `${accountId}/media`;
+    const fields = channel === "facebook_page"
+      ? "id,message,created_time,permalink_url"
+      : "id,caption,timestamp,permalink,media_type,comments_count";
+    return this.graphGet<MetaSocialPage>(path, {
+      fields, limit: "20", access_token: accessToken, ...(after ? { after } : {}),
+    });
+  }
+
+  async getSocialProfile(channel: "facebook_page" | "instagram_direct", accountId: string, accessToken: string) {
+    const fields = channel === "facebook_page"
+      ? "id,name,about,fan_count,followers_count,website"
+      : "id,name,username,biography,followers_count,media_count,website";
+    return this.graphGet<{ name?: string; username?: string; about?: string; biography?: string; fan_count?: number; followers_count?: number; media_count?: number; website?: string }>(accountId, { fields, access_token: accessToken });
+  }
+
+  async listSocialComments(channel: "facebook_page" | "instagram_direct", mediaId: string, accessToken: string, after?: string): Promise<MetaSocialPage> {
+    const fields = channel === "facebook_page" ? "id,message,created_time,from" : "id,text,timestamp,username";
+    return this.graphGet<MetaSocialPage>(`${mediaId}/comments`, {
+      fields, limit: "25", access_token: accessToken, ...(after ? { after } : {}),
+    });
+  }
+
+  async replyToSocialComment(channel: "facebook_page" | "instagram_direct", commentId: string, accessToken: string, message: string): Promise<{ id?: string }> {
+    return this.graphPost<{ id?: string }>(`${commentId}/${channel === "facebook_page" ? "comments" : "replies"}`, accessToken, { message });
   }
 
   private async graphGet<T>(path: string, params: Record<string, string>): Promise<T> {

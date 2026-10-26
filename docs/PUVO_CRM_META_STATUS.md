@@ -29,6 +29,12 @@
 
 ## Próximo passo para operação real
 
+### Gestão de redes sociais no CRM
+
+- Foi criada a área `/vendedor/crm/redes-sociais`, dentro do mesmo menu da conta, para consultar os canais Facebook/Instagram autorizados, perfil resumido, publicações e comentários paginados e responder a comentários como a Página. Os tokens continuam cifrados na API; a UI recebe referências assinadas e temporárias para publicações e comentários.
+- O backend só aceita canais ligados à loja autenticada. A lista lê diretamente da Graph API, com 20 publicações e 25 comentários por página. Não guarda nem importa um arquivo ilimitado; a Meta pode limitar os dados acessíveis por permissão, tipo de publicação e App Review.
+- `pages_read_user_content`, `pages_manage_engagement` e `instagram_manage_comments` ainda faltam nos tokens atuais. A UI informa as permissões em falta. É necessária nova autorização depois de atualizar a configuração de Login e obter o acesso Meta. Não considerar os comentários operacionais em produção até um teste real de leitura e resposta.
+
 1. `@praca/api` foi republicado do checkout local no deployment `cc523bcc-a821-44c4-8b96-97b775e8553d` (**SUCCESS**). Healthcheck 200; rotas CRM e Meta Connect respondem 401 sem sessão, em vez do 404 causado por um redeploy anterior da fonte GitHub `main`. A configuração OAuth nova está aplicada. A branch `codex/account-sidebars` foi enviada até `01d7f80`; não usar `main` como fonte de redeploy da API antes de integrar o CRM.
 2. Ligação e **Verificar acesso** concluídos para Vitaleevo/@vitaleevo e Bajaj Angola/@bajajangola. Entrada, resposta e entrega Instagram confirmadas para Vitaleevo; entrada e resposta Messenger confirmadas para Bajaj Angola. A mensagem WhatsApp exige ligar primeiro uma conta Cloud API real ao CRM.
 3. Aguardar a decisão Meta sobre Tech Provider. Depois, reduzir o rascunho App Review às permissões usadas, completar usos permitidos, tratamento de dados e instruções aos revisores, e submeter com demonstrações reais. O formulário básico tem ícone, política de privacidade e eliminação de dados; a URL dos Termos está vazia e `/termos` devolve 404, pelo que deve ser criada/revista antes de a usar.

@@ -4,6 +4,7 @@ import { CurrentUser } from "../auth/current-user.decorator";
 import { AuthenticatedUser } from "../auth/auth.types";
 import { CrmService } from "./crm.service";
 import { CrmRealtimeService } from "./crm-realtime.service";
+import { CrmSocialService } from "./crm-social.service";
 import { ArrayMaxSize, IsArray, IsIn, IsNumber, IsOptional, IsString, IsUUID, Length, Max, MaxLength, Min } from "class-validator";
 
 class MoveDealStageDto {
@@ -54,6 +55,11 @@ class ConnectWhatsAppCloudDto {
   @IsString() @Length(20, 4096) accessToken!: string;
 }
 
+class ReplyToSocialCommentDto {
+  @IsString() @Length(1, 1200) commentRef!: string;
+  @IsString() @Length(1, 1000) message!: string;
+}
+
 class SaveStoreAiConfigBodyDto {
   @IsIn(["gemini", "openai", "claude", "openrouter", "custom"])
   provider!: "gemini" | "openai" | "claude" | "openrouter" | "custom";
@@ -87,6 +93,7 @@ export class CrmController {
   constructor(
     private readonly crmService: CrmService,
     private readonly realtimeService: CrmRealtimeService,
+    private readonly socialService: CrmSocialService,
   ) {}
 
   @Sse("realtime/stream")
@@ -190,6 +197,36 @@ export class CrmController {
   async getChannels(@CurrentUser() user: AuthenticatedUser) {
     const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
     return this.crmService.getChannels(workspace.id);
+  }
+
+  @Get("social/channels")
+  async getSocialChannels(@CurrentUser() user: AuthenticatedUser) {
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
+    return this.socialService.listChannels(workspace.id);
+  }
+
+  @Get("social/channels/:id/media")
+  async getSocialMedia(@Param("id", ParseUUIDPipe) id: string, @Query("after") after: string | undefined, @CurrentUser() user: AuthenticatedUser) {
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
+    return this.socialService.listMedia(workspace.id, id, after);
+  }
+
+  @Get("social/channels/:id/profile")
+  async getSocialProfile(@Param("id", ParseUUIDPipe) id: string, @CurrentUser() user: AuthenticatedUser) {
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
+    return this.socialService.getProfile(workspace.id, id);
+  }
+
+  @Get("social/channels/:id/comments")
+  async getSocialComments(@Param("id", ParseUUIDPipe) id: string, @Query("mediaRef") mediaRef: string, @Query("after") after: string | undefined, @CurrentUser() user: AuthenticatedUser) {
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
+    return this.socialService.listComments(workspace.id, id, mediaRef, after);
+  }
+
+  @Post("social/channels/:id/comments/replies")
+  async replyToSocialComment(@Param("id", ParseUUIDPipe) id: string, @Body() body: ReplyToSocialCommentDto, @CurrentUser() user: AuthenticatedUser) {
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
+    return this.socialService.reply(workspace.id, id, body.commentRef, body.message);
   }
 
   @Get("channels/:id/diagnostics")

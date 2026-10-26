@@ -23,6 +23,7 @@ const userNavigation: NavigationGroup[] = [
   ], modules: [{ id: "crm", label: "CRM e vendas", items: [
     { href: "/vendedor/crm", label: "Funil de vendas" },
     { href: "/vendedor/crm/conversas", label: "Live Inbox" },
+    { href: "/vendedor/crm/redes-sociais", label: "Redes sociais" },
     { href: "/vendedor/crm/contactos", label: "Base de leads" },
     { href: "/vendedor/crm/automacoes", label: "Automações" },
     { href: "/vendedor/crm/analytics", label: "Analytics" },

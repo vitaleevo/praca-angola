@@ -550,7 +550,7 @@ export class CrmService {
       pageWebhookSubscribed: pageSubscription?.subscribed ?? null,
       pageWebhookFields: pageSubscription?.fields ?? [],
       historyAvailable: false,
-      commentsAvailable: false,
+      commentsAvailable: channel.status === "connected" && token.valid && token.appMatches && commentScopes.every((scope) => granted.has(scope)),
     };
   }
 
