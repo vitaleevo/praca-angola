@@ -7,6 +7,11 @@
 - Lighthouse da página pública `/vendedor/crm/redes-sociais`: desempenho 92, acessibilidade 100, LCP 2,2 s e CLS 0,011. Foi uma medição sintética sem autenticação; não mede o custo de carregar publicações da Meta para uma loja autenticada.
 - A importação retroativa via Conversations API continua por implementar; a Graph API e o App Review podem limitar as conversas disponíveis. O número WhatsApp real continua por ligar à loja.
 
+### Próxima entrega em validação: histórico Messenger e Instagram
+
+- Foi implementada uma ação manual “Importar histórico” por canal Facebook ou Instagram. Cada pedido lê uma conversa e uma página de até 25 mensagens; o cursor assinado permite continuar pelas páginas de mensagens e pelas conversas seguintes. A importação conserva a data e a direção, ignora mensagens já recebidas pelo webhook e não aumenta o contador de não lidas nem dispara automações. Só importa mensagens de texto devolvidas pela Meta; anexos históricos e WhatsApp não fazem parte desta etapa.
+- A importação depende de permissões e limites da Conversations API da Meta, incluindo App Review para contas externas. O fluxo ainda requer teste com a loja real e deployment bem-sucedido antes de ser declarado operacional.
+
 - A ligação Meta foi renovada com `instagram_manage_comments`, `pages_manage_engagement` e `pages_read_user_content`. **Verificar acesso** mostrou os âmbitos de comentários nos canais testados; a Página Bajaj Angola mantém a subscrição `messages`.
 - Em `/vendedor/crm/redes-sociais`, o Instagram @vitaleevo devolveu o perfil, 53 publicações e dois comentários reais feitos por @bajajangola. A resposta **“Obrigado pelo comentário! Equipa Vitaleevo.”** ao comentário “muito bom” foi aceite pela Meta, e o CRM mostrou “Resposta publicada na rede social.” A tentativa anterior com o token antigo tinha falhado com `(#100) Missing Permission` e não foi publicada.
 - A interface de Canais agora aponta para Redes sociais e descreve corretamente a consulta de publicações/comentários. A API passou a aceitar cursores opacos da Graph API com pontuação, encontrados na leitura de publicações Facebook. API Railway `2d722960-f254-4cc9-83b0-bae37102c8bc` ficou **SUCCESS**; web Vercel `dpl_FqdrmhW38w1S5XH4n3P3VMeiyq8s` ficou **READY** e associado ao domínio de produção. O healthcheck respondeu 200.
