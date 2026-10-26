@@ -36,25 +36,34 @@ export class MetaGraphService {
     } catch {
       throw new ServiceUnavailableException("URL de retorno Meta inválido");
     }
-    return { appId, appSecret, redirectUri };
+    const businessLoginConfigId = process.env.META_BUSINESS_LOGIN_CONFIG_ID?.trim();
+    if (businessLoginConfigId && !/^\d{8,32}$/.test(businessLoginConfigId)) {
+      throw new ServiceUnavailableException("Configuração de Login Meta inválida");
+    }
+    return { appId, appSecret, redirectUri, businessLoginConfigId };
   }
 
   createAuthorizationUrl(state: string): string {
-    const { appId, redirectUri } = this.oauthConfig();
+    const { appId, redirectUri, businessLoginConfigId } = this.oauthConfig();
     const url = new URL(`https://www.facebook.com/${this.graphVersion()}/dialog/oauth`);
     url.searchParams.set("client_id", appId);
     url.searchParams.set("redirect_uri", redirectUri);
     url.searchParams.set("state", state);
     url.searchParams.set("response_type", "code");
-    url.searchParams.set("scope", [
-      "pages_show_list",
-      "pages_read_engagement",
-      "pages_manage_metadata",
-      "pages_messaging",
-      "leads_retrieval",
-      "instagram_basic",
-      "instagram_manage_messages",
-    ].join(","));
+    if (businessLoginConfigId) {
+      // Facebook Login for Business owns the permission set. Meta rejects scopes on this flow.
+      url.searchParams.set("config_id", businessLoginConfigId);
+      url.searchParams.set("override_default_response_type", "true");
+    } else {
+      url.searchParams.set("scope", [
+        "pages_show_list",
+        "pages_read_engagement",
+        "pages_manage_metadata",
+        "pages_messaging",
+        "leads_retrieval",
+        "instagram_basic",
+      ].join(","));
+    }
     return url.toString();
   }
 
