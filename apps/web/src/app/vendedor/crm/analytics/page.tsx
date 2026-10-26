@@ -3,7 +3,7 @@ import Link from "next/link";
 import { WorkspacePage } from "@/components/workspace-page";
 
 export const metadata = {
-  title: "Analytics & IA Insights · PUVO CRM",
+  title: "Analytics & IA Insights · CRM",
   description: "Métricas consolidadas de vendas, performance de conversão do chatbot e proteção de guardrails por IA.",
 };
 

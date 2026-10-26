@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
+import { BrandLockup } from "@puvo/ui/brand-lockup";
 import { WorkspaceSidebar, type WorkspaceNavigationGroup } from "@puvo/ui/workspace-sidebar";
 
 export type AdminUser = { id: string; displayName?: string; roles: string[] };
@@ -73,7 +74,7 @@ export function AdminWorkspace({ children, roles }: Props) {
   return (
     <main className="admin-console">
       <header className="admin-topbar">
-        <Link href="/" className="admin-brand" aria-label="PUVO gestão — início"><span className="brand-mark">P</span><span><strong>PUVO</strong><small>Gestão da plataforma</small></span></Link>
+        <BrandLockup href="/" className="admin-brand" subtitle="Gestão da plataforma" label="P.U.V.O. Gestão da plataforma — início" />
         <div className="admin-account"><span>{user.displayName ?? "Equipa PUVO"}<small>{staffRoleLabel(user)}</small></span><button type="button" onClick={() => { void fetch("/api/v1/auth/logout", { method: "POST", credentials: "include" }).finally(() => router.replace("/entrar")); }}>Terminar sessão</button></div>
       </header>
       <div className="workspace-layout admin-workspace-layout">

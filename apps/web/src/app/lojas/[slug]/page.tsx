@@ -18,11 +18,11 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const result = await publicApi<StorefrontResult | null>("/catalog/stores/" + encodeURIComponent(slug), null);
   return result ? {
-    title: result.store.display_name + " — PUVO",
+    title: result.store.display_name,
     description: result.store.description || "Descobre produtos de " + result.store.display_name + " na PUVO.",
     alternates: { canonical: "/lojas/" + result.store.slug },
-    openGraph: { title: result.store.display_name + " — PUVO", description: result.store.description || "Conhece a montra pública desta loja angolana.", type: "website" },
-  } : { title: "Loja não encontrada — PUVO" };
+    openGraph: { title: result.store.display_name + " — P.U.V.O.", description: result.store.description || "Conhece a montra pública desta loja angolana.", type: "website" },
+  } : { title: "Loja não encontrada" };
 }
 
 export default async function StorePage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: SearchParams }) {

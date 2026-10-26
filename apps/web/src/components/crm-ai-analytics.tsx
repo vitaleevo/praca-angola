@@ -198,7 +198,7 @@ export default function CrmAiAnalytics() {
                     <span className="crm-stage-name">
                       <span
                         className="crm-stage-color-dot"
-                        style={{ backgroundColor: stage.color || "#0d9488" }}
+                        style={{ backgroundColor: stage.color || "#004bfc" }}
                       />
                       {stage.name}
                     </span>
@@ -212,7 +212,7 @@ export default function CrmAiAnalytics() {
                       className="crm-stage-bar-fill"
                       style={{
                         width: `${percent}%`,
-                        backgroundColor: stage.color || "#0d9488",
+                        backgroundColor: stage.color || "#004bfc",
                       }}
                     />
                   </div>

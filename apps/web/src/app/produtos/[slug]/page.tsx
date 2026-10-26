@@ -9,7 +9,7 @@ import { SiteFooter, SiteHeader } from "../../../components/site-header";
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const product = await publicApi<Listing | null>(`/catalog/listings/${encodeURIComponent(slug)}`, null);
-  return product ? { title: `${product.title} — PUVO`, description: product.description?.slice(0, 160), openGraph: { title: product.title, description: product.description?.slice(0, 160), images: product.images?.[0]?.url ? [product.images[0].url] : [] }, alternates: { canonical: `/produtos/${product.slug}` } } : { title: "Produto não encontrado — PUVO" };
+  return product ? { title: product.title, description: product.description?.slice(0, 160), openGraph: { title: product.title, description: product.description?.slice(0, 160), images: product.images?.[0]?.url ? [product.images[0].url] : [] }, alternates: { canonical: `/produtos/${product.slug}` } } : { title: "Produto não encontrado" };
 }
 
 export default async function ProductDetailPage({ params }: { params: Promise<{ slug: string }> }) {

@@ -20,10 +20,10 @@ import { decryptPrivateValue, encryptPrivateValue } from "../auth/auth.crypto";
 import { MetaGraphService, type MetaPageSubscriptionDiagnostics } from "./meta-graph.service";
 
 const DEFAULT_STAGES = [
-  { name: "Novo Lead", slug: "new", color: "#3b82f6", sort_order: 1 },
-  { name: "Em Contacto", slug: "contacted", color: "#eab308", sort_order: 2 },
-  { name: "Orçamento", slug: "proposal", color: "#8b5cf6", sort_order: 3 },
-  { name: "Aguarda Pagamento", slug: "awaiting_payment", color: "#f97316", sort_order: 4 },
+  { name: "Novo Lead", slug: "new", color: "#004bfc", sort_order: 1 },
+  { name: "Em Contacto", slug: "contacted", color: "#fda618", sort_order: 2 },
+  { name: "Orçamento", slug: "proposal", color: "#2ac1fc", sort_order: 3 },
+  { name: "Aguarda Pagamento", slug: "awaiting_payment", color: "#fe7401", sort_order: 4 },
   { name: "Vendido / Ganho", slug: "won", color: "#22c55e", sort_order: 5 },
   { name: "Perdido", slug: "lost", color: "#ef4444", sort_order: 6 },
 ];

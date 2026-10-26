@@ -33,7 +33,7 @@ interface KnowledgeDoc {
 const PROVIDER_METADATA = {
   gemini: {
     name: "Google Gemini",
-    badgeColor: "#2563eb",
+    badgeColor: "#004bfc",
     defaultModels: ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash"],
     keyUrl: "https://aistudio.google.com/app/apikey",
     keyPlaceholder: "AIzaSy...",
@@ -41,7 +41,7 @@ const PROVIDER_METADATA = {
   },
   openai: {
     name: "OpenAI",
-    badgeColor: "#10b981",
+    badgeColor: "#012480",
     defaultModels: ["gpt-4o-mini", "gpt-4o", "o3-mini"],
     keyUrl: "https://platform.openai.com/api-keys",
     keyPlaceholder: "sk-proj-...",
@@ -49,7 +49,7 @@ const PROVIDER_METADATA = {
   },
   claude: {
     name: "Anthropic Claude",
-    badgeColor: "#d97706",
+    badgeColor: "#fe7401",
     defaultModels: ["claude-3-5-sonnet-20241022", "claude-3-5-haiku-20241022"],
     keyUrl: "https://console.anthropic.com/settings/keys",
     keyPlaceholder: "sk-ant-api...",
@@ -57,7 +57,7 @@ const PROVIDER_METADATA = {
   },
   openrouter: {
     name: "OpenRouter",
-    badgeColor: "#8b5cf6",
+    badgeColor: "#2ac1fc",
     defaultModels: [
       "deepseek/deepseek-chat",
       "meta-llama/llama-3.3-70b-instruct",
@@ -70,7 +70,7 @@ const PROVIDER_METADATA = {
   },
   custom: {
     name: "Personalizado / VPS Própria",
-    badgeColor: "#475569",
+    badgeColor: "#5c6884",
     defaultModels: ["llama3", "mistral", "deepseek-r1", "custom-model"],
     keyUrl: "",
     keyPlaceholder: "Opcional se a tua VPS não exigir token",
@@ -257,7 +257,7 @@ export function CrmAiConfig() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
         <div>
           <h2 style={{ fontSize: "1.3rem", fontWeight: 700, margin: 0 }}>Configuração da Tua IA & Base de Conhecimento</h2>
-          <p style={{ margin: "3px 0 0 0", fontSize: "0.875rem", color: "#64748b" }}>
+          <p style={{ margin: "3px 0 0 0", fontSize: "0.875rem", color: "#5c6884" }}>
             Escolhe o motor de inteligência artificial da tua loja, define a tua chave de API e alimenta a IA com as regras da tua empresa.
           </p>
         </div>
@@ -270,15 +270,15 @@ export function CrmAiConfig() {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))", gap: "24px", alignItems: "start" }}>
         
         {/* Left Card: Provider Selection & Keys */}
-        <div className="panel" style={{ background: "#ffffff", borderRadius: "14px", padding: "24px", border: "1px solid #e2e8f0" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px", borderBottom: "1px solid #f1f5f9", paddingBottom: "12px" }}>
+        <div className="panel" style={{ background: "#ffffff", borderRadius: "14px", padding: "24px", border: "1px solid #e2e7f1" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px", borderBottom: "1px solid #eff2f8", paddingBottom: "12px" }}>
             <span style={{ fontSize: "1.3rem" }}>🤖</span>
             <h3 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700 }}>Provedor de IA</h3>
           </div>
 
           <form onSubmit={handleSaveConfig} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
             <div>
-              <label style={{ fontSize: "13px", fontWeight: 700, color: "#1e293b", display: "block", marginBottom: "8px" }}>
+              <label style={{ fontSize: "13px", fontWeight: 700, color: "#0e1c44", display: "block", marginBottom: "8px" }}>
                 Seleciona o Motor de IA:
               </label>
 
@@ -296,8 +296,8 @@ export function CrmAiConfig() {
                       style={{
                         padding: "12px 14px",
                         borderRadius: "10px",
-                        border: isSelected ? `2px solid ${meta.badgeColor}` : "1px solid #e2e8f0",
-                        background: isSelected ? "#f8fafc" : "#ffffff",
+                        border: isSelected ? `2px solid ${meta.badgeColor}` : "1px solid #e2e7f1",
+                        background: isSelected ? "#f7f9fd" : "#ffffff",
                         cursor: "pointer",
                         display: "flex",
                         justifyContent: "space-between",
@@ -306,10 +306,10 @@ export function CrmAiConfig() {
                       }}
                     >
                       <div>
-                        <b style={{ fontSize: "14px", color: isSelected ? meta.badgeColor : "#0f172a" }}>
+                        <b style={{ fontSize: "14px", color: isSelected ? meta.badgeColor : "#0b1638" }}>
                           {meta.name}
                         </b>
-                        <p style={{ margin: "3px 0 0 0", fontSize: "12px", color: "#64748b" }}>
+                        <p style={{ margin: "3px 0 0 0", fontSize: "12px", color: "#5c6884" }}>
                           {meta.description}
                         </p>
                       </div>
@@ -328,14 +328,14 @@ export function CrmAiConfig() {
 
             {/* Model Selection */}
             <div>
-              <label style={{ fontSize: "13px", fontWeight: 700, color: "#1e293b", display: "block", marginBottom: "6px" }}>
+              <label style={{ fontSize: "13px", fontWeight: 700, color: "#0e1c44", display: "block", marginBottom: "6px" }}>
                 Modelo do Provedor
               </label>
               <div style={{ display: "flex", gap: "8px" }}>
                 <select
                   value={modelName}
                   onChange={(e) => setModelName(e.target.value)}
-                  style={{ flex: 1, padding: "9px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13.5px" }}
+                  style={{ flex: 1, padding: "9px 12px", borderRadius: "8px", border: "1px solid #c7cfdf", fontSize: "13.5px" }}
                 >
                   {PROVIDER_METADATA[provider].defaultModels.map((m) => (
                     <option key={m} value={m}>
@@ -348,7 +348,7 @@ export function CrmAiConfig() {
                   placeholder="Ou escreve o nome de outro modelo..."
                   value={modelName}
                   onChange={(e) => setModelName(e.target.value)}
-                  style={{ flex: 1, padding: "9px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px" }}
+                  style={{ flex: 1, padding: "9px 12px", borderRadius: "8px", border: "1px solid #c7cfdf", fontSize: "13px" }}
                 />
               </div>
             </div>
@@ -356,7 +356,7 @@ export function CrmAiConfig() {
             {/* API Key */}
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
-                <label style={{ fontSize: "13px", fontWeight: 700, color: "#1e293b" }}>
+                <label style={{ fontSize: "13px", fontWeight: 700, color: "#0e1c44" }}>
                   Chave de API ({PROVIDER_METADATA[provider].name})
                 </label>
                 {PROVIDER_METADATA[provider].keyUrl && (
@@ -364,7 +364,7 @@ export function CrmAiConfig() {
                     href={PROVIDER_METADATA[provider].keyUrl}
                     target="_blank"
                     rel="noreferrer"
-                    style={{ fontSize: "11.5px", color: "#2563eb", textDecoration: "none", fontWeight: 600 }}
+                    style={{ fontSize: "11.5px", color: "#004bfc", textDecoration: "none", fontWeight: 600 }}
                   >
                     Obter Chave Oficial ↗
                   </a>
@@ -375,9 +375,9 @@ export function CrmAiConfig() {
                 placeholder={config?.has_api_key ? `Chave configurada (${config.masked_api_key}) - digite nova para substituir` : PROVIDER_METADATA[provider].keyPlaceholder}
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
-                style={{ width: "100%", padding: "9px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13.5px" }}
+                style={{ width: "100%", padding: "9px 12px", borderRadius: "8px", border: "1px solid #c7cfdf", fontSize: "13.5px" }}
               />
-              <small style={{ color: "#64748b", fontSize: "11px", display: "block", marginTop: "4px" }}>
+              <small style={{ color: "#5c6884", fontSize: "11px", display: "block", marginTop: "4px" }}>
                 🔒 A tua chave é encriptada no PostgreSQL com segurança de nível bancário e nunca é partilhada com terceiros.
               </small>
             </div>
@@ -385,7 +385,7 @@ export function CrmAiConfig() {
             {/* Custom Endpoint URL (for Custom or OpenRouter) */}
             {(provider === "custom" || provider === "openrouter") && (
               <div>
-                <label style={{ fontSize: "13px", fontWeight: 700, color: "#1e293b", display: "block", marginBottom: "6px" }}>
+                <label style={{ fontSize: "13px", fontWeight: 700, color: "#0e1c44", display: "block", marginBottom: "6px" }}>
                   URL do Endpoint Personalizado (API Base URL)
                 </label>
                 <input
@@ -393,14 +393,14 @@ export function CrmAiConfig() {
                   placeholder={provider === "openrouter" ? "https://openrouter.ai/api/v1" : "http://localhost:11434/v1 ou https://vps.empresa.ao/v1"}
                   value={customEndpointUrl}
                   onChange={(e) => setCustomEndpointUrl(e.target.value)}
-                  style={{ width: "100%", padding: "9px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px" }}
+                  style={{ width: "100%", padding: "9px 12px", borderRadius: "8px", border: "1px solid #c7cfdf", fontSize: "13px" }}
                 />
               </div>
             )}
 
             {/* System Instructions */}
             <div>
-              <label style={{ fontSize: "13px", fontWeight: 700, color: "#1e293b", display: "block", marginBottom: "6px" }}>
+              <label style={{ fontSize: "13px", fontWeight: 700, color: "#0e1c44", display: "block", marginBottom: "6px" }}>
                 Personalidade e Instruções do Sistema
               </label>
               <textarea
@@ -408,7 +408,7 @@ export function CrmAiConfig() {
                 value={systemInstructions}
                 onChange={(e) => setSystemInstructions(e.target.value)}
                 placeholder="Ex.: És o assistente virtual da nossa loja em Luanda. Fala de modo caloroso e cordial em português angolano, orienta os clientes sobre produtos e sugere envio para o domicílio..."
-                style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px", lineHeight: "1.4" }}
+                style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #c7cfdf", fontSize: "13px", lineHeight: "1.4" }}
               />
             </div>
 
@@ -418,7 +418,7 @@ export function CrmAiConfig() {
                 type="checkbox"
                 checked={autoReplyEnabled}
                 onChange={(e) => setAutoReplyEnabled(e.target.checked)}
-                style={{ width: "16px", height: "16px", accentColor: "#047857" }}
+                style={{ width: "16px", height: "16px", accentColor: "#004bfc" }}
               />
               Ativar respostas automáticas instantâneas no Live Inbox
             </label>
@@ -436,8 +436,8 @@ export function CrmAiConfig() {
         <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
           
           {/* Card: Alimentar a IA (Base de Conhecimento) */}
-          <div className="panel" style={{ background: "#ffffff", borderRadius: "14px", padding: "24px", border: "1px solid #e2e8f0" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px", borderBottom: "1px solid #f1f5f9", paddingBottom: "12px" }}>
+          <div className="panel" style={{ background: "#ffffff", borderRadius: "14px", padding: "24px", border: "1px solid #e2e7f1" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px", borderBottom: "1px solid #eff2f8", paddingBottom: "12px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                 <span style={{ fontSize: "1.3rem" }}>📚</span>
                 <h3 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700 }}>Alimentação da IA (Conhecimento)</h3>
@@ -452,7 +452,7 @@ export function CrmAiConfig() {
               </button>
             </div>
 
-            <p style={{ margin: "0 0 16px 0", fontSize: "0.85rem", color: "#64748b" }}>
+            <p style={{ margin: "0 0 16px 0", fontSize: "0.85rem", color: "#5c6884" }}>
               Adiciona aqui informações sobre a tua loja, horários, locais de entrega em Luanda e províncias, políticas de garantia e perguntas frequentes. A IA lê estes dados para dar respostas 100% corretas.
             </p>
 
@@ -462,9 +462,9 @@ export function CrmAiConfig() {
                   key={doc.id}
                   style={{
                     padding: "12px 14px",
-                    border: "1px solid #e2e8f0",
+                    border: "1px solid #e2e7f1",
                     borderRadius: "10px",
-                    background: "#f8fafc",
+                    background: "#f7f9fd",
                     display: "flex",
                     justifyContent: "space-between",
                     alignItems: "flex-start",
@@ -473,7 +473,7 @@ export function CrmAiConfig() {
                 >
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "4px" }}>
-                      <b style={{ fontSize: "13.5px", color: "#0f172a" }}>{doc.title}</b>
+                      <b style={{ fontSize: "13.5px", color: "#0b1638" }}>{doc.title}</b>
                       <span className="crm-channel-pill channel-storefront" style={{ fontSize: "9.5px" }}>
                         {doc.category === "delivery_policy"
                           ? "Entrega"
@@ -486,7 +486,7 @@ export function CrmAiConfig() {
                           : "Documento"}
                       </span>
                     </div>
-                    <p style={{ margin: 0, fontSize: "12px", color: "#475569", whiteSpace: "pre-line", maxHeight: "60px", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    <p style={{ margin: 0, fontSize: "12px", color: "#5c6884", whiteSpace: "pre-line", maxHeight: "60px", overflow: "hidden", textOverflow: "ellipsis" }}>
                       {doc.content}
                     </p>
                   </div>
@@ -502,7 +502,7 @@ export function CrmAiConfig() {
               ))}
 
               {knowledgeList.length === 0 && (
-                <div style={{ textAlign: "center", padding: "24px", color: "#94a3b8", fontSize: "13px", border: "1px dashed #cbd5e1", borderRadius: "10px" }}>
+                <div style={{ textAlign: "center", padding: "24px", color: "#7c86a2", fontSize: "13px", border: "1px dashed #c7cfdf", borderRadius: "10px" }}>
                   Ainda não adicionaste conhecimento à tua IA. Clica no botão acima para adicionar a tua política de entrega ou FAQ!
                 </div>
               )}
@@ -510,13 +510,13 @@ export function CrmAiConfig() {
           </div>
 
           {/* Card: Testar a IA em Tempo Real */}
-          <div className="panel" style={{ background: "#ffffff", borderRadius: "14px", padding: "24px", border: "1px solid #e2e8f0" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "14px", borderBottom: "1px solid #f1f5f9", paddingBottom: "12px" }}>
+          <div className="panel" style={{ background: "#ffffff", borderRadius: "14px", padding: "24px", border: "1px solid #e2e7f1" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "14px", borderBottom: "1px solid #eff2f8", paddingBottom: "12px" }}>
               <span style={{ fontSize: "1.3rem" }}>⚡</span>
               <h3 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700 }}>Testar a Tua IA (Playground)</h3>
             </div>
 
-            <p style={{ margin: "0 0 12px 0", fontSize: "0.85rem", color: "#64748b" }}>
+            <p style={{ margin: "0 0 12px 0", fontSize: "0.85rem", color: "#5c6884" }}>
               Faz uma pergunta como se fosses um cliente no WhatsApp para ver como a tua IA responde com base no conhecimento cadastrado.
             </p>
 
@@ -526,7 +526,7 @@ export function CrmAiConfig() {
                 placeholder="Ex.: Vocês entregam no Kilamba e aceitam Multicaixa Express?"
                 value={testPrompt}
                 onChange={(e) => setTestPrompt(e.target.value)}
-                style={{ flex: 1, padding: "9px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px" }}
+                style={{ flex: 1, padding: "9px 12px", borderRadius: "8px", border: "1px solid #c7cfdf", fontSize: "13px" }}
               />
               <button type="submit" className="button button-primary" disabled={testLoading || !testPrompt.trim()}>
                 {testLoading ? "A consultar…" : "Perguntar"}
@@ -562,7 +562,7 @@ export function CrmAiConfig() {
                   placeholder="Ex.: Tabela de Entregas Luanda e Províncias"
                   value={docTitle}
                   onChange={(e) => setDocTitle(e.target.value)}
-                  style={{ padding: "8px 12px", borderRadius: "6px", border: "1px solid #cbd5e1" }}
+                  style={{ padding: "8px 12px", borderRadius: "6px", border: "1px solid #c7cfdf" }}
                 />
               </label>
 
@@ -571,7 +571,7 @@ export function CrmAiConfig() {
                 <select
                   value={docCategory}
                   onChange={(e) => setDocCategory(e.target.value as any)}
-                  style={{ padding: "8px 12px", borderRadius: "6px", border: "1px solid #cbd5e1" }}
+                  style={{ padding: "8px 12px", borderRadius: "6px", border: "1px solid #c7cfdf" }}
                 >
                   <option value="about_store">Sobre a Loja / Empresa</option>
                   <option value="delivery_policy">Políticas e Zonas de Entrega</option>
@@ -589,7 +589,7 @@ export function CrmAiConfig() {
                   placeholder="Ex.: Fazemos entregas em Luanda (Talatona, Viana, Belas, Maianga) por 2.500 Kz no prazo de 24 horas. Para províncias (Benguela, Huambo, Lubango), enviamos através de transportadora após confirmação do comprovativo..."
                   value={docContent}
                   onChange={(e) => setDocContent(e.target.value)}
-                  style={{ padding: "10px 12px", borderRadius: "6px", border: "1px solid #cbd5e1", fontSize: "13px", lineHeight: "1.4" }}
+                  style={{ padding: "10px 12px", borderRadius: "6px", border: "1px solid #c7cfdf", fontSize: "13px", lineHeight: "1.4" }}
                 />
               </label>
 

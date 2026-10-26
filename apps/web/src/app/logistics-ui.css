@@ -9,8 +9,8 @@
   min-width: 0;
   margin: 18px 0;
   padding: 16px;
-  background: #f8faf8;
-  border: 1px solid #dce5dd;
+  background: #f7f8fb;
+  border: 1px solid #d8dde9;
   border-radius: 10px;
 }
 
@@ -22,7 +22,7 @@
   margin: 0 0 10px;
   font-size: 13px;
   font-weight: 700;
-  color: #17251e;
+  color: #0b1638;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -41,34 +41,34 @@
   flex-direction: column;
   gap: 3px;
   padding: 10px 12px;
-  border: 1.5px solid #d9e3db;
+  border: 1.5px solid #d5dae7;
   border-radius: 8px;
-  background: #fff;
+  background: #ffffff;
   cursor: pointer;
   transition: all 0.18s ease;
   font-size: 11px;
 }
 
 .delivery-type-option:hover {
-  border-color: #137a4b;
+  border-color: #004bfc;
 }
 
 .delivery-type-option.selected {
-  border-color: #137a4b;
-  background: #eef7f2;
-  box-shadow: 0 2px 8px rgba(19, 122, 75, 0.12);
+  border-color: #004bfc;
+  background: #eef1f7;
+  box-shadow: 0 2px 8px rgba(1, 36, 128, 0.12);
 }
 
 .delivery-type-option strong {
   display: flex;
   align-items: center;
   gap: 6px;
-  color: #112a20;
+  color: var(--ink);
   font-size: 12px;
 }
 
 .delivery-type-option span {
-  color: #617368;
+  color: #5d6577;
   font-size: 10px;
 }
 
@@ -79,15 +79,15 @@
   gap: 12px;
   padding: 10px 14px;
   border-radius: 8px;
-  background: #eaf3ec;
-  border-left: 4px solid #137a4b;
+  background: #eaedf3;
+  border-left: 4px solid #004bfc;
   margin: 12px 0;
   font-size: 11px;
 }
 
 .freight-estimate-banner.free-shipping {
-  background: #fcf6e8;
-  border-left-color: #f5b82e;
+  background: #eff1f5;
+  border-left-color: #fda618;
 }
 
 .freight-badge {
@@ -98,16 +98,16 @@
   border-radius: 6px;
   font-weight: 700;
   font-size: 11px;
-  background: #137a4b;
-  color: #fff;
+  background: #004bfc;
+  color: #ffffff;
 }
 
 .freight-badge.free {
-  background: #b8860b;
+  background: #b8670b;
 }
 
 .freight-time {
-  color: #496353;
+  color: #2554c1;
   font-size: 10px;
   display: flex;
   align-items: center;
@@ -127,17 +127,17 @@
 
 .delivery-landmark-tip {
   font-size: 10px;
-  color: #7b887f;
+  color: #727b91;
   margin-top: 4px;
 }
 
 /* ── Buyer Order Tracking & PIN Display ── */
 .tracking-card {
   padding: 20px;
-  border: 1px solid #dce5dd;
+  border: 1px solid #d8dde9;
   border-radius: 12px;
-  background: #fff;
-  box-shadow: 0 4px 16px rgba(19, 37, 30, 0.04);
+  background: #ffffff;
+  box-shadow: 0 4px 16px rgba(1, 21, 79, 0.05);
 }
 
 .tracking-header {
@@ -146,7 +146,7 @@
   align-items: center;
   margin-bottom: 16px;
   padding-bottom: 12px;
-  border-bottom: 1px solid #edf2ee;
+  border-bottom: 1px solid #ebeef4;
 }
 
 .tracking-status-pill {
@@ -178,19 +178,19 @@
 }
 
 @keyframes pulse-border {
-  0% { box-shadow: 0 0 0 0 rgba(245, 184, 46, 0.4); }
-  70% { box-shadow: 0 0 0 6px rgba(245, 184, 46, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(245, 184, 46, 0); }
+  0% { box-shadow: 0 0 0 0 rgba(253, 166, 24, 0.4); }
+  70% { box-shadow: 0 0 0 6px rgba(253, 166, 24, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(253, 166, 24, 0); }
 }
 
 /* Security PIN Box (The Core Handshake Guard) */
 .secure-pin-card {
   margin: 16px 0;
   padding: 18px;
-  background: linear-gradient(135deg, #0f3627 0%, #17251e 100%);
-  color: #fff;
+  background: linear-gradient(135deg, #0a2d3b 0%, #0b1638 100%);
+  color: #ffffff;
   border-radius: 12px;
-  box-shadow: 0 10px 24px rgba(15, 54, 39, 0.25);
+  box-shadow: 0 10px 24px rgba(1, 21, 79, 0.3);
   position: relative;
   overflow: hidden;
 }
@@ -202,7 +202,7 @@
   right: -20px;
   width: 110px;
   height: 110px;
-  background: rgba(245, 184, 46, 0.15);
+  background: rgba(253, 166, 24, 0.15);
   border-radius: 50%;
   pointer-events: none;
 }
@@ -212,7 +212,7 @@
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  color: #f5b82e;
+  color: #fda618;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -230,12 +230,12 @@
   display: grid;
   place-items: center;
   background: rgba(255, 255, 255, 0.12);
-  border: 1.5px solid rgba(245, 184, 46, 0.5);
+  border: 1.5px solid rgba(253, 166, 24, 0.5);
   border-radius: 10px;
   font-size: 28px;
   font-weight: 800;
   font-family: monospace;
-  color: #fff;
+  color: #ffffff;
   backdrop-filter: blur(4px);
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
@@ -244,14 +244,14 @@
   margin: 0;
   font-size: 10.5px;
   line-height: 1.55;
-  color: #d1e5db;
+  color: #c9d4ed;
   display: flex;
   align-items: flex-start;
   gap: 8px;
 }
 
 .secure-pin-warning span {
-  color: #f5b82e;
+  color: #fda618;
   font-size: 14px;
   flex-shrink: 0;
 }
@@ -263,8 +263,8 @@
   justify-content: space-between;
   gap: 14px;
   padding: 14px 16px;
-  background: #f8faf8;
-  border: 1px solid #e2ebe4;
+  background: #f7f8fb;
+  border: 1px solid #e0e4ed;
   border-radius: 10px;
   margin: 16px 0;
 }
@@ -279,8 +279,8 @@
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background: #137a4b;
-  color: #fff;
+  background: #004bfc;
+  color: #ffffff;
   display: grid;
   place-items: center;
   font-size: 18px;
@@ -290,7 +290,7 @@
 .courier-details b {
   display: block;
   font-size: 13px;
-  color: #17251e;
+  color: #0b1638;
 }
 
 .courier-meta {
@@ -298,7 +298,7 @@
   align-items: center;
   gap: 8px;
   font-size: 10px;
-  color: #63756a;
+  color: #5f6779;
   margin-top: 3px;
 }
 
@@ -308,7 +308,7 @@
   gap: 4px;
   padding: 2px 6px;
   border-radius: 4px;
-  background: #edf2ed;
+  background: #ebeef4;
   font-weight: 600;
   text-transform: capitalize;
 }
@@ -331,14 +331,14 @@
 }
 
 .call-button {
-  background: #fff;
-  border: 1px solid #d5ded7;
-  color: #27382f;
+  background: #ffffff;
+  border: 1px solid #d6d8dd;
+  color: #0d2252;
 }
 
 .whatsapp-button {
-  background: #25d366;
-  color: #fff;
+  background: #2559d3;
+  color: #ffffff;
   border: none;
 }
 
@@ -371,36 +371,36 @@
   display: grid;
   place-items: center;
   font-size: 13px;
-  background: #eaefeb;
-  color: #8b9990;
-  border: 2px solid #fff;
-  box-shadow: 0 0 0 2px #dbe3dc;
+  background: #e7eaf2;
+  color: #858d9f;
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 0 2px #d6dbe8;
   z-index: 2;
   transition: all 0.2s ease;
 }
 
 .delivery-step.done .delivery-step-icon {
-  background: #137a4b;
-  color: #fff;
-  box-shadow: 0 0 0 2px #137a4b;
+  background: #004bfc;
+  color: #ffffff;
+  box-shadow: 0 0 0 2px #004bfc;
 }
 
 .delivery-step.current .delivery-step-icon {
-  background: #f5b82e;
-  color: #17251e;
-  box-shadow: 0 0 0 3px #f5b82e;
+  background: #fda618;
+  color: #0b1638;
+  box-shadow: 0 0 0 3px #fda618;
   animation: pulse-border 1.8s infinite;
 }
 
 .delivery-step-label {
   font-size: 10px;
   font-weight: 600;
-  color: #647369;
+  color: #5f6678;
 }
 
 .delivery-step.done .delivery-step-label,
 .delivery-step.current .delivery-step-label {
-  color: #17251e;
+  color: #0b1638;
 }
 
 /* ── Courier Dashboard & Mobile Runs ── */
@@ -416,9 +416,9 @@
   justify-content: space-between;
   padding: 16px 20px;
   border-radius: 12px;
-  background: #17251e;
-  color: #fff;
-  box-shadow: 0 8px 24px rgba(23, 37, 30, 0.12);
+  background: #0b1638;
+  color: #ffffff;
+  box-shadow: 0 8px 24px rgba(1, 21, 79, 0.14);
 }
 
 .courier-summary-info h2 {
@@ -430,7 +430,7 @@
 .courier-summary-info p {
   margin: 4px 0 0;
   font-size: 11px;
-  color: #9cb5a8;
+  color: #7d97d4;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -455,8 +455,8 @@
 }
 
 .courier-switch-button.is-offline {
-  background: #394d42;
-  color: #e4eee7;
+  background: #2554c1;
+  color: #e3e7ef;
 }
 
 .courier-stats-row {
@@ -467,8 +467,8 @@
 
 .courier-stat-card {
   padding: 14px;
-  background: #fff;
-  border: 1px solid #dce5dd;
+  background: #ffffff;
+  border: 1px solid #d8dde9;
   border-radius: 10px;
   text-align: center;
 }
@@ -476,7 +476,7 @@
 .courier-stat-card span {
   display: block;
   font-size: 10px;
-  color: #6e7d73;
+  color: #677084;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -484,15 +484,15 @@
 .courier-stat-card strong {
   display: block;
   font-size: 20px;
-  color: #17251e;
+  color: #0b1638;
   margin-top: 4px;
 }
 
 /* Delivery Run Cards */
 .run-card {
-  border: 1px solid #dce5dd;
+  border: 1px solid #d8dde9;
   border-radius: 12px;
-  background: #fff;
+  background: #ffffff;
   padding: 18px;
   margin-bottom: 14px;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
@@ -508,20 +508,20 @@
   justify-content: space-between;
   align-items: flex-start;
   padding-bottom: 12px;
-  border-bottom: 1px solid #f0f4f1;
+  border-bottom: 1px solid #eef1f6;
 }
 
 .run-reference {
   font-size: 14px;
   font-weight: 700;
-  color: #17251e;
+  color: #0b1638;
 }
 
 .run-fee-badge {
   padding: 4px 10px;
   border-radius: 6px;
-  background: #eef7f2;
-  color: #137a4b;
+  background: #eef1f7;
+  color: #004bfc;
   font-weight: 700;
   font-size: 12px;
 }
@@ -550,30 +550,30 @@
 }
 
 .point-pickup .point-icon {
-  background: #e7effc;
-  color: #1557bf;
+  background: #eef0f5;
+  color: #0037c8;
 }
 
 .point-dropoff .point-icon {
-  background: #fdf3e2;
-  color: #b37400;
+  background: #ebeef4;
+  color: #ac5f07;
 }
 
 .point-content b {
   display: block;
   font-size: 12px;
-  color: #17251e;
+  color: #0b1638;
 }
 
 .point-content span {
-  color: #617066;
+  color: #5c6375;
   font-size: 11px;
 }
 
 .point-landmark {
   display: block;
   font-size: 10.5px;
-  color: #966b07;
+  color: #965307;
   margin-top: 2px;
 }
 
@@ -582,7 +582,7 @@
   gap: 10px;
   margin-top: 14px;
   padding-top: 12px;
-  border-top: 1px solid #f0f4f1;
+  border-top: 1px solid #eef1f6;
 }
 
 .run-actions .button {
@@ -593,7 +593,7 @@
 .pin-verify-modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(17, 34, 25, 0.65);
+  background: rgba(1, 21, 79, 0.65);
   backdrop-filter: blur(4px);
   z-index: 999;
   display: grid;
@@ -603,7 +603,7 @@
 
 .pin-verify-modal {
   width: min(100%, 420px);
-  background: #fff;
+  background: #ffffff;
   border-radius: 14px;
   padding: 24px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
@@ -613,13 +613,13 @@
 .pin-verify-modal h3 {
   margin: 0 0 8px;
   font-size: 18px;
-  color: #17251e;
+  color: #0b1638;
 }
 
 .pin-verify-modal p {
   margin: 0 0 18px;
   font-size: 11px;
-  color: #69786f;
+  color: #636b7e;
   line-height: 1.55;
 }
 
@@ -633,19 +633,19 @@
 .pin-input-box {
   width: 56px;
   height: 64px;
-  border: 2px solid #c9d8ce;
+  border: 2px solid #b9c7e8;
   border-radius: 10px;
   font-size: 28px;
   font-weight: 800;
   text-align: center;
-  color: #17251e;
+  color: #0b1638;
   outline: none;
   transition: border-color 0.15s ease;
 }
 
 .pin-input-box:focus {
-  border-color: #137a4b;
-  box-shadow: 0 0 0 3px rgba(19, 122, 75, 0.15);
+  border-color: #004bfc;
+  box-shadow: 0 0 0 3px rgba(0, 75, 252, 0.16);
 }
 
 .pin-attempts-alert {

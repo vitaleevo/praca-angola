@@ -238,7 +238,7 @@ export function CrmKanban() {
 
                     <Link
                       href="/vendedor/crm/conversas"
-                      style={{ fontSize: "11px", fontWeight: 700, color: "#2563eb", textDecoration: "none" }}
+                      style={{ fontSize: "11px", fontWeight: 700, color: "#004bfc", textDecoration: "none" }}
                     >
                       Conversar →
                     </Link>
@@ -247,7 +247,7 @@ export function CrmKanban() {
               ))}
 
               {stage.deals.length === 0 && (
-                <div style={{ textAlign: "center", padding: "24px 12px", color: "#94a3b8", fontSize: "12px" }}>
+                <div style={{ textAlign: "center", padding: "24px 12px", color: "#7c86a2", fontSize: "12px" }}>
                   Sem cartões nesta fase
                 </div>
               )}
@@ -270,7 +270,7 @@ export function CrmKanban() {
                   placeholder="Ex.: Carlos Mendes"
                   value={newLeadName}
                   onChange={(e) => setNewLeadName(e.target.value)}
-                  style={{ padding: "8px 12px", borderRadius: "6px", border: "1px solid #cbd5e1" }}
+                  style={{ padding: "8px 12px", borderRadius: "6px", border: "1px solid #c7cfdf" }}
                 />
               </label>
 
@@ -281,7 +281,7 @@ export function CrmKanban() {
                   placeholder="Ex.: 923456789"
                   value={newLeadPhone}
                   onChange={(e) => setNewLeadPhone(e.target.value)}
-                  style={{ padding: "8px 12px", borderRadius: "6px", border: "1px solid #cbd5e1" }}
+                  style={{ padding: "8px 12px", borderRadius: "6px", border: "1px solid #c7cfdf" }}
                 />
               </label>
 
@@ -290,7 +290,7 @@ export function CrmKanban() {
                 <select
                   value={newLeadChannel}
                   onChange={(e) => setNewLeadChannel(e.target.value as any)}
-                  style={{ padding: "8px 12px", borderRadius: "6px", border: "1px solid #cbd5e1" }}
+                  style={{ padding: "8px 12px", borderRadius: "6px", border: "1px solid #c7cfdf" }}
                 >
                   <option value="whatsapp">WhatsApp</option>
                   <option value="instagram">Instagram Direct</option>
@@ -307,7 +307,7 @@ export function CrmKanban() {
                   placeholder="Ex.: Compra de Gerador 5kVA"
                   value={newDealTitle}
                   onChange={(e) => setNewDealTitle(e.target.value)}
-                  style={{ padding: "8px 12px", borderRadius: "6px", border: "1px solid #cbd5e1" }}
+                  style={{ padding: "8px 12px", borderRadius: "6px", border: "1px solid #c7cfdf" }}
                 />
               </label>
 
@@ -318,7 +318,7 @@ export function CrmKanban() {
                   placeholder="Ex.: 150000"
                   value={newDealValue}
                   onChange={(e) => setNewDealValue(e.target.value)}
-                  style={{ padding: "8px 12px", borderRadius: "6px", border: "1px solid #cbd5e1" }}
+                  style={{ padding: "8px 12px", borderRadius: "6px", border: "1px solid #c7cfdf" }}
                 />
               </label>
 

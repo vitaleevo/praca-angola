@@ -48,7 +48,7 @@ export function CrmContactsView() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
           <h2 style={{ fontSize: "1.25rem", fontWeight: 700, margin: 0 }}>Base de Leads e Contactos</h2>
-          <p style={{ margin: "2px 0 0 0", fontSize: "0.875rem", color: "#64748b" }}>
+          <p style={{ margin: "2px 0 0 0", fontSize: "0.875rem", color: "#5c6884" }}>
             Todos os clientes e oportunidades originadas pelas tuas campanhas e canais.
           </p>
         </div>
@@ -71,7 +71,7 @@ export function CrmContactsView() {
             setSearch(e.target.value);
             void loadContacts(e.target.value);
           }}
-          style={{ flex: 1, padding: "10px 14px", borderRadius: "8px", border: "1px solid #cbd5e1" }}
+          style={{ flex: 1, padding: "10px 14px", borderRadius: "8px", border: "1px solid #c7cfdf" }}
         />
       </div>
 
@@ -81,7 +81,7 @@ export function CrmContactsView() {
         <div className="panel" style={{ padding: 0, overflow: "hidden" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13.5px" }}>
             <thead>
-              <tr style={{ background: "#f8fafc", borderBottom: "1px solid #e2e8f0", textAlign: "left" }}>
+              <tr style={{ background: "#f7f9fd", borderBottom: "1px solid #e2e7f1", textAlign: "left" }}>
                 <th style={{ padding: "12px 16px" }}>Nome do Cliente</th>
                 <th style={{ padding: "12px 16px" }}>Canal</th>
                 <th style={{ padding: "12px 16px" }}>Telefone / E-mail</th>
@@ -92,8 +92,8 @@ export function CrmContactsView() {
             </thead>
             <tbody>
               {contacts.map((contact) => (
-                <tr key={contact.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                  <td style={{ padding: "14px 16px", fontWeight: 700, color: "#0f172a" }}>
+                <tr key={contact.id} style={{ borderBottom: "1px solid #eff2f8" }}>
+                  <td style={{ padding: "14px 16px", fontWeight: 700, color: "#0b1638" }}>
                     {contact.full_name}
                   </td>
                   <td style={{ padding: "14px 16px" }}>
@@ -111,14 +111,14 @@ export function CrmContactsView() {
                       {contact.origin_channel}
                     </span>
                   </td>
-                  <td style={{ padding: "14px 16px", color: "#475569" }}>
+                  <td style={{ padding: "14px 16px", color: "#5c6884" }}>
                     {contact.phone || contact.email || "—"}
                   </td>
-                  <td style={{ padding: "14px 16px", color: "#64748b" }}>
+                  <td style={{ padding: "14px 16px", color: "#5c6884" }}>
                     {contact.province} · {contact.municipality}
                   </td>
                   <td style={{ padding: "14px 16px" }}>
-                    <span style={{ fontWeight: 700, color: "#047857" }}>
+                    <span style={{ fontWeight: 700, color: "#004bfc" }}>
                       {contact.deals_count} ({contact.total_value_aoa.toLocaleString("pt-AO")} Kz)
                     </span>
                   </td>
@@ -126,7 +126,7 @@ export function CrmContactsView() {
                     <Link
                       href="/vendedor/crm/conversas"
                       className="text-button"
-                      style={{ color: "#2563eb", fontWeight: 700 }}
+                      style={{ color: "#004bfc", fontWeight: 700 }}
                     >
                       Conversar
                     </Link>
@@ -136,7 +136,7 @@ export function CrmContactsView() {
 
               {contacts.length === 0 && (
                 <tr>
-                  <td colSpan={6} style={{ textAlign: "center", padding: "36px", color: "#94a3b8" }}>
+                  <td colSpan={6} style={{ textAlign: "center", padding: "36px", color: "#7c86a2" }}>
                     Nenhum contacto encontrado.
                   </td>
                 </tr>

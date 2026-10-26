@@ -3,7 +3,7 @@ import Link from "next/link";
 import { WorkspacePage } from "@/components/workspace-page";
 
 export const metadata = {
-  title: "Automações CRM · PUVO",
+  title: "Automações CRM",
   description: "Motor de automações do CRM — respostas automáticas, atribuição de leads e triggers inteligentes.",
 };
 

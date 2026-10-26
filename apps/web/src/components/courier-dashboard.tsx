@@ -464,7 +464,7 @@ export function CourierDashboard() {
                     <button
                       className="button button-primary"
                       type="button"
-                      style={{ background: "#f5b82e", color: "#17251e" }}
+                      style={{ background: "#fda618", color: "#0b1638" }}
                       disabled={busy}
                       onClick={() => openPinModal(run)}
                     >
@@ -491,11 +491,11 @@ export function CourierDashboard() {
               <div key={run.id} className="panel" style={{ marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div>
                   <b>#{run.order_reference} · {run.store_name}</b>
-                  <div style={{ fontSize: 11, color: "#6e7d73" }}>
+                  <div style={{ fontSize: 11, color: "#5c6884" }}>
                     Entregue a {run.recipient_name} em {run.destination_municipality}
                   </div>
                   {run.delivered_at && (
-                    <time style={{ fontSize: 10, color: "#929f96" }}>
+                    <time style={{ fontSize: 10, color: "#7c86a2" }}>
                       {new Intl.DateTimeFormat("pt-AO", { dateStyle: "short", timeStyle: "short" }).format(new Date(run.delivered_at))}
                     </time>
                   )}

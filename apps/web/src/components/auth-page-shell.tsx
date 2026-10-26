@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { SiteFooter, SiteHeader } from "./site-header";
 
@@ -24,8 +25,8 @@ export function AuthPageShell({
             {children}
           </section>
           <aside className="auth-aside">
-            <span className="auth-aside-mark" aria-hidden="true">p.</span>
-            <p className="eyebrow eyebrow-light">A tua conta PUVO</p>
+            <Image className="auth-aside-mark" src="/brand/puvo-mark-192.png" alt="" width={48} height={48} />
+            <p className="eyebrow eyebrow-light">A tua conta P.U.V.O.</p>
             <h2>O que precisas continua perto.</h2>
             <ul>
               <li>Protege o acesso à tua conta.</li>

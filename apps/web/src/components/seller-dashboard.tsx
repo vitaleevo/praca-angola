@@ -274,10 +274,10 @@ export function ListingForm({ listingId, initial }: { listingId?: string; initia
 
   return (
     <div className="listing-form-wrapper">
-      <div className="panel" style={{ marginBottom: "1.5rem", border: "1px solid #bfdbfe", background: "linear-gradient(135deg, #eff6ff 0%, #f8fafc 100%)", borderRadius: "12px", padding: "1.25rem" }}>
+      <div className="panel" style={{ marginBottom: "1.5rem", border: "1px solid #b9d4ff", background: "linear-gradient(135deg, #eef4ff 0%, #f7f9fd 100%)", borderRadius: "12px", padding: "1.25rem" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
           <span style={{ fontSize: "1.25rem" }}>✨</span>
-          <h3 style={{ margin: 0, fontSize: "1.05rem", fontWeight: 700, color: "#1e3a8a" }}>Assistente de IA PUVO</h3>
+          <h3 style={{ margin: 0, fontSize: "1.05rem", fontWeight: 700, color: "#012480" }}>Assistente de IA PUVO</h3>
         </div>
         <p style={{ margin: "0 0 0.75rem 0", fontSize: "0.875rem", color: "#334155" }}>
           Descreve resumidamente o artigo (ex.: <em>&quot;iPhone 13 128gb azul usado mas impecável com carregador em Luanda&quot;</em>) e a IA gera título, descrição profissional, categoria e estimativa de preço em Kz.
@@ -289,7 +289,7 @@ export function ListingForm({ listingId, initial }: { listingId?: string; initia
             value={aiPrompt}
             onChange={(e) => setAiPrompt(e.target.value)}
             disabled={aiLoading}
-            style={{ flex: "1 1 280px", padding: "0.625rem 0.875rem", borderRadius: "8px", border: "1px solid #93c5fd", background: "#ffffff", fontSize: "0.9375rem" }}
+            style={{ flex: "1 1 280px", padding: "0.625rem 0.875rem", borderRadius: "8px", border: "1px solid #9dc0ff", background: "#ffffff", fontSize: "0.9375rem" }}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 e.preventDefault();
