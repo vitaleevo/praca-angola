@@ -78,7 +78,7 @@ export function CrmChannelManager() {
       .then((payload) => {
         const foundPages = payload.pages || [];
         setPages(foundPages);
-        setSelectedPages(foundPages.map((page: MetaPage) => page.id));
+        setSelectedPages([]);
         setAttemptId(returnedAttempt);
         window.history.replaceState({}, "", window.location.pathname);
       })
@@ -208,7 +208,7 @@ export function CrmChannelManager() {
       {pages && (
         <div className="crm-channel-selection" aria-live="polite">
           <h3>Escolhe as Páginas a ligar</h3>
-          <p>Uma conta Instagram só aparece se estiver profissional e associada à Página.</p>
+          <p>Seleciona apenas as Páginas desta loja. Uma conta Instagram só aparece se estiver profissional e associada à Página.</p>
           {pages.length ? pages.map((page) => (
             <label className="crm-meta-page-option" key={page.id}>
               <input type="checkbox" checked={selectedPages.includes(page.id)} onChange={(event) => setSelectedPages((current) => event.target.checked ? [...current, page.id] : current.filter((id) => id !== page.id))} />
