@@ -200,7 +200,7 @@ export function CrmChannelManager() {
       const payload = await response.json();
       if (!response.ok) throw new Error(typeof payload.message === "string" ? payload.message : "A Meta não permitiu importar estas conversas. Verifica o acesso do canal.");
       setHistoryNext((current) => ({ ...current, [channel.id]: payload.next || null }));
-      const summary = `${payload.messages} mensagens importadas de ${payload.conversations} conversas em ${channel.account_name}.`;
+      const summary = `${payload.messages} ${payload.messages === 1 ? "mensagem importada" : "mensagens importadas"} de ${payload.conversations} ${payload.conversations === 1 ? "conversa" : "conversas"} em ${channel.account_name}.`;
       setHistoryResult((current) => ({ ...current, [channel.id]: summary }));
       setNotice(summary);
       window.dispatchEvent(new Event("crm-history-imported"));
