@@ -53,10 +53,10 @@ describe("CrmHistoryService", () => {
   it("skips messages already stored from CRM sends or webhooks", async () => {
     graph.listConversationHistory.mockResolvedValue({ pageId: "1234567890", conversations: [{ id: "t_123", participants: { data: [{ id: "1234567890" }, { id: "customer-1" }] } }] });
     graph.listConversationMessages.mockResolvedValue({ messages: [{ id: "mid-1", from: { id: "1234567890" }, message: "Já enviada", created_time: "2026-10-20T10:00:00Z" }] });
-    const client = { query: vi.fn(async (sql: string, _params: unknown[] = []) => {
+    const client = { query: vi.fn(async (sql: string, params: unknown[] = []) => {
       if (sql.includes("SELECT contact_id")) return { rows: [{ contact_id: "contact-1" }] };
       if (sql.includes("INSERT INTO crm_conversations")) return { rows: [{ id: "conversation-1" }] };
-      if (sql.includes("SELECT 1 FROM crm_messages")) return { rows: [{ "?column?": 1 }] };
+      if (sql.includes("SELECT 1 FROM crm_messages")) return { rows: params[2] === "outbound" ? [{ "?column?": 1 }] : [] };
       return { rows: [] };
     }) };
     database.transaction.mockImplementation((work) => work(client));
