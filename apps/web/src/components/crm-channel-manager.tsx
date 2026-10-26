@@ -202,7 +202,7 @@ export function CrmChannelManager() {
       {notice && <p className="crm-channel-feedback success" role="status">{notice}</p>}
 
       <div id="crm-channel-details" hidden={!expanded && !pages && !showWhatsApp}>
-      <p className="crm-channel-help">A ligação guarda o acesso da loja e recebe mensagens novas pelo webhook. O histórico anterior e os comentários ainda não são importados. Para responder no Facebook e Instagram, a app Meta precisa das permissões de mensagens e das permissões de comentários aprovadas para os clientes.</p>
+      <p className="crm-channel-help">A ligação guarda o acesso da loja e recebe mensagens novas pelo webhook. Consulta publicações e responde a comentários em Redes sociais, conforme as permissões concedidas pela Meta. As conversas anteriores à ligação ainda não são importadas.</p>
       <div className="crm-channel-manager-actions crm-channel-connect-actions">
         <button type="button" className="button button-secondary" onClick={() => void startMetaConnection()} disabled={working}>Ligar Facebook e Instagram</button>
         <button type="button" className="button button-primary" onClick={() => setShowWhatsApp((shown) => !shown)} disabled={working}>Ligar WhatsApp</button>
@@ -241,7 +241,7 @@ export function CrmChannelManager() {
               <span>Mensagens: {diagnostics[channel.id].messagingMissing.length ? `faltam ${diagnostics[channel.id].messagingMissing.join(", ")}` : "permissões presentes no token"}.</span>
               <span>Comentários: {diagnostics[channel.id].commentsMissing.length ? `faltam ${diagnostics[channel.id].commentsMissing.join(", ")}` : "permissões presentes no token"}.</span>
               {channel.channel_type === "facebook_page" && <span>Webhook da Página: {diagnostics[channel.id].pageWebhookSubscribed === null ? "não foi possível verificar" : diagnostics[channel.id].pageWebhookSubscribed ? diagnostics[channel.id].pageWebhookFields.includes("messages") ? "app inscrita para mensagens" : "app inscrita, mas sem o campo messages" : "app não inscrita nesta Página"}.</span>}
-              <small>Mesmo com as permissões no token, a Meta exige acesso aprovado para clientes em produção. Importação de histórico e gestão de comentários ainda não estão disponíveis no CRM.</small>
+              <small>Consulta publicações e comentários em Redes sociais. Para lojas externas à equipa de testes, a Meta exige acesso aprovado no App Review. As conversas anteriores à ligação ainda não são importadas.</small>
             </div>}
           </article>
         )) : <p className="crm-channel-empty">Ainda não tens canais ligados. Liga uma Página, Instagram ou WhatsApp para começar.</p>}

@@ -127,7 +127,8 @@ export class CrmSocialService {
 
   private cursor(after?: string): string | undefined {
     if (!after) return undefined;
-    if (typeof after !== "string" || after.length > 512 || !/^[A-Za-z0-9_+=/.-]+$/.test(after)) throw new BadRequestException("Página de resultados inválida.");
+    // Graph cursors are opaque and may contain punctuation beyond base64. The URL builder encodes the value.
+    if (typeof after !== "string" || after.length > 2048 || !/^[\x21-\x7E]+$/.test(after)) throw new BadRequestException("Página de resultados inválida.");
     return after;
   }
 

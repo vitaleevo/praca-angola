@@ -1,5 +1,14 @@
 # PUVO CRM / Meta — estado em 26-10-2026
 
+## Estado mais recente (26-10-2026, após reautorização)
+
+- A ligação Meta foi renovada com `instagram_manage_comments`, `pages_manage_engagement` e `pages_read_user_content`. **Verificar acesso** mostrou os âmbitos de comentários nos canais testados; a Página Bajaj Angola mantém a subscrição `messages`.
+- Em `/vendedor/crm/redes-sociais`, o Instagram @vitaleevo devolveu o perfil, 53 publicações e dois comentários reais feitos por @bajajangola. A resposta **“Obrigado pelo comentário! Equipa Vitaleevo.”** ao comentário “muito bom” foi aceite pela Meta, e o CRM mostrou “Resposta publicada na rede social.” A tentativa anterior com o token antigo tinha falhado com `(#100) Missing Permission` e não foi publicada.
+- A interface de Canais agora aponta para Redes sociais e descreve corretamente a consulta de publicações/comentários. A API passou a aceitar cursores opacos da Graph API com pontuação, encontrados na leitura de publicações Facebook. A validação pós-deploy do Facebook ainda deve ser feita.
+- A gestão entregue cobre leitura paginada de publicações e comentários e resposta a comentários. Não cobre todas as métricas, moderação, publicação/agendamento nem importação retroativa de mensagens. O WhatsApp Cloud ainda requer número ligado. O App Review e a validação Tech Provider continuam pendentes para uso geral por lojistas externos.
+
+Os registos abaixo documentam etapas anteriores e podem descrever limitações que já foram corrigidas no estado mais recente.
+
 ## Confirmado
 
 - App Meta PUVO `2161321067754105` está em modo live; os tópicos webhook Page, Instagram e WhatsApp constam como ativos.

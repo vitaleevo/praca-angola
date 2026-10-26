@@ -27,6 +27,15 @@ describe("CrmSocialService", () => {
     expect(result.next).toBe("NEXT123");
   });
 
+  it("accepts an opaque Graph pagination cursor with punctuation", async () => {
+    const cursor = "QVFIUnR:x?y%2Bz&k=1";
+    meta.listSocialMedia.mockResolvedValue({ data: [], paging: { cursors: { after: cursor } } });
+    const result = await service.listMedia(workspaceId, channelId);
+    expect(result.next).toBe(cursor);
+    await service.listMedia(workspaceId, channelId, cursor);
+    expect(meta.listSocialMedia).toHaveBeenLastCalledWith("facebook_page", "1393752373814265", "private-test-token", cursor);
+  });
+
   it("rejects a reference used by another workspace before calling Meta", async () => {
     meta.listSocialMedia.mockResolvedValue({ data: [{ id: "1393752373814265_123" }] });
     const media = await service.listMedia(workspaceId, channelId);
