@@ -61,6 +61,11 @@ export function CrmSocial() {
     if (!channelId) return;
     setProfile(null);
     setMissingPermissions([]);
+    setMedia([]);
+    setMediaNext(undefined);
+    setSelected(null);
+    setComments([]);
+    setCommentsNext(undefined);
     void loadMedia(channelId);
     let active = true;
     api<Profile>(`/channels/${channelId}/profile`).then((result) => { if (active) setProfile(result); }).catch(() => {});
@@ -74,6 +79,7 @@ export function CrmSocial() {
   async function loadComments(item: Media, after?: string) {
     if (!channelId) return;
     setBusy(true); setError(""); setNotice("");
+    if (!after) { setSelected(item); setComments([]); setCommentsNext(undefined); }
     try {
       const query = new URLSearchParams({ mediaRef: item.ref });
       if (after) query.set("after", after);
@@ -95,8 +101,8 @@ export function CrmSocial() {
       });
       if (!result.sent) throw new Error("A Meta não confirmou a resposta.");
       setReply((previous) => ({ ...previous, [comment.ref]: "" }));
-      setNotice("Resposta publicada na rede social.");
       if (selected) await loadComments(selected);
+      setNotice("Resposta publicada na rede social.");
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Não foi possível responder."); }
     finally { setBusy(false); }
   }
