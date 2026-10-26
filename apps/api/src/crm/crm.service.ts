@@ -44,7 +44,7 @@ export class CrmService {
       `SELECT sp.id, sp.display_name
        FROM seller_profiles sp
        LEFT JOIN store_memberships sm ON sm.seller_profile_id = sp.id
-       WHERE sp.user_id = $1 OR sm.user_id = $1
+       WHERE sp.owner_user_id = $1 OR sm.user_id = $1
        ORDER BY sp.created_at ASC LIMIT 1`,
       [userId],
     );
