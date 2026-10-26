@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -28,8 +29,8 @@ export function WorkspaceSidebar({ title, groups, helpHref, helpLabel = "Centro 
   return (
     <aside className="workspace-sidebar">
       <div className="workspace-sidebar-heading">
-        <span className="workspace-sidebar-mark" aria-hidden="true">P</span>
-        <div><small>PUVO</small><strong>{title}</strong></div>
+        <Image className="workspace-sidebar-mark" src="/brand/puvo-mark-192.png" alt="" width={36} height={36} />
+        <div><small>P.U.V.O.</small><strong>{title}</strong></div>
       </div>
       <button className="workspace-menu-toggle" type="button" aria-controls="workspace-nav-list" aria-expanded={mobileOpen} onClick={() => setMobileOpen((open) => !open)}>
         {mobileOpen ? "Fechar navegação" : "Abrir navegação"}<span aria-hidden="true">{mobileOpen ? "−" : "+"}</span>

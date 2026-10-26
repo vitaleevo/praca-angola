@@ -295,9 +295,9 @@ export function OrderDetail({ id }: { id: string }) {
 
           {/* Destination & Reference */}
           {tracking.recipient && (
-            <div style={{ marginTop: 14, fontSize: 11, color: "#617066", borderTop: "1px solid #edf2ee", paddingTop: 10 }}>
+            <div style={{ marginTop: 14, fontSize: 11, color: "#5c6884", borderTop: "1px solid #e8ecf5", paddingTop: 10 }}>
               <b>Destino:</b> {tracking.recipient.address}, {tracking.recipient.municipality} ({tracking.recipient.province})
-              {tracking.recipient.landmark && <div><span style={{ color: "#966b07" }}>📍 Ponto de Referência:</span> {tracking.recipient.landmark}</div>}
+              {tracking.recipient.landmark && <div><span style={{ color: "#9a5b00" }}>📍 Ponto de Referência:</span> {tracking.recipient.landmark}</div>}
               <div><b>Destinatário:</b> {tracking.recipient.name} ({tracking.recipient.phone})</div>
             </div>
           )}
@@ -326,7 +326,7 @@ export function OrderDetail({ id }: { id: string }) {
           </div>
 
           {dispatchOpen && (
-            <div style={{ marginTop: 16, padding: 14, background: "#f8faf8", border: "1px solid #dce5dd", borderRadius: 8 }}>
+            <div style={{ marginTop: 16, padding: 14, background: "#f7f9fd", border: "1px solid #d9e0ee", borderRadius: 8 }}>
               <h4 style={{ margin: "0 0 10px", fontSize: 13 }}>Despacho com Estafeta</h4>
               <div className="stack-form">
                 <label>

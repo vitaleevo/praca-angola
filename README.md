@@ -1,6 +1,6 @@
-# PUVO — Plataforma Única de Vendas Online
+# P.U.V.O. — Plataforma Unificada de Vendas Online
 
-**PUVO** é a Plataforma Única de Vendas Online de Angola, com **Produtos** e **Serviços** (profissionais liberais e empresas prestadoras). A arquitetura é um monólito modular, preparado para abrir outros marketplaces sem criar um serviço independente para cada área.
+**P.U.V.O.** é a Plataforma Unificada de Vendas Online de Angola, com **Produtos** e **Serviços** (profissionais liberais e empresas prestadoras). A arquitetura é um monólito modular, preparado para abrir outros marketplaces sem criar um serviço independente para cada área.
 
 ## Stack
 

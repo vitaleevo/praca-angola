@@ -291,7 +291,7 @@ export function CrmLiveInbox() {
                 fontSize: "11px",
                 fontWeight: 600,
                 background: isLiveConnected ? "rgba(16, 185, 129, 0.1)" : "rgba(148, 163, 184, 0.15)",
-                color: isLiveConnected ? "#059669" : "#64748b",
+                color: isLiveConnected ? "#059669" : "#5c6884",
                 border: `1px solid ${isLiveConnected ? "rgba(16, 185, 129, 0.25)" : "rgba(148, 163, 184, 0.25)"}`,
               }}
               title={isLiveConnected ? "Canal real-time activo: recebes mensagens instantâneas" : "A tentar conectar stream em direto…"}
@@ -301,7 +301,7 @@ export function CrmLiveInbox() {
                   width: "7px",
                   height: "7px",
                   borderRadius: "50%",
-                  background: isLiveConnected ? "#10b981" : "#94a3b8",
+                  background: isLiveConnected ? "#10b981" : "#7c86a2",
                   boxShadow: isLiveConnected ? "0 0 8px #10b981" : "none",
                 }}
               />
@@ -367,7 +367,7 @@ export function CrmLiveInbox() {
           ))}
 
           {conversations.length === 0 && (
-            <div style={{ padding: "32px 16px", textAlign: "center", color: "#94a3b8", fontSize: "13px" }}>
+            <div style={{ padding: "32px 16px", textAlign: "center", color: "#7c86a2", fontSize: "13px" }}>
               Nenhuma conversa aberta no momento. Os leads recebidos aparecerão aqui instantaneamente.
             </div>
           )}
@@ -380,7 +380,7 @@ export function CrmLiveInbox() {
               <div className="crm-chat-header">
                 <div>
                   <h3 style={{ margin: 0, fontSize: "14px", fontWeight: 700 }}>{selectedConvo.contact_name}</h3>
-                  <small style={{ color: "#64748b" }}>
+                  <small style={{ color: "#5c6884" }}>
                     {selectedConvo.contact_phone || "Sem telefone associado"} · Canal: {selectedConvo.channel}
                   </small>
                 </div>
@@ -415,7 +415,7 @@ export function CrmLiveInbox() {
                   <button
                     type="button"
                     className="crm-quick-btn"
-                    style={{ background: "#eff6ff", borderColor: "#93c5fd", color: "#1e40af" }}
+                    style={{ background: "#eff6ff", borderColor: "#93c5fd", color: "#012480" }}
                     onClick={() => void handleSuggestReply()}
                     disabled={suggesting}
                   >
@@ -452,7 +452,7 @@ export function CrmLiveInbox() {
               </div>
             </>
           ) : (
-            <div style={{ display: "grid", placeItems: "center", height: "100%", color: "#94a3b8" }}>
+            <div style={{ display: "grid", placeItems: "center", height: "100%", color: "#7c86a2" }}>
               Seleciona uma conversa ao lado para começar o atendimento.
             </div>
           )}
@@ -461,29 +461,29 @@ export function CrmLiveInbox() {
         {/* Right Column: Lead Quick Sheet */}
         {selectedConvo && (
           <div className="crm-inbox-lead-details">
-            <h4 style={{ margin: "0 0 10px 0", fontSize: "14px", fontWeight: 700, borderBottom: "1px solid #e2e8f0", paddingBottom: "8px" }}>
+            <h4 style={{ margin: "0 0 10px 0", fontSize: "14px", fontWeight: 700, borderBottom: "1px solid #e2e7f1", paddingBottom: "8px" }}>
               Ficha do Cliente
             </h4>
             <div>
-              <small style={{ color: "#64748b", display: "block" }}>Nome Completo</small>
+              <small style={{ color: "#5c6884", display: "block" }}>Nome Completo</small>
               <b style={{ fontSize: "14px" }}>{selectedConvo.contact_name}</b>
             </div>
 
             <div>
-              <small style={{ color: "#64748b", display: "block" }}>Contacto</small>
+              <small style={{ color: "#5c6884", display: "block" }}>Contacto</small>
               <span>{selectedConvo.contact_phone || "Não indicado"}</span>
             </div>
 
             <div>
-              <small style={{ color: "#64748b", display: "block" }}>Canal de Entrada</small>
+              <small style={{ color: "#5c6884", display: "block" }}>Canal de Entrada</small>
               <span style={{ textTransform: "capitalize", fontWeight: 600 }}>{selectedConvo.channel}</span>
             </div>
 
-            <div style={{ marginTop: "16px", paddingTop: "12px", borderTop: "1px solid #f1f5f9", display: "flex", flexDirection: "column", gap: "8px" }}>
+            <div style={{ marginTop: "16px", paddingTop: "12px", borderTop: "1px solid #eff2f8", display: "flex", flexDirection: "column", gap: "8px" }}>
               <Link href="/vendedor/crm" className="button button-secondary" style={{ width: "100%", textAlign: "center" }}>
                 Ver no Funil Kanban
               </Link>
-              <Link href="/vendedor/crm/ia" style={{ fontSize: "12px", color: "#2563eb", fontWeight: 600, textDecoration: "none", textAlign: "center" }}>
+              <Link href="/vendedor/crm/ia" style={{ fontSize: "12px", color: "#004bfc", fontWeight: 600, textDecoration: "none", textAlign: "center" }}>
                 ⚙️ Configurar IA & Base de Conhecimento →
               </Link>
             </div>
@@ -496,7 +496,7 @@ export function CrmLiveInbox() {
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 1000, display: "grid", placeItems: "center", padding: "16px" }}>
           <div className="panel" style={{ width: "100%", maxWidth: "480px", background: "#ffffff", borderRadius: "14px", padding: "24px" }}>
             <h3 style={{ margin: "0 0 12px 0", fontSize: "1.1rem", fontWeight: 700 }}>Escolhe um Produto da Loja</h3>
-            <p style={{ margin: "0 0 16px 0", fontSize: "0.85rem", color: "#64748b" }}>
+            <p style={{ margin: "0 0 16px 0", fontSize: "0.85rem", color: "#5c6884" }}>
               Ao selecionares, o cartão com preço e link será enviado diretamente na conversa com o cliente.
             </p>
 
@@ -504,12 +504,12 @@ export function CrmLiveInbox() {
               {products.map((p) => (
                 <div
                   key={p.id}
-                  style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 12px", border: "1px solid #e2e8f0", borderRadius: "8px", cursor: "pointer" }}
+                  style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 12px", border: "1px solid #e2e7f1", borderRadius: "8px", cursor: "pointer" }}
                   onClick={() => void handleSendProduct(p.id)}
                 >
                   <div>
                     <div style={{ fontWeight: 600, fontSize: "13px" }}>{p.title}</div>
-                    <small style={{ color: "#047857", fontWeight: 700 }}>{Number(p.price).toLocaleString("pt-AO")} Kz</small>
+                    <small style={{ color: "#004bfc", fontWeight: 700 }}>{Number(p.price).toLocaleString("pt-AO")} Kz</small>
                   </div>
                   <button type="button" className="button button-secondary" style={{ fontSize: "11px", padding: "4px 8px" }}>
                     Enviar
@@ -518,7 +518,7 @@ export function CrmLiveInbox() {
               ))}
 
               {products.length === 0 && (
-                <div style={{ textAlign: "center", padding: "20px", color: "#94a3b8" }}>
+                <div style={{ textAlign: "center", padding: "20px", color: "#7c86a2" }}>
                   Ainda não tens produtos publicados no catálogo.
                 </div>
               )}

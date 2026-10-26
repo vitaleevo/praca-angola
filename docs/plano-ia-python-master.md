@@ -1,7 +1,7 @@
 # Plano Diretor de Inteligência Artificial e Python — PUVO
 
 **Data:** 25 de Outubro de 2026  
-**Projeto:** PUVO — Plataforma Única de Vendas Online (Angola)  
+**Projeto:** P.U.V.O. — Plataforma Unificada de Vendas Online (Angola)  
 **Objetivo:** Integrar um subsistema modular em Python especializado em Inteligência Artificial para enriquecer a experiência de compra, venda, contratação e segurança da plataforma, mantendo o NestJS e o PostgreSQL como núcleo soberano das regras de negócio.
 
 ---

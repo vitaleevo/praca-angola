@@ -145,7 +145,7 @@ export function ModerationAiAnalytics() {
       {/* Primary KPI Grid */}
       <div className="analytics-kpi-grid">
         <div className="analytics-kpi-card card-glow-primary">
-          <div className="kpi-icon-wrap icon-purple">🤖</div>
+          <div className="kpi-icon-wrap icon-cyan">🤖</div>
           <div className="kpi-info">
             <span className="kpi-label">Total de Anúncios Auditados</span>
             <strong className="kpi-value">{listings.totalListings}</strong>

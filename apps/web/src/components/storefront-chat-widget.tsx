@@ -27,7 +27,7 @@ export default function StorefrontChatWidget({
   sellerProfileId,
   storeName,
   storeAvatar,
-  accentColor = "#8b5cf6",
+  accentColor = "#004bfc",
 }: StorefrontChatWidgetProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);

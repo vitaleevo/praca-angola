@@ -3,7 +3,7 @@ import Link from "next/link";
 import { SiteFooter, SiteHeader } from "../../components/site-header";
 
 export const metadata: Metadata = {
-  title: "Privacidade — PUVO",
+  title: "Privacidade",
   description: "Informação sobre os dados usados para contas, lojas, encomendas e serviços na PUVO.",
 };
 
