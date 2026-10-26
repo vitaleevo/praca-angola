@@ -44,7 +44,7 @@ describe("CrmHistoryService", () => {
     expect(result).toMatchObject({ conversations: 1, messages: 2 });
     expect(result.next).toBeTruthy();
     expect(inserted.map((item) => item.params[2])).toEqual(["inbound", "outbound"]);
-    expect(inserted.map((item) => item.params[5])).toEqual(["2026-10-20T10:00:00.000Z", "2026-10-20T10:05:00.000Z"]);
+    expect(inserted.map((item) => item.params[7])).toEqual(["2026-10-20T10:00:00.000Z", "2026-10-20T10:05:00.000Z"]);
     expect(inserted[0].sql).toContain("'delivered'");
     expect(client.query.mock.calls.find(([sql]) => String(sql).includes("INSERT INTO crm_conversations"))?.[0]).toContain("unread_count");
     await expect(service.importPage("other-workspace", channelId, result.next!)).rejects.toBeInstanceOf(BadRequestException);
@@ -63,5 +63,25 @@ describe("CrmHistoryService", () => {
     const result = await service.importPage(workspaceId, channelId);
     expect(result.messages).toBe(0);
     expect(client.query.mock.calls.some(([sql]) => String(sql).includes("INSERT INTO crm_messages"))).toBe(false);
+  });
+
+  it("imports an image-only message from a trusted Meta attachment URL", async () => {
+    graph.listConversationHistory.mockResolvedValue({ pageId: "1234567890", conversations: [{ id: "t_123", participants: { data: [{ id: "1234567890" }, { id: "customer-1" }] } }] });
+    graph.listConversationMessages.mockResolvedValue({ messages: [{ id: "mid-image", from: { id: "customer-1" }, created_time: "2026-10-20T10:00:00Z",
+      attachments: { data: [{ image_data: { url: "https://scontent.fbcdn.net/photo.jpg" } }, { image_data: { url: "https://not-meta.example/photo.jpg" } }] } }] });
+    let messageParams: unknown[] = [];
+    const client = { query: vi.fn(async (sql: string, params: unknown[] = []) => {
+      if (sql.includes("SELECT contact_id")) return { rows: [{ contact_id: "contact-1" }] };
+      if (sql.includes("INSERT INTO crm_conversations")) return { rows: [{ id: "conversation-1" }] };
+      if (sql.includes("INSERT INTO crm_meta_webhook_events")) return { rows: [{ event_key: params[0] }] };
+      if (sql.includes("INSERT INTO crm_messages")) messageParams = params;
+      return { rows: [] };
+    }) };
+    database.transaction.mockImplementation((work) => work(client));
+    const result = await service.importPage(workspaceId, channelId);
+    expect(result.messages).toBe(1);
+    expect(messageParams[3]).toBe("image");
+    expect(messageParams[5]).toBe("https://scontent.fbcdn.net/photo.jpg");
+    expect(JSON.parse(String(messageParams[6])).image_urls).toEqual(["https://scontent.fbcdn.net/photo.jpg"]);
   });
 });

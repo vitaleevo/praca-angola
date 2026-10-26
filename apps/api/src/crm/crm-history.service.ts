@@ -3,6 +3,7 @@ import { DatabaseService } from "../database/database.service";
 import { decryptPrivateValue } from "../auth/auth.crypto";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { MetaGraphService, type MetaHistoryConversation, type MetaHistoryMessage } from "./meta-graph.service";
+import { publicMetaImageUrl } from "./meta-media";
 
 type HistoryChannel = "facebook_page" | "instagram_direct";
 
@@ -47,10 +48,15 @@ export class CrmHistoryService {
       const customer = this.customer(thread, history, ownerIds);
       if (!customer) return { conversations, messages, next };
       const valid = history.flatMap((item) => {
-        if (!item.id || !item.from?.id || !item.message?.trim() || !item.created_time) return [];
+        if (!item.id || !item.from?.id || !item.created_time) return [];
         const when = Date.parse(item.created_time);
         if (!Number.isFinite(when) || when < Date.UTC(2004, 0, 1) || when > Date.now() + 86_400_000) return [];
-        return [{ id: item.id, text: item.message.trim().slice(0, 4000), senderId: item.from.id, createdAt: new Date(when).toISOString() }];
+        const imageUrls = [...new Set((item.attachments?.data ?? [])
+          .map((attachment) => publicMetaImageUrl(attachment.image_data?.url ?? attachment.image_data?.preview_url))
+          .filter((url): url is string => Boolean(url)))].slice(0, 8);
+        const text = item.message?.trim().slice(0, 4000) || (imageUrls.length ? "Fotografia recebida" : "");
+        if (!text) return [];
+        return [{ id: item.id, text, imageUrls, senderId: item.from.id, createdAt: new Date(when).toISOString() }];
       }).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
       if (!valid.length) return { conversations, messages, next };
       const inserted = await this.database.transaction(async (client) => {
@@ -99,10 +105,11 @@ export class CrmHistoryService {
           );
           if (!event.rows.length) continue;
           await client.query(
-            `INSERT INTO crm_messages (conversation_id, workspace_id, direction, message_type, content, status, metadata, created_at)
-             VALUES ($1, $2, $3, 'text', $4, 'delivered', $5::jsonb, $6::timestamptz)`,
-            [conversation.rows[0].id, workspaceId, ownerIds.has(item.senderId) ? "outbound" : "inbound", item.text,
-              JSON.stringify({ meta_message_id: item.id, meta_thread_id: thread.id, imported: true }), item.createdAt],
+            `INSERT INTO crm_messages (conversation_id, workspace_id, direction, message_type, content, media_url, status, metadata, created_at)
+             VALUES ($1, $2, $3, $4, $5, $6, 'delivered', $7::jsonb, $8::timestamptz)`,
+            [conversation.rows[0].id, workspaceId, ownerIds.has(item.senderId) ? "outbound" : "inbound",
+              item.imageUrls.length ? "image" : "text", item.text, item.imageUrls[0] ?? null,
+              JSON.stringify({ meta_message_id: item.id, meta_thread_id: thread.id, imported: true, image_urls: item.imageUrls }), item.createdAt],
           );
           count++;
         }
