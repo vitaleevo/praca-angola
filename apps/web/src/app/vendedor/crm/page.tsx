@@ -4,7 +4,7 @@ import { CrmKanban } from "../../../components/crm-kanban";
 
 export default function CrmKanbanPage() {
   return (
-    <WorkspacePage area="seller">
+    <WorkspacePage area="seller" crm>
       <div className="breadcrumbs">
         <Link href="/">Início</Link>
         <span>/</span>

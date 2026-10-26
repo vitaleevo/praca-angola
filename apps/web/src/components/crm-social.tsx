@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import "../app/crm.css";
 
 type Channel = { id: string; channel_type: "facebook_page" | "instagram_direct"; account_name: string };
@@ -22,6 +23,7 @@ function date(value: string | null) {
 
 export function CrmSocial() {
   const [channels, setChannels] = useState<Channel[]>([]);
+  const [channelsLoading, setChannelsLoading] = useState(true);
   const [channelId, setChannelId] = useState("");
   const [media, setMedia] = useState<Media[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -34,6 +36,7 @@ export function CrmSocial() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const commentsPanelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let active = true;
@@ -41,7 +44,8 @@ export function CrmSocial() {
       if (!active) return;
       setChannels(result.channels);
       setChannelId(result.channels[0]?.id ?? "");
-    }).catch((cause) => { if (active) setError(cause instanceof Error ? cause.message : "Não foi possível carregar os canais."); });
+    }).catch((cause) => { if (active) setError(cause instanceof Error ? cause.message : "Não foi possível carregar os canais."); })
+      .finally(() => { if (active) setChannelsLoading(false); });
     return () => { active = false; };
   }, []);
 
@@ -76,7 +80,7 @@ export function CrmSocial() {
     return () => { active = false; };
   }, [channelId, loadMedia]);
 
-  async function loadComments(item: Media, after?: string) {
+  async function loadComments(item: Media, after?: string, scrollToPanel = false) {
     if (!channelId) return;
     setBusy(true); setError(""); setNotice("");
     if (!after) { setSelected(item); setComments([]); setCommentsNext(undefined); }
@@ -87,6 +91,9 @@ export function CrmSocial() {
       setSelected(item);
       setComments((previous) => after ? [...previous, ...result.items] : result.items);
       setCommentsNext(result.next);
+      if (scrollToPanel && window.matchMedia("(max-width: 1023px)").matches) {
+        requestAnimationFrame(() => commentsPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
+      }
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Não foi possível carregar comentários."); }
     finally { setBusy(false); }
   }
@@ -117,6 +124,7 @@ export function CrmSocial() {
       <button type="button" onClick={() => void loadMedia(channelId)} disabled={!channelId || busy}>Atualizar</button>
     </div>
     <p className="crm-social-hint">Publicações e comentários disponíveis na Meta. A importação depende das permissões concedidas a esta Página e à app PUVO.</p>
+    {!channelsLoading && !channels.length && !error && <div className="crm-social-empty">Ainda não há redes sociais ligadas a esta loja. <Link href="/vendedor/crm/conversas">Ligar um canal no Live Inbox</Link> para começar.</div>}
     {missingPermissions.length > 0 && <p role="status" className="crm-social-error">A Meta concedeu acesso parcial aos comentários. Nomes dos autores ou respostas podem falhar até autorizares novamente o canal com: {missingPermissions.join(", ")}.</p>}
     {profile && <div className="crm-social-profile"><strong>{profile.name}</strong>{profile.username && <span>@{profile.username}</span>}{profile.followers !== null && <span>{profile.followers.toLocaleString("pt-AO")} seguidores</span>}{profile.mediaCount !== null && <span>{profile.mediaCount.toLocaleString("pt-AO")} publicações</span>}{profile.description && <p>{profile.description}</p>}{profile.website && <a href={profile.website} target="_blank" rel="noopener noreferrer">Website</a>}</div>}
     {busy && <p role="status">A carregar dados da Meta…</p>}
@@ -124,19 +132,22 @@ export function CrmSocial() {
     {notice && <p role="status" className="crm-social-success">{notice}</p>}
     <div className="crm-social-grid">
       <div className="crm-social-panel">
-        <h2>Publicações</h2>
-        {!busy && channelId && !media.length && <p>Não há publicações disponíveis para este canal.</p>}
+        <div className="crm-social-panel-header"><h2>Publicações</h2><p>{media.length ? `${media.length} publicações carregadas · Seleciona uma para gerir comentários.` : "Conteúdo do canal selecionado"}</p></div>
+        <div className="crm-social-list">
+        {!busy && channelId && !media.length && <p className="crm-social-empty">Não há publicações disponíveis para este canal.</p>}
         {media.map((item) => <article key={item.ref} className={selected?.ref === item.ref ? "crm-social-card is-selected" : "crm-social-card"}>
-          <p>{item.text || (item.mediaType ? `Publicação ${item.mediaType.toLowerCase()}` : "Publicação sem texto")}</p>
+          <p className="crm-social-excerpt">{item.text || (item.mediaType ? `Publicação ${item.mediaType.toLowerCase()}` : "Publicação sem texto")}</p>
           <small>{date(item.createdAt)}{item.commentsCount !== null ? ` · ${item.commentsCount} comentários` : ""}</small>
-          <div className="crm-social-actions"><button type="button" onClick={() => void loadComments(item)} disabled={busy}>Ver comentários</button>{item.permalink && <a href={item.permalink} target="_blank" rel="noopener noreferrer">Ver original</a>}</div>
+          <div className="crm-social-actions"><button type="button" onClick={() => void loadComments(item, undefined, true)} disabled={busy} aria-pressed={selected?.ref === item.ref}>Ver comentários</button>{item.permalink && <a href={item.permalink} target="_blank" rel="noopener noreferrer">Ver original</a>}</div>
         </article>)}
-        {mediaNext && <button type="button" onClick={() => void loadMedia(channelId, mediaNext)} disabled={busy}>Carregar mais publicações</button>}
+        </div>
+        {mediaNext && <button className="crm-social-more" type="button" onClick={() => void loadMedia(channelId, mediaNext)} disabled={busy}>Carregar mais publicações</button>}
       </div>
-      <div className="crm-social-panel">
-        <h2>Comentários</h2>
-        {!selected ? <p>Escolhe uma publicação para ver e responder aos comentários.</p> : <>
-          {!busy && !comments.length && <p>Esta publicação não tem comentários disponíveis.</p>}
+      <div className="crm-social-panel crm-social-comments" ref={commentsPanelRef}>
+        <div className="crm-social-panel-header"><h2>Comentários</h2><p>{selected ? `${comments.length} comentários carregados para esta publicação` : "Responde aos clientes sem sair da PUVO"}</p></div>
+        <div className="crm-social-list">
+        {!selected ? <p className="crm-social-empty">Escolhe uma publicação para ver e responder aos comentários.</p> : <>
+          {!busy && !comments.length && <p className="crm-social-empty">Esta publicação não tem comentários disponíveis.</p>}
           {comments.map((comment) => <article key={comment.ref} className="crm-social-card">
             <strong>{comment.author}</strong><small>{date(comment.createdAt)}</small><p>{comment.text}</p>
             <label>Responder a {comment.author}<textarea rows={2} maxLength={1000} value={reply[comment.ref] ?? ""} onChange={(event) => setReply((previous) => ({ ...previous, [comment.ref]: event.target.value }))} /></label>
@@ -144,6 +155,7 @@ export function CrmSocial() {
           </article>)}
           {commentsNext && <button type="button" onClick={() => void loadComments(selected, commentsNext)} disabled={busy}>Carregar mais comentários</button>}
         </>}
+        </div>
       </div>
     </div>
   </section>;

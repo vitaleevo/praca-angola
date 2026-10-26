@@ -8,6 +8,7 @@ import "./auth-ui.css";
 import "./account-access.css";
 import './marketplace-v2.css';
 import './workspace.css';
+import './crm-workspace.css';
 import './logistics-ui.css';
 import './header-navigation.css';
 import './marketplace-focus.css';
