@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import "../app/crm.css";
 import { CrmChannelManager } from "./crm-channel-manager";
 
@@ -24,6 +25,7 @@ interface Message {
   message_type: "text" | "image" | "audio" | "document" | "catalog_product" | "payment_request";
   content: string;
   media_url?: string | null;
+  metadata?: { image_urls?: string[]; media_id?: string } | null;
   status: string;
   created_at: string;
 }
@@ -33,6 +35,38 @@ interface SellerProduct {
   title: string;
   price: string;
   slug: string;
+}
+
+function channelLabel(channel: Conversation["channel"]) {
+  if (channel === "facebook_messenger") return "Messenger";
+  if (channel === "instagram_dm") return "Instagram";
+  if (channel === "whatsapp") return "WhatsApp";
+  return "Chat PUVO";
+}
+
+function metaImageUrl(value: unknown): value is string {
+  if (typeof value !== "string" || value.length > 4096) return false;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" && !url.username && !url.password &&
+      ["fbcdn.net", "fbsbx.com", "cdninstagram.com", "instagram.com", "facebook.com"]
+        .some((host) => url.hostname === host || url.hostname.endsWith(`.${host}`));
+  } catch { return false; }
+}
+
+function MessageImages({ message, conversationId }: { message: Message; conversationId: string }) {
+  const [broken, setBroken] = useState<string[]>([]);
+  const urls = [message.media_url, ...(message.metadata?.image_urls ?? [])]
+    .filter(metaImageUrl);
+  const images = [...new Set(urls)].filter((url) => !broken.includes(url));
+  const privateImage = message.message_type === "image" && message.metadata?.media_id && !images.length
+    ? `/api/v1/crm/conversations/${conversationId}/messages/${message.id}/image` : null;
+  const visible = [...images, ...(privateImage && !broken.includes(privateImage) ? [privateImage] : [])];
+  if (!visible.length && message.message_type !== "image") return null;
+  if (!visible.length) return <span className="crm-message-image-fallback">Imagem indisponível</span>;
+  return <div className="crm-message-images">{visible.map((url, index) =>
+    <Image key={url} src={url} alt={`Imagem ${index + 1} enviada na conversa`} width={420} height={320} unoptimized onError={() => setBroken((current) => [...current, url])} />
+  )}</div>;
 }
 
 export function CrmLiveInbox() {
@@ -350,10 +384,10 @@ export function CrmLiveInbox() {
                         ? "channel-whatsapp"
                         : convo.channel === "instagram_dm"
                         ? "channel-instagram"
-                        : "channel-storefront"
+                        : convo.channel === "facebook_messenger" ? "channel-facebook" : "channel-storefront"
                     }`}
                   >
-                    {convo.channel === "whatsapp" ? "WhatsApp" : convo.channel === "instagram_dm" ? "Instagram" : "Chat PUVO"}
+                    {channelLabel(convo.channel)}
                   </span>
                   {convo.unread_count > 0 && (
                     <span style={{ background: "#ef4444", color: "#ffffff", fontSize: "10px", fontWeight: 700, borderRadius: "10px", padding: "1px 6px" }}>
@@ -381,7 +415,7 @@ export function CrmLiveInbox() {
                 <div>
                   <h3 style={{ margin: 0, fontSize: "14px", fontWeight: 700 }}>{selectedConvo.contact_name}</h3>
                   <small style={{ color: "#5c6884" }}>
-                    {selectedConvo.contact_phone || "Sem telefone associado"} · Canal: {selectedConvo.channel}
+                    {selectedConvo.contact_phone || "Sem telefone associado"} · {channelLabel(selectedConvo.channel)}
                   </small>
                 </div>
               </div>
@@ -400,6 +434,7 @@ export function CrmLiveInbox() {
                         : "crm-bubble-outbound"
                     }`}
                   >
+                    <MessageImages message={m} conversationId={selectedConvo.id} />
                     <div style={{ whiteSpace: "pre-wrap" }}>{m.content}</div>
                     <span className="crm-bubble-time">
                       {new Date(m.created_at).toLocaleTimeString("pt-AO", { hour: "2-digit", minute: "2-digit" })}

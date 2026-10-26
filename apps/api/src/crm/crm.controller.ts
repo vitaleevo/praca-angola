@@ -1,4 +1,5 @@
-import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query, Sse, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query, Res, Sse, UseGuards } from "@nestjs/common";
+import type { Response } from "express";
 import { SessionGuard } from "../auth/session.guard";
 import { CurrentUser } from "../auth/current-user.decorator";
 import { AuthenticatedUser } from "../auth/auth.types";
@@ -159,6 +160,21 @@ export class CrmController {
   async getMessages(@Param("id") id: string, @CurrentUser() user: AuthenticatedUser) {
     const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
     return this.crmService.getMessages(workspace.id, id);
+  }
+
+  @Get("conversations/:id/messages/:messageId/image")
+  async getMessageImage(
+    @Param("id", ParseUUIDPipe) id: string,
+    @Param("messageId", ParseUUIDPipe) messageId: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Res() response: Response,
+  ) {
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
+    const image = await this.crmService.getWhatsAppMessageImage(workspace.id, id, messageId);
+    response.setHeader("Content-Type", image.mimeType);
+    response.setHeader("Cache-Control", "private, no-store");
+    response.setHeader("X-Content-Type-Options", "nosniff");
+    return response.send(image.bytes);
   }
 
   @Post("conversations/:id/messages")

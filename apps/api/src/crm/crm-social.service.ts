@@ -3,6 +3,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { DatabaseService } from "../database/database.service";
 import { decryptPrivateValue } from "../auth/auth.crypto";
 import { MetaGraphService, type MetaSocialItem } from "./meta-graph.service";
+import { publicMetaImageUrl } from "./meta-media";
 
 type SocialChannel = "facebook_page" | "instagram_direct";
 type ReferenceKind = "media" | "comment";
@@ -38,6 +39,10 @@ export class CrmSocialService {
         createdAt: item.created_time ?? item.timestamp ?? null,
         permalink: this.publicPermalink(item.permalink_url ?? item.permalink),
         mediaType: item.media_type ?? null,
+        imageUrls: [...new Set([
+          item.media_type === "VIDEO" ? item.thumbnail_url : item.media_url ?? item.full_picture ?? item.thumbnail_url,
+          ...(item.children?.data ?? []).map((child) => child.media_type === "VIDEO" ? child.thumbnail_url : child.media_url ?? child.thumbnail_url),
+        ].map(publicMetaImageUrl).filter((url): url is string => Boolean(url)))].slice(0, 10),
         commentsCount: item.comments_count ?? null,
       })),
       next: this.cursor(result.paging?.cursors?.after),

@@ -31,6 +31,10 @@ export interface MetaSocialItem {
   permalink_url?: string;
   permalink?: string;
   media_type?: string;
+  media_url?: string;
+  thumbnail_url?: string;
+  full_picture?: string;
+  children?: { data?: Array<{ media_type?: string; media_url?: string; thumbnail_url?: string }> };
   comments_count?: number;
   from?: { name?: string };
   username?: string;
@@ -160,6 +164,39 @@ export class MetaGraphService {
     return response.message_id;
   }
 
+  async downloadWhatsAppImage(mediaId: string, phoneNumberId: string, accessToken: string): Promise<{ bytes: Buffer; mimeType: string }> {
+    if (!/^\d{5,32}$/.test(mediaId) || !/^\d{5,32}$/.test(phoneNumberId)) throw new BadRequestException("Imagem WhatsApp inválida");
+    const media = await this.graphGet<{ url?: string; mime_type?: string; file_size?: number }>(mediaId, {
+      phone_number_id: phoneNumberId, access_token: accessToken,
+    });
+    if (!media.url || !/^image\/(jpeg|png|webp)$/.test(media.mime_type ?? "") || (media.file_size ?? 0) > 8_000_000) {
+      throw new BadGatewayException("A imagem WhatsApp não está disponível ou excede o limite de 8 MB");
+    }
+    const url = new URL(media.url);
+    if (url.protocol !== "https:" || url.username || url.password || !(url.hostname === "fbsbx.com" || url.hostname.endsWith(".fbsbx.com"))) {
+      throw new BadGatewayException("Endereço de imagem WhatsApp inválido");
+    }
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 10_000);
+    try {
+      const response = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` }, redirect: "error", signal: controller.signal });
+      if (!response.ok || !response.body) throw new BadGatewayException("Não foi possível obter a imagem WhatsApp");
+      const parts: Uint8Array[] = [];
+      let size = 0;
+      for await (const part of response.body) {
+        size += part.length;
+        if (size > 8_000_000) throw new BadGatewayException("A imagem WhatsApp excede o limite de 8 MB");
+        parts.push(part);
+      }
+      return { bytes: Buffer.concat(parts), mimeType: media.mime_type! };
+    } catch (error) {
+      if (error instanceof BadGatewayException) throw error;
+      throw new BadGatewayException("Não foi possível obter a imagem WhatsApp");
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
   async subscribeAccount(channel: MetaChannelType, accountId: string, accessToken: string): Promise<void> {
     const subscribedFields = channel === "facebook_page" ? ["messages", "messaging_postbacks", "leadgen"] : ["messages"];
     await this.graphPost(`${accountId}/subscribed_apps`, accessToken, { subscribed_fields: subscribedFields });
@@ -212,8 +249,8 @@ export class MetaGraphService {
   async listSocialMedia(channel: "facebook_page" | "instagram_direct", accountId: string, accessToken: string, after?: string): Promise<MetaSocialPage> {
     const path = channel === "facebook_page" ? `${accountId}/posts` : `${accountId}/media`;
     const fields = channel === "facebook_page"
-      ? "id,message,created_time,permalink_url"
-      : "id,caption,timestamp,permalink,media_type,comments_count";
+      ? "id,message,created_time,permalink_url,full_picture"
+      : "id,caption,timestamp,permalink,media_type,media_url,thumbnail_url,children{media_type,media_url,thumbnail_url},comments_count";
     return this.graphGet<MetaSocialPage>(path, {
       fields, limit: "20", access_token: accessToken, ...(after ? { after } : {}),
     });

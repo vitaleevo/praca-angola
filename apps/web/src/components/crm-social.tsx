@@ -2,10 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import "../app/crm.css";
 
 type Channel = { id: string; channel_type: "facebook_page" | "instagram_direct"; account_name: string };
-type Media = { ref: string; text: string; createdAt: string | null; permalink: string | null; mediaType: string | null; commentsCount: number | null };
+type Media = { ref: string; text: string; createdAt: string | null; permalink: string | null; mediaType: string | null; imageUrls?: string[]; commentsCount: number | null };
 type Comment = { ref: string; text: string; author: string; createdAt: string | null };
 type Page<T> = { items: T[]; next?: string };
 type Profile = { name: string; username: string | null; description: string | null; followers: number | null; mediaCount: number | null; website: string | null };
@@ -19,6 +20,13 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
 
 function date(value: string | null) {
   return value ? new Date(value).toLocaleString("pt-AO", { dateStyle: "medium", timeStyle: "short" }) : "";
+}
+
+function mediaLabel(type: string | null) {
+  if (type === "CAROUSEL_ALBUM") return "Carrossel";
+  if (type === "VIDEO") return "Vídeo";
+  if (type === "IMAGE") return "Fotografia";
+  return "Publicação";
 }
 
 export function CrmSocial() {
@@ -36,6 +44,7 @@ export function CrmSocial() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [brokenImages, setBrokenImages] = useState<string[]>([]);
   const commentsPanelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -136,8 +145,14 @@ export function CrmSocial() {
         <div className="crm-social-list">
         {!busy && channelId && !media.length && <p className="crm-social-empty">Não há publicações disponíveis para este canal.</p>}
         {media.map((item) => <article key={item.ref} className={selected?.ref === item.ref ? "crm-social-card is-selected" : "crm-social-card"}>
+          <div className="crm-social-card-meta"><span>{mediaLabel(item.mediaType)}</span><small>{date(item.createdAt)}</small></div>
+          {!!item.imageUrls?.length && <div className="crm-social-images">
+            {(selected?.ref === item.ref ? item.imageUrls : item.imageUrls.slice(0, 1)).filter((url) => !brokenImages.includes(url)).map((url, index) =>
+              <Image key={url} src={url} alt={`Imagem ${index + 1} da publicação`} width={640} height={480} unoptimized onError={() => setBrokenImages((current) => [...current, url])} />)}
+            {selected?.ref !== item.ref && item.imageUrls.length > 1 && <span className="crm-social-image-count">+{item.imageUrls.length - 1} imagens</span>}
+          </div>}
           <p className="crm-social-excerpt">{item.text || (item.mediaType ? `Publicação ${item.mediaType.toLowerCase()}` : "Publicação sem texto")}</p>
-          <small>{date(item.createdAt)}{item.commentsCount !== null ? ` · ${item.commentsCount} comentários` : ""}</small>
+          {item.commentsCount !== null && <small>{item.commentsCount} comentários</small>}
           <div className="crm-social-actions"><button type="button" onClick={() => void loadComments(item, undefined, true)} disabled={busy} aria-pressed={selected?.ref === item.ref}>Ver comentários</button>{item.permalink && <a href={item.permalink} target="_blank" rel="noopener noreferrer">Ver original</a>}</div>
         </article>)}
         </div>
@@ -147,9 +162,13 @@ export function CrmSocial() {
         <div className="crm-social-panel-header"><h2>Comentários</h2><p>{selected ? `${comments.length} comentários carregados para esta publicação` : "Responde aos clientes sem sair da PUVO"}</p></div>
         <div className="crm-social-list">
         {!selected ? <p className="crm-social-empty">Escolhe uma publicação para ver e responder aos comentários.</p> : <>
+          <div className="crm-social-context">
+            {!!selected.imageUrls?.[0] && !brokenImages.includes(selected.imageUrls[0]) && <Image src={selected.imageUrls[0]} alt="Imagem da publicação selecionada" width={96} height={96} unoptimized onError={() => setBrokenImages((current) => [...current, selected.imageUrls![0]])} />}
+            <p>{selected.text || mediaLabel(selected.mediaType)}</p>
+          </div>
           {!busy && !comments.length && <p className="crm-social-empty">Esta publicação não tem comentários disponíveis.</p>}
           {comments.map((comment) => <article key={comment.ref} className="crm-social-card">
-            <strong>{comment.author}</strong><small>{date(comment.createdAt)}</small><p>{comment.text}</p>
+            <div className="crm-social-comment-heading"><span className="crm-social-avatar" aria-hidden="true">{comment.author.slice(0, 1).toUpperCase()}</span><span><strong>{comment.author}</strong><small>{date(comment.createdAt)}</small></span></div><p>{comment.text}</p>
             <label>Responder a {comment.author}<textarea rows={2} maxLength={1000} value={reply[comment.ref] ?? ""} onChange={(event) => setReply((previous) => ({ ...previous, [comment.ref]: event.target.value }))} /></label>
             <button type="button" onClick={() => void sendReply(comment)} disabled={busy || !reply[comment.ref]?.trim()}>Publicar resposta</button>
           </article>)}
