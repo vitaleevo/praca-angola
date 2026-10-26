@@ -36,6 +36,7 @@ interface SellerProduct {
 }
 
 export function CrmLiveInbox() {
+  const [workspaceState, setWorkspaceState] = useState<"loading" | "ready" | "needs-store" | "error">("loading");
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConvo, setSelectedConvo] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -46,6 +47,20 @@ export function CrmLiveInbox() {
   const [products, setProducts] = useState<SellerProduct[]>([]);
   const [showProductModal, setShowProductModal] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetch("/api/v1/crm/workspace", { credentials: "include" })
+      .then(async (response) => {
+        if (response.ok) return "ready" as const;
+        const payload = await response.json().catch(() => null);
+        if (response.status === 400 && payload?.code === "NO_COMMERCIAL_PROFILE") return "needs-store" as const;
+        return "error" as const;
+      })
+      .then((state) => { if (!cancelled) setWorkspaceState(state); })
+      .catch(() => { if (!cancelled) setWorkspaceState("error"); });
+    return () => { cancelled = true; };
+  }, []);
 
   async function loadConversations() {
     try {
@@ -90,6 +105,7 @@ export function CrmLiveInbox() {
 
   // Real-time SSE listener for incoming messages, CRM deals, and chatbot leads
   useEffect(() => {
+    if (workspaceState !== "ready") return;
     if (typeof window === "undefined" || !window.EventSource) return;
 
     let es: EventSource | null = null;
@@ -128,13 +144,14 @@ export function CrmLiveInbox() {
       es?.close();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedConvo?.id]);
+  }, [selectedConvo?.id, workspaceState]);
 
   useEffect(() => {
+    if (workspaceState !== "ready") return;
     void loadConversations();
     void loadProducts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [workspaceState]);
 
   useEffect(() => {
     if (selectedConvo) {
@@ -240,6 +257,18 @@ export function CrmLiveInbox() {
     } finally {
       setSending(false);
     }
+  }
+
+  if (workspaceState === "loading") {
+    return <div className="loading-state">A preparar o espaço CRM…</div>;
+  }
+
+  if (workspaceState === "needs-store") {
+    return <section className="panel stack-form" aria-labelledby="crm-store-required-title"><div><p className="eyebrow eyebrow-dark"><span className="eyebrow-line" /> CRM da loja</p><h2 id="crm-store-required-title">Cria primeiro a tua loja</h2><p>O CRM pertence à loja ou negócio, não à conta pessoal. Assim que guardares a tua montra, o CRM, canais Meta e inbox ficam disponíveis automaticamente.</p></div><Link className="button button-primary" href="/vendedor">Criar a minha loja</Link></section>;
+  }
+
+  if (workspaceState === "error") {
+    return <section className="panel stack-form" aria-labelledby="crm-unavailable-title"><div><h2 id="crm-unavailable-title">Não foi possível abrir o CRM</h2><p>Atualiza a página. Se o problema continuar, termina sessão e entra novamente.</p></div><Link className="button button-secondary" href="/vendedor">Ir para a área de vendedor</Link></section>;
   }
 
   if (loading) {
