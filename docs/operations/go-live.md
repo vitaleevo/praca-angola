@@ -1,5 +1,7 @@
 # Go-live e beta controlado — Praça Angola
 
+> **Atenção à topologia:** a checklist abaixo foi escrita para Compose/Caddy self-hosted. A produção PUVO documentada está em Vercel + Railway; não executar os comandos Compose contra essa produção. O estado atual dos gates está em [`current-production-status.md`](current-production-status.md), e o piloto não deve avançar enquanto os itens bloqueados/pendentes não tiverem evidência.
+
 Este documento é a lista de decisão para abrir o beta controlado. Nenhum item pode ser assumido como concluído sem evidência: comando, captura de ecrã, link de CI ou registo de ensaio.
 
 ## Critérios de entrada

@@ -9,6 +9,8 @@ describe("HealthService", () => {
       status: "ok",
       checks: { db: "ok", outboxLagSeconds: 0, media: "ok" },
     });
+    expect(db.query).toHaveBeenCalledWith(expect.stringContaining("min(n.created_at)"));
+    expect(db.query).toHaveBeenCalledWith(expect.stringContaining("JOIN service_notifications n"));
   });
 
   it("reports degraded when the database is down", async () => {
