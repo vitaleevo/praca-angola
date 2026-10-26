@@ -3,6 +3,7 @@
 node_modules/
 .data/
 .deploy-inspect/
+.tmp/
 output/
 wiza.pdf
 **/node_modules/
