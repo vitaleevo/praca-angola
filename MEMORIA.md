@@ -1,6 +1,14 @@
 # Integração Meta PUVO — 26/10/2026
 
-## Última etapa: acesso a Páginas e preparação do App Review
+## Última etapa: comentários Facebook/Instagram em produção
+
+- A branch `codex/account-sidebars` contém o CRM Meta atual; `main` continua atrás e não deve ser usado para republicar a API. API Railway `2d722960-f254-4cc9-83b0-bae37102c8bc` **SUCCESS** e web Vercel `dpl_FqdrmhW38w1S5XH4n3P3VMeiyq8s` **READY**, no domínio `puvo.vitaleevo.ao`.
+- Quatro canais ligados à loja de Alexandre: Facebook Vitaleevo e Bajaj Angola, Instagram @vitaleevo e @bajajangola. Login for Business `1376617274547161` foi atualizado para dez permissões; após reautorização, **Verificar acesso** confirmou os âmbitos de comentários.
+- `/vendedor/crm/redes-sociais` lê perfil, publicações e comentários paginados e responde a comentários da Página. A resposta real Instagram ao comentário “muito bom” e a resposta real Facebook ao comentário “goog” foram aceites pela Meta e confirmadas no CRM. A paginação de publicações Facebook foi corrigida e validada em produção. Foram aprovados 67 testes da API, typecheck, lint e builds locais.
+- Continuam pendentes: importação retroativa de mensagens, moderação/publicação/agendamento/insights, número WhatsApp Cloud ligado à loja e App Review para lojistas externos. Tech Provider permanece em análise. O campo Terms of Service URL ainda está vazio e `/termos` devolve 404. A chave TypeSafe Jev devolveu HTTP 401; não reutilizar até substituição.
+- Detalhes e sequência histórica em `docs/PUVO_CRM_META_STATUS.md`. Os parágrafos abaixo descrevem etapas anteriores e não substituem este estado.
+
+### Histórico anterior à entrega de comentários
 
 - Causa inicial confirmada no painel Meta: a configuração OAuth antiga `1120855583871113` pede apenas permissões WhatsApp. A nova configuração social foi aplicada e a loja já tem os canais Vitaleevo associados.
 - Criada a configuração **PUVO Redes Sociais** `1376617274547161` com token de utilizador e sete permissões para listar Páginas, Messenger, Instagram Direct e leads. A variável `META_BUSINESS_LOGIN_CONFIG_ID` no Railway `@praca/api` foi alterada e o valor confirmado. Não alterar a configuração WhatsApp antiga.
