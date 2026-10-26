@@ -2,7 +2,7 @@
 
 ## Integração Meta posterior
 
-A app Meta própria PUVO (`2161321067754105`) foi criada no negócio Agência Holyweb e está em modo Live. A revisão `6538580` adiciona OAuth para ligar Páginas Facebook/Instagram profissionais por loja, armazenamento cifrado de tokens, receção idempotente de Messenger/Instagram/WhatsApp e envio de respostas de texto pelo inbox. O deployment Railway `e053900e-2ed6-4b20-b480-7ada40112f66` aplicou a migração 023; verificação Meta e assinatura HMAC continuam a passar. Consultar `docs/meta-webhook-puvo.md`; a app “Agentes” existente não foi modificada.
+A app Meta própria PUVO (`2161321067754105`) foi criada no negócio Agência Holyweb e está em modo Live. A revisão `6538580` adiciona OAuth para ligar Páginas Facebook/Instagram profissionais por loja, armazenamento cifrado de tokens, receção idempotente de Messenger/Instagram/WhatsApp e envio de respostas de texto pelo inbox. O deployment Railway `e053900e-2ed6-4b20-b480-7ada40112f66` aplicou a migração 023; o site publicou o gestor de canais no deployment Vercel `dpl_FuFSFhzSGJFkXG6jN9CkiG22aQVu`. A app já tem os objetos `page`, `instagram` e `whatsapp_business_account` subscritos ao callback PUVO; readiness, verificação Meta e assinatura HMAC continuam a passar. Consultar `docs/meta-webhook-puvo.md`; a app “Agentes” existente não foi modificada.
 
 ## Estado
 
