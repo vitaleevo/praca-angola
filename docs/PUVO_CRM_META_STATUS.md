@@ -2,6 +2,9 @@
 
 ## Estado mais recente (26-10-2026, após reautorização)
 
+- A versão seguinte apresenta imagens de publicações Facebook, fotografias e carrosséis Instagram, anexos de imagem em mensagens Messenger/Instagram e imagens recebidas por WhatsApp Cloud. As imagens WhatsApp são obtidas pela API com o token cifrado do canal e entregues só ao utilizador autenticado da loja; URLs externas de imagem são filtradas por domínio Meta. Os comentários mostram autor, data, contexto da publicação e resposta no mesmo painel. O inbox passa a trazer as 200 mensagens mais recentes da conversa.
+- Esta alteração ainda requer deploy bem-sucedido e validação visual com sessão de loja real. A importação retroativa via Conversations API continua por implementar; a Graph API e o App Review podem limitar as conversas disponíveis. O número WhatsApp real continua por ligar à loja.
+
 - A ligação Meta foi renovada com `instagram_manage_comments`, `pages_manage_engagement` e `pages_read_user_content`. **Verificar acesso** mostrou os âmbitos de comentários nos canais testados; a Página Bajaj Angola mantém a subscrição `messages`.
 - Em `/vendedor/crm/redes-sociais`, o Instagram @vitaleevo devolveu o perfil, 53 publicações e dois comentários reais feitos por @bajajangola. A resposta **“Obrigado pelo comentário! Equipa Vitaleevo.”** ao comentário “muito bom” foi aceite pela Meta, e o CRM mostrou “Resposta publicada na rede social.” A tentativa anterior com o token antigo tinha falhado com `(#100) Missing Permission` e não foi publicada.
 - A interface de Canais agora aponta para Redes sociais e descreve corretamente a consulta de publicações/comentários. A API passou a aceitar cursores opacos da Graph API com pontuação, encontrados na leitura de publicações Facebook. API Railway `2d722960-f254-4cc9-83b0-bae37102c8bc` ficou **SUCCESS**; web Vercel `dpl_FqdrmhW38w1S5XH4n3P3VMeiyq8s` ficou **READY** e associado ao domínio de produção. O healthcheck respondeu 200.

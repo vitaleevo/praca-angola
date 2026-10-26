@@ -5,11 +5,13 @@ import { DatabaseService } from "../database/database.service";
 import { CrmAutomationsService } from "./crm-automations.service";
 import { CrmRealtimeService } from "./crm-realtime.service";
 import { CrmService } from "./crm.service";
+import { publicMetaImageUrl } from "./meta-media";
 
 interface MetaMessage {
   id?: string;
   from?: string;
   text?: { body?: string };
+  image?: { id?: string; caption?: string; mime_type?: string };
 }
 
 interface MetaChange {
@@ -27,7 +29,7 @@ interface MetaEntry {
   changes?: MetaChange[];
   messaging?: Array<{
     sender?: { id?: string };
-    message?: { mid?: string; text?: string; is_echo?: boolean };
+    message?: { mid?: string; text?: string; is_echo?: boolean; attachments?: Array<{ type?: string; payload?: { url?: string } }> };
   }>;
 }
 
@@ -94,12 +96,17 @@ export class CrmWebhooksController {
     for (const entry of Array.isArray(body?.entry) ? body.entry : []) {
       for (const event of Array.isArray(entry?.messaging) ? entry.messaging : []) {
         if (!entry.id || !event.sender?.id || !event.message?.mid || event.message.is_echo) continue;
+        const imageUrls = (event.message.attachments ?? [])
+          .filter((attachment) => attachment.type === "image")
+          .map((attachment) => publicMetaImageUrl(attachment.payload?.url))
+          .filter((url): url is string => Boolean(url)).slice(0, 8);
         const inbound = await this.crmService.ingestExternalMessage({
           channel: body.object === "instagram" ? "instagram_dm" : "facebook_messenger",
           accountId: entry.id,
           senderId: event.sender.id,
           messageId: event.message.mid,
           text: event.message.text,
+          imageUrls,
         });
         if (inbound) {
           processed++;
@@ -168,7 +175,8 @@ export class CrmWebhooksController {
     const workspaceId = connection.rows[0]?.workspace_id;
     if (!workspaceId) return false;
     const fromPhone = message.from;
-    const textBody = message.text?.body || "[Mídia recebida]";
+    const mediaId = message.image?.id;
+    const textBody = message.text?.body || message.image?.caption || (mediaId ? "Fotografia recebida" : "[Mídia recebida]");
 
     const result = await this.database.transaction(async (client) => {
       const event = await client.query(
@@ -197,11 +205,11 @@ export class CrmWebhooksController {
          RETURNING id`,
         [workspaceId, contact.rows[0].id, connection.rows[0].id, fromPhone, textBody.slice(0, 100)],
       );
-      const stored = await client.query<{ id: string; conversation_id: string; workspace_id: string; direction: "inbound"; message_type: "text"; content: string; status: "delivered"; created_at: string }>(
+      const stored = await client.query<{ id: string; conversation_id: string; workspace_id: string; direction: "inbound"; message_type: "text" | "image"; content: string; status: "delivered"; created_at: string; metadata: Record<string, unknown> }>(
         `INSERT INTO crm_messages (conversation_id, workspace_id, direction, message_type, content, status, metadata)
-         VALUES ($1, $2, 'inbound', 'text', $3, 'delivered', $4::jsonb)
-         RETURNING id, conversation_id, workspace_id, direction, message_type, content, status, created_at`,
-        [conversation.rows[0].id, workspaceId, textBody, JSON.stringify({ meta_message_id: message.id })],
+         VALUES ($1, $2, 'inbound', $3, $4, 'delivered', $5::jsonb)
+         RETURNING id, conversation_id, workspace_id, direction, message_type, content, status, metadata, created_at`,
+        [conversation.rows[0].id, workspaceId, mediaId ? "image" : "text", textBody, JSON.stringify({ meta_message_id: message.id, ...(mediaId ? { media_id: mediaId } : {}) })],
       );
       await client.query(`UPDATE crm_channel_connections SET last_sync_at = now() WHERE id = $1 AND workspace_id = $2`, [connection.rows[0].id, workspaceId]);
       return { contactId: contact.rows[0].id, conversationId: conversation.rows[0].id, message: stored.rows[0] };

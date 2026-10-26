@@ -36,6 +36,21 @@ describe("CrmSocialService", () => {
     expect(meta.listSocialMedia).toHaveBeenLastCalledWith("facebook_page", "1393752373814265", "private-test-token", cursor);
   });
 
+  it("returns safe Facebook and Instagram images without exposing external URLs", async () => {
+    meta.listSocialMedia.mockResolvedValueOnce({ data: [{ id: "123_456", full_picture: "https://scontent.xx.fbcdn.net/photo.jpg", message: "Foto" }] });
+    const facebook = await service.listMedia(workspaceId, channelId);
+    expect(facebook.items[0].imageUrls).toEqual(["https://scontent.xx.fbcdn.net/photo.jpg"]);
+
+    database.query.mockResolvedValueOnce({ rows: [{ id: channelId, channel_type: "instagram_direct", account_name: "Instagram", external_account_id: "1784", credentials_ciphertext: encryptPrivateValue(JSON.stringify({ accessToken: "private-test-token" })) }] });
+    meta.listSocialMedia.mockResolvedValueOnce({ data: [{ id: "789", media_type: "CAROUSEL_ALBUM", children: { data: [
+      { media_type: "IMAGE", media_url: "https://scontent.cdninstagram.com/first.jpg" },
+      { media_type: "VIDEO", thumbnail_url: "https://scontent.cdninstagram.com/second.jpg" },
+      { media_type: "IMAGE", media_url: "https://attacker.example/blocked.jpg" },
+    ] } }] });
+    const instagram = await service.listMedia(workspaceId, channelId);
+    expect(instagram.items[0].imageUrls).toEqual(["https://scontent.cdninstagram.com/first.jpg", "https://scontent.cdninstagram.com/second.jpg"]);
+  });
+
   it("rejects a reference used by another workspace before calling Meta", async () => {
     meta.listSocialMedia.mockResolvedValue({ data: [{ id: "1393752373814265_123" }] });
     const media = await service.listMedia(workspaceId, channelId);

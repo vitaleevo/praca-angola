@@ -30,7 +30,7 @@ const nextConfig: NextConfig = {
           {
             key: "Content-Security-Policy-Report-Only",
             value:
-              `default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'${development ? " 'unsafe-eval'" : ""}; connect-src 'self'${development ? " ws:" : ""}; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'; report-uri /api/v1/csp-report`,
+              `default-src 'self'; img-src 'self' data: blob: https://fbcdn.net https://*.fbcdn.net https://fbsbx.com https://*.fbsbx.com https://cdninstagram.com https://*.cdninstagram.com https://instagram.com https://*.instagram.com https://facebook.com https://*.facebook.com; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'${development ? " 'unsafe-eval'" : ""}; connect-src 'self'${development ? " ws:" : ""}; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'; report-uri /api/v1/csp-report`,
           },
         ],
       },

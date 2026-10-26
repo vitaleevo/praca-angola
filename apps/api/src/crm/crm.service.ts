@@ -312,14 +312,33 @@ export class CrmService {
     );
 
     const messages = await this.database.query<CrmMessage>(
-      `SELECT id, conversation_id, workspace_id, direction, message_type, content, media_url, metadata, status, sent_by_user_id, sent_by_ai, created_at
-       FROM crm_messages
-       WHERE conversation_id = $1
-       ORDER BY created_at ASC LIMIT 200`,
+      `SELECT * FROM (
+         SELECT id, conversation_id, workspace_id, direction, message_type, content, media_url, metadata, status, sent_by_user_id, sent_by_ai, created_at
+         FROM crm_messages WHERE conversation_id = $1
+         ORDER BY created_at DESC, id DESC LIMIT 200
+       ) recent ORDER BY created_at ASC, id ASC`,
       [conversationId],
     );
 
     return { messages: messages.rows };
+  }
+
+  async getWhatsAppMessageImage(workspaceId: string, conversationId: string, messageId: string) {
+    const result = await this.database.query<{ media_id: string; phone_number_id: string; credentials_ciphertext: string }>(
+      `SELECT m.metadata->>'media_id' AS media_id, cc.external_account_id AS phone_number_id, cc.credentials_ciphertext
+       FROM crm_messages m
+       JOIN crm_conversations cv ON cv.id = m.conversation_id AND cv.workspace_id = m.workspace_id
+       JOIN crm_channel_connections cc ON cc.id = cv.channel_connection_id AND cc.workspace_id = cv.workspace_id
+       WHERE m.id = $1 AND m.conversation_id = $2 AND m.workspace_id = $3
+         AND m.message_type = 'image' AND cv.channel = 'whatsapp'
+         AND cc.channel_type = 'whatsapp_cloud' AND cc.status = 'connected' LIMIT 1`,
+      [messageId, conversationId, workspaceId],
+    );
+    const image = result.rows[0];
+    if (!image?.media_id) throw new NotFoundException({ code: "MESSAGE_IMAGE_NOT_FOUND", message: "Imagem não encontrada." });
+    const credentials = JSON.parse(decryptPrivateValue(image.credentials_ciphertext)) as { accessToken?: string };
+    if (!credentials.accessToken) throw new NotFoundException({ code: "CHANNEL_NOT_CONNECTED", message: "Canal WhatsApp indisponível." });
+    return this.metaGraph.downloadWhatsAppImage(image.media_id, image.phone_number_id, credentials.accessToken);
   }
 
   async sendMessage(workspaceId: string, conversationId: string, senderUserId: string, dto: SendMessageDto) {
@@ -679,6 +698,7 @@ export class CrmService {
     messageId: string;
     text?: string;
     senderName?: string;
+    imageUrls?: string[];
   }) {
     const channelType = input.channel === "facebook_messenger" ? "facebook_page" : "instagram_direct";
     const connection = await this.database.query<{ id: string; workspace_id: string }>(
@@ -688,7 +708,7 @@ export class CrmService {
     );
     const linked = connection.rows[0];
     if (!linked || !input.senderId || !input.messageId) return null;
-    const content = input.text?.trim() || "[Mensagem sem texto]";
+    const content = input.text?.trim() || (input.imageUrls?.length ? "Fotografia recebida" : "[Mensagem sem texto]");
     const result = await this.database.transaction(async (client) => {
       const event = await client.query(
         `INSERT INTO crm_meta_webhook_events (event_key) VALUES ($1) ON CONFLICT DO NOTHING RETURNING event_key`,
@@ -723,10 +743,10 @@ export class CrmService {
         [linked.workspace_id, identity.rows[0].contact_id, input.channel, linked.id, input.senderId, content.slice(0, 100)],
       );
       const message = await client.query<CrmMessage>(
-        `INSERT INTO crm_messages (conversation_id, workspace_id, direction, message_type, content, status, metadata)
-         VALUES ($1, $2, 'inbound', 'text', $3, 'delivered', $4::jsonb)
-         RETURNING id, conversation_id, workspace_id, direction, message_type, content, status, created_at`,
-        [conversation.rows[0].id, linked.workspace_id, content, JSON.stringify({ meta_message_id: input.messageId, sender_id: input.senderId })],
+        `INSERT INTO crm_messages (conversation_id, workspace_id, direction, message_type, content, media_url, status, metadata)
+         VALUES ($1, $2, 'inbound', $3, $4, $5, 'delivered', $6::jsonb)
+         RETURNING id, conversation_id, workspace_id, direction, message_type, content, media_url, metadata, status, created_at`,
+        [conversation.rows[0].id, linked.workspace_id, input.imageUrls?.length ? "image" : "text", content, input.imageUrls?.[0] ?? null, JSON.stringify({ meta_message_id: input.messageId, sender_id: input.senderId, image_urls: input.imageUrls ?? [] })],
       );
       await client.query(`UPDATE crm_channel_connections SET last_sync_at = now() WHERE id = $1 AND workspace_id = $2`, [linked.id, linked.workspace_id]);
       return { workspaceId: linked.workspace_id, contactId: identity.rows[0].contact_id, conversationId: conversation.rows[0].id, message: message.rows[0], channel: input.channel };
