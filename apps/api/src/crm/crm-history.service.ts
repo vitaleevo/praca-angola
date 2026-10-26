@@ -92,11 +92,18 @@ export class CrmHistoryService {
         let count = 0;
         for (const item of valid) {
           // Messages sent from this CRM already carry the Meta ID, but did not
-          // pass through the inbound webhook event ledger.
+          // pass through the inbound webhook event ledger. Meta's Conversations
+          // API can return a different ID for the same outbound Send API reply.
+          const direction = ownerIds.has(item.senderId) ? "outbound" : "inbound";
           const existing = await client.query(
             `SELECT 1 FROM crm_messages
-             WHERE conversation_id = $1 AND metadata->>'meta_message_id' = $2 LIMIT 1`,
-            [conversation.rows[0].id, item.id],
+             WHERE conversation_id = $1 AND (
+               metadata->>'meta_message_id' = $2 OR
+               ($3 = 'outbound' AND direction = 'outbound' AND content = $4
+                 AND created_at BETWEEN $5::timestamptz - interval '3 seconds'
+                                    AND $5::timestamptz + interval '3 seconds')
+             ) LIMIT 1`,
+            [conversation.rows[0].id, item.id, direction, item.text, item.createdAt],
           );
           if (existing.rows.length) continue;
           const event = await client.query(
@@ -107,7 +114,7 @@ export class CrmHistoryService {
           await client.query(
             `INSERT INTO crm_messages (conversation_id, workspace_id, direction, message_type, content, media_url, status, metadata, created_at)
              VALUES ($1, $2, $3, $4, $5, $6, 'delivered', $7::jsonb, $8::timestamptz)`,
-            [conversation.rows[0].id, workspaceId, ownerIds.has(item.senderId) ? "outbound" : "inbound",
+            [conversation.rows[0].id, workspaceId, direction,
               item.imageUrls.length ? "image" : "text", item.text, item.imageUrls[0] ?? null,
               JSON.stringify({ meta_message_id: item.id, meta_thread_id: thread.id, imported: true, image_urls: item.imageUrls }), item.createdAt],
           );
