@@ -21,7 +21,7 @@
 - O gestor de canais explica a diferença entre autorização, mensagens novas e importação de histórico/comentários.
 - Cada canal Facebook/Instagram pode agora ser verificado no CRM. A API consulta a validade e o âmbito do token na Meta, devolvendo somente o estado e as permissões em falta; a consulta é limitada à loja autenticada e não revela credenciais.
 - Em 26-10-2026, a conta de Alexandre Macosso autorizou apenas a Página **Vitaleevo** e o Instagram profissional **@vitaleevo** na loja PUVO. O CRM mostra dois canais autorizados. **Verificar acesso** confirmou tokens válidos para a app PUVO e permissões de mensagens presentes em ambos. Para comentários faltam `pages_read_user_content` e `pages_manage_engagement` no Facebook, e `instagram_manage_comments` no Instagram. Ainda não houve mensagem real recebida nem teste de resposta.
-- A lista devolvida pela Meta incluía 22 Páginas. O frontend foi corrigido para iniciar a seleção vazia, exigindo que o lojista escolha explicitamente as Páginas que quer associar à sua loja.
+- A lista devolvida pela Meta incluía 22 Páginas. O frontend foi corrigido para iniciar a seleção vazia, exigindo que o lojista escolha explicitamente as Páginas que quer associar à sua loja. Typecheck e build local passaram; Vercel production deployment `dpl_FkfdEaeSdy8FncRrSBfpYSxnA566` ficou **READY** e foi associado a `puvo.vitaleevo.ao`. A página CRM respondeu 200 e continuou a mostrar os dois canais após reload.
 
 ## Próximo passo para operação real
 
