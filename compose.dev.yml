@@ -17,6 +17,8 @@ services:
       DATABASE_URL: postgresql://praca:praca_local_dev@postgres:5432/praca_angola
       REDIS_URL: redis://redis:6379
       APP_ENCRYPTION_KEY: ${APP_ENCRYPTION_KEY:-local-development-only-key-change-before-production}
+      AI_WORKER_URL: http://ai-worker:8000
+      AI_INTERNAL_SECRET: ${AI_INTERNAL_SECRET:-puvo_local_ai_secret_2026}
       MEDIA_DIR: /app/apps/api/uploads
       CHOKIDAR_USEPOLLING: "true"
     expose:
@@ -93,3 +95,20 @@ services:
     ports:
       - "8025:8025"
       - "1025:1025"
+
+  ai-worker:
+    build:
+      context: ./apps/ai-worker
+      dockerfile: Dockerfile
+    command: uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
+    environment:
+      AI_INTERNAL_SECRET: ${AI_INTERNAL_SECRET:-puvo_local_ai_secret_2026}
+      REDIS_URL: redis://redis:6379
+      DATABASE_URL: postgresql://praca:praca_local_dev@postgres:5432/praca_angola
+    expose:
+      - "8000"
+    volumes:
+      - ./apps/ai-worker/src:/app/src
+    depends_on:
+      redis:
+        condition: service_healthy

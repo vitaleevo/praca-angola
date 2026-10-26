@@ -4,7 +4,7 @@ Data: 25/10/2026
 
 Separação em implementação: `apps/admin` está associada ao domínio `gestao.puvo.vitaleevo.ao`. A pedido do proprietário, o corte das páginas antigas foi feito no código: `apps/web` não publica páginas, navegação ou atalhos administrativos; `apps/admin` rejeita hosts de produção diferentes do domínio de gestão. As alterações locais ainda precisam de deploy para vigorarem nos domínios públicos.
 
-Separação: `apps/admin` é um frontend e deployment independentes; reutiliza intencionalmente a API e a base PostgreSQL atuais. Identidades e papéis são partilhados. O registo do proprietário global e o bootstrap foram auditados.
+Separação: `apps/admin` é um frontend e deployment independentes; reutiliza intencionalmente a API e a base PostgreSQL atuais. Identidades e papéis são partilhados. `gestao@vitaleevo.ao` é agora o único `platform_owner`; o email está verificado e o bootstrap foi auditado.
 
 Confirmação de email: o URL `/verificar-email?token=…` no marketplace é o destino correto para validar o token, não o login da consola. O ecrã de sucesso agora inclui a ligação de equipa para `https://gestao.puvo.vitaleevo.ao/entrar?next=%2F`; deploy Web `dpl_DgMxU62RYigGt3r1faJQMXkAsKxf` está READY. Playwright E2E de registo, confirmação, login e saída passou. O teste usa `PLAYWRIGHT_BASE_URL` para evitar o servidor antigo em `:3100`.
 
@@ -54,7 +54,7 @@ Dar à equipa PUVO uma aplicação própria para administrar os marketplaces, se
 2. **Parcial:** smoke anónimo confirma redirecionamento das páginas operacionais e 401 nas APIs de overview, moderação e publicidade. GET das rotas e CSS publicados respondeu 200; CSS tem breakpoints de 480 px e 420 px. A verificação visual pela interface está bloqueada porque o Work desativou uso local do navegador. Executar E2E de login/logout por papel, anúncios, gestão de equipa, sessões e resoluções móveis; validar conta comum e isolamento entre hosts com sessão staff controlada.
 3. **Parcial:** conta verificada e bootstrap único auditado concluído. Falta o utilizador definir a senha pelo fluxo de recuperação, entrar na consola e completar o smoke autorizado com validação de logs/auditoria.
 4. **Feito localmente por decisão do proprietário:** remover do marketplace as páginas `/admin/**`, os componentes antigos, atalhos globais e navegação de administração. As URLs antigas não redirecionam; devolvem 404.
-5. **Feito localmente:** remover os componentes da interface antiga e atualizar documentação. `/admin/` permanece bloqueado no robots. A API protegida permanece partilhada porque `apps/admin` a utiliza.
+5. **Feito localmente:** remover os componentes da interface antiga, atualizar documentação e retirar `/admin/` do robots. A API protegida permanece partilhada porque `apps/admin` a utiliza.
 6. **Pendente:** publicar os dois apps e confirmar que o host de gestão abre a consola, que o domínio público devolve 404 nas rotas antigas e que URLs `*.vercel.app` não servem a interface administrativa.
 
 ## Impacto e controlos

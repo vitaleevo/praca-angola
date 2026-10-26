@@ -3,7 +3,7 @@ import Link from "next/link";
 import { SiteFooter, SiteHeader } from "../../components/site-header";
 
 export const metadata: Metadata = {
-  title: "Centro de ajuda — PUVO",
+  title: "Centro de ajuda",
   description: "Como comprar, vender, enviar imagens e acompanhar pagamentos na PUVO.",
 };
 

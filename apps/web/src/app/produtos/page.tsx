@@ -9,13 +9,13 @@ type Category={id:string;name:string;slug:string};
 type Search=Record<string,string|string[]|undefined>;
 const one=(v:string|string[]|undefined)=>typeof v==='string'?v:'';
 export default async function ProductsPage({searchParams}:{searchParams:Promise<Search>}){
- const filters=await searchParams;const query=new URLSearchParams();
+ const filters=await searchParams;const query=new URLSearchParams();query.set('marketplace','produtos');
  for(const key of ['q','category','province','municipality','condition','minPrice','maxPrice','sort','page','sellerType','verified','days']){const v=one(filters[key]).slice(0,key==='q'?140:100);if(v)query.set(key,v);}
  if(!['recent','price_asc','price_desc'].includes(query.get('sort')??''))query.set('sort','recent');
  if(query.has('condition')&&!['new','used','refurbished'].includes(query.get('condition')!))query.delete('condition');
  for(const k of ['minPrice','maxPrice'])if(query.has(k)&&(!Number.isFinite(Number(query.get(k)))||Number(query.get(k))<0))query.delete(k);
  const [{items,total,page,pages},categories,stores]=await Promise.all([
- publicApi<{items:Listing[];total:number;page:number;pages:number}>(`/catalog/listings?${query}`,{items:[],total:0,page:1,pages:0}),publicApi<Category[]>('/catalog/categories',[]),publicApi<{items:Store[]}>('/catalog/stores?limit=4',{items:[]})]);
+ publicApi<{items:Listing[];total:number;page:number;pages:number}>(`/catalog/listings?${query}`,{items:[],total:0,page:1,pages:0}),publicApi<Category[]>('/catalog/categories?marketplace=produtos',[]),publicApi<{items:Store[]}>('/catalog/stores?limit=4',{items:[]})]);
  const ads=(await publicApi<{items:MarketAd[]}>('/ads/placements?marketplace=produtos',{items:[]},0)).items;
  const view=one(filters.view)==='list'?'list':'grid';
  const href=(next:Record<string,string>)=>'/produtos?'+new URLSearchParams({...Object.fromEntries(query),view,...next});

@@ -6,7 +6,7 @@ import { ProfessionalCard } from '../../components/professional-card';
 import { publicApi } from '../../lib/api';
 import { ProfessionalDirectory,ServiceCategory } from '../../lib/services';
 import { MarketAdSlot,type MarketAd } from '../../components/market-ad';
-export const metadata={title:'Profissionais e serviços em Angola — PUVO',description:'Encontra profissionais liberais e empresas de serviços. Compara perfis, pede orçamentos e acompanha o trabalho.'};
+export const metadata={title:'Profissionais e serviços em Angola',description:'Encontra profissionais liberais e empresas de serviços. Compara perfis, pede orçamentos e acompanha o trabalho.'};
 type Search=Record<string,string|string[]|undefined>;
 export default async function ServicesPage({searchParams}:{searchParams:Promise<Search>}){
  const params=await searchParams,query=new URLSearchParams();

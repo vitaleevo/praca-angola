@@ -5,7 +5,8 @@ import { Pool } from "pg";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const migrationDirectory = join(root, "migrations");
-const pool = new Pool({ connectionString: process.env.DATABASE_URL, max: 2 });
+const DATABASE_URL = process.env.DATABASE_URL || "postgresql://praca:praca_local_dev@localhost:5432/praca_angola";
+const pool = new Pool({ connectionString: DATABASE_URL, max: 2 });
 
 try {
   await pool.query(`

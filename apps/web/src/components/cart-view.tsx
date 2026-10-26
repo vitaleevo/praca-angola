@@ -11,6 +11,20 @@ type PaymentMethod = "manual_multicaixa_express_transfer" | "manual_bank_transfe
 type PaymentShop = { sellerProfileId: string; storeName: string; methods: Array<{ method: PaymentMethod; label: string }> };
 type PaymentOptions = { shops: PaymentShop[] };
 
+type CartQuote = { totalAmount: string; shippingFee: string; shops: Array<{ sellerProfileId: string; productsTotal: string; shippingFee: string; totalAmount: string; zoneName: string | null }> };
+
+const angolanMunicipalities: Record<string, string[]> = {
+  Luanda: ["Talatona", "Belas", "Maianga", "Ingombota", "Kilamba Kiaxi", "Viana", "Cazenga", "Cacuaco", "Rangel", "Sambizanga", "Zango", "Sequele", "Icolo e Bengo", "Quiçama"],
+  Benguela: ["Benguela", "Lobito", "Catumbela", "Baía Farta"],
+  Huambo: ["Huambo", "Caála", "Bailundo"],
+  Huíla: ["Lubango", "Humpata", "Chibia"],
+  Cabinda: ["Cabinda", "Cacongo", "Buco-Zau", "Belize"],
+  "Kwanza Sul": ["Sumbe", "Porto Amboim", "Gabela"],
+  Malanje: ["Malanje", "Calandula", "Cacuso"],
+  Uíge: ["Uíge", "Negage", "Damba"],
+  Outras: ["Namibe", "Zaire", "Lunda Norte", "Lunda Sul", "Moxico", "Kuando Kubango", "Bié", "Kwanza Norte", "Bengo"],
+};
+
 export function CartView() {
   const router = useRouter();
   const [items, setItems] = useState<CartLine[]>([]);
@@ -23,9 +37,27 @@ export function CartView() {
   const [selectedMethods, setSelectedMethods] = useState<Record<string, PaymentMethod>>({});
   const optionsRequest = useRef(0);
 
+  // Delivery & Freight State
+  const [deliveryMode, setDeliveryMode] = useState<"courier" | "pickup">("courier");
+  const [province, setProvince] = useState("Luanda");
+  const [municipality, setMunicipality] = useState("Talatona");
+  const [address, setAddress] = useState("");
+  const [landmark, setLandmark] = useState("");
+  const [recipientName, setRecipientName] = useState("");
+  const [recipientPhone, setRecipientPhone] = useState("");
+  const [freight, setFreight] = useState<CartQuote | null>(null);
+  const [freightLoading, setFreightLoading] = useState(false);
+  const [freightError, setFreightError] = useState("");
+
   useEffect(() => {
     const load = () => {
-      try { setItems(JSON.parse(localStorage.getItem("praca-cart") || "[]") as CartLine[]); }
+      try {
+        const stored: unknown = JSON.parse(localStorage.getItem("praca-cart") || "[]");
+        setItems(Array.isArray(stored) ? stored.filter((item): item is CartLine =>
+          typeof item?.listingId === "string" && typeof item?.slug === "string" && typeof item?.title === "string" && item.title.length > 0 &&
+          Number.isFinite(Number(item?.price)) && Number(item.price) >= 0 && Number.isInteger(item?.quantity) && item.quantity > 0,
+        ) : []);
+      }
       catch { setItems([]); }
     };
     load();
@@ -102,9 +134,50 @@ export function CartView() {
     const lines = checkoutItems;
     const timer = window.setTimeout(() => void loadPaymentOptions(lines), 0);
     return () => window.clearTimeout(timer);
-    // The stable key changes only when a listing or quantity changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [optionsKey]);
+
+  // The same server-side pricing rule is used for the quote and for order creation.
+  useEffect(() => {
+    if (!checkoutItems.length || !municipality) {
+      setFreight(null);
+      return;
+    }
+    let active = true;
+    setFreight(null);
+    setFreightError("");
+
+    async function fetchFreight() {
+      setFreightLoading(true);
+      try {
+        const res = await fetch("/api/v1/orders/freight-quote", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            items: checkoutItems,
+            delivery: { mode: deliveryMode, province, municipality },
+          }),
+        });
+        const data = (await res.json()) as CartQuote & { message?: string | string[] };
+        if (!res.ok) throw new Error(Array.isArray(data.message) ? data.message.join(" ") : data.message || "Não foi possível calcular o total.");
+        if (active) setFreight(data);
+      } catch (cause) {
+        if (active) setFreightError(cause instanceof Error ? cause.message : "Não foi possível calcular o total.");
+      } finally {
+        if (active) setFreightLoading(false);
+      }
+    }
+
+    const timer = setTimeout(() => void fetchFreight(), 150);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [checkoutItems, province, municipality, deliveryMode]);
+
+  const shippingFee = Number(freight?.shippingFee ?? 0);
+  const finalTotal = Number(freight?.totalAmount ?? total);
 
   async function checkout() {
     setError("");
@@ -120,6 +193,16 @@ export function CartView() {
       setError("Uma das lojas ainda não ativou um método de pagamento.");
       return;
     }
+    if (!freight || freightLoading || freightError) {
+      setError("Aguarda o cálculo atualizado do total antes de continuar.");
+      return;
+    }
+
+    if (deliveryMode === "courier" && (!address.trim() || !recipientPhone.trim())) {
+      setError("Por favor preenche a morada completa e contacto móvel para o estafeta.");
+      return;
+    }
+
     setBusy(true);
     try {
       const response = await fetch("/api/v1/orders", {
@@ -128,13 +211,17 @@ export function CartView() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           items: checkoutItems,
+          buyerNote: deliveryMode === "courier" ? "Entrega com estafeta PUVO" : "Levantamento na loja",
+          buyerPhone: recipientPhone.trim() || undefined,
+          delivery: { mode: deliveryMode, province, municipality, address: address.trim(), landmark: landmark.trim(), recipientName: recipientName.trim() || "Comprador", recipientPhone: recipientPhone.trim() },
+          expectedTotal: freight.totalAmount,
           paymentMethods: paymentOptions.shops.map((shop) => ({
             sellerProfileId: shop.sellerProfileId,
             method: selectedMethods[shop.sellerProfileId],
           })),
         }),
       });
-      const data = await response.json().catch(() => ({})) as { orders?: { id: string }[]; message?: string | string[] };
+      const data = (await response.json().catch(() => ({}))) as { orders?: { id: string }[]; message?: string | string[] };
       if (response.status === 401) {
         router.push("/entrar?next=%2Fcarrinho");
         return;
@@ -183,11 +270,143 @@ export function CartView() {
       {Boolean(items.length) && (
         <aside className="checkout-summary">
           <h2>Resumo da encomenda</h2>
-          <div><span>Subtotal</span><b>{kwanza(total)}</b></div>
-          <div><span>Entrega</span><span>A combinar com a loja</span></div>
+
+          {/* Delivery & Shipping Method */}
+          <div className="checkout-delivery-section">
+            <h3><span>🚚</span> Opção de Entrega</h3>
+            <div className="delivery-type-toggle">
+              <button
+                type="button"
+                className={`delivery-type-option ${deliveryMode === "courier" ? "selected" : ""}`}
+                onClick={() => setDeliveryMode("courier")}
+              >
+                <strong><span>🛵</span> Estafeta Local</strong>
+                <span>Entrega ao domicílio</span>
+              </button>
+              <button
+                type="button"
+                className={`delivery-type-option ${deliveryMode === "pickup" ? "selected" : ""}`}
+                onClick={() => setDeliveryMode("pickup")}
+              >
+                <strong><span>🏬</span> Levantamento</strong>
+                <span>Na loja física (Grátis)</span>
+              </button>
+            </div>
+
+            {deliveryMode === "courier" ? (
+              <div>
+                <div className="delivery-address-grid">
+                  <label>
+                    Província
+                    <select
+                      value={province}
+                      onChange={(e) => {
+                        const nextProv = e.target.value;
+                        setProvince(nextProv);
+                        setMunicipality(angolanMunicipalities[nextProv]?.[0] || "");
+                      }}
+                    >
+                      {Object.keys(angolanMunicipalities).map((prov) => (
+                        <option key={prov} value={prov}>{prov}</option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label>
+                    Município
+                    <select
+                      value={municipality}
+                      onChange={(e) => setMunicipality(e.target.value)}
+                    >
+                      {(angolanMunicipalities[province] || []).map((muni) => (
+                        <option key={muni} value={muni}>{muni}</option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="delivery-address-full">
+                    Morada (Bairro, Rua, Casa) *
+                    <input
+                      required
+                      placeholder="Ex: Talatona, Bairro Militar, Rua 4, Casa 12"
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)}
+                    />
+                  </label>
+
+                  <label className="delivery-address-full">
+                    Ponto de Referência em Angola
+                    <input
+                      placeholder="Ex: Perto do Kero Talatona / Defronte à pastelaria"
+                      value={landmark}
+                      onChange={(e) => setLandmark(e.target.value)}
+                    />
+                    <small className="delivery-landmark-tip">Ajuda o estafeta a chegar até si com facilidade.</small>
+                  </label>
+
+                  <label>
+                    Nome de quem recebe *
+                    <input
+                      required
+                      placeholder="Nome completo"
+                      value={recipientName}
+                      onChange={(e) => setRecipientName(e.target.value)}
+                    />
+                  </label>
+
+                  <label>
+                    Contacto móvel *
+                    <input
+                      required
+                      placeholder="Ex: 923 111 222"
+                      value={recipientPhone}
+                      onChange={(e) => setRecipientPhone(e.target.value)}
+                    />
+                  </label>
+                </div>
+
+                {freightLoading ? (
+                  <div className="freight-estimate-banner">A calcular frete para {municipality}…</div>
+                ) : freight ? (
+                  <div className={`freight-estimate-banner ${shippingFee === 0 ? "free-shipping" : ""}`}>
+                    <div>
+                      <span className={`freight-badge ${shippingFee === 0 ? "free" : ""}`}>
+                        {shippingFee === 0 ? "🎉 FRETE GRÁTIS" : `Frete: ${kwanza(shippingFee)}`}
+                      </span>
+                    </div>
+                    <span className="freight-time">{freight.shops.length} loja{freight.shops.length === 1 ? "" : "s"} no carrinho</span>
+                  </div>
+                ) : null}
+              </div>
+            ) : (
+              <div className="freight-estimate-banner free-shipping">
+                <span>📍 Levantamento na Loja sem taxa de entrega.</span>
+              </div>
+            )}
+          </div>
+
           <hr />
-          <div className="summary-total"><span>Total</span><b>{kwanza(total)}</b></div>
-          <p>Uma encomenda por loja. Escolhe como vais pagar cada loja. A PUVO não recebe nem guarda o valor.</p>
+
+          <div><span>Subtotal dos produtos</span><b>{kwanza(freight ? Number(freight.totalAmount) - shippingFee : total)}</b></div>
+          <div>
+            <span>Frete de entrega</span>
+            <b>
+              {deliveryMode === "pickup"
+                ? "Grátis (Loja)"
+                : freightLoading
+                ? "A calcular…"
+                : freight && shippingFee === 0
+                ? "Grátis"
+                : freight
+                ? kwanza(shippingFee)
+                : "A calcular"}
+            </b>
+          </div>
+          <hr />
+          <div className="summary-total"><span>Total a pagar</span><b>{kwanza(finalTotal)}</b></div>
+          {freightError && <p className="form-error" role="alert">{freightError}</p>}
+          <p>Uma encomenda por loja. Escolhe como vais pagar cada loja. O estafeta valida o teu PIN na entrega.</p>
+
           {optionsLoading && <p className="form-status" role="status">A carregar os métodos de pagamento…</p>}
           {requiresLogin && <p className="form-status">Entra na tua conta para consultar e escolher os métodos de pagamento.</p>}
           {optionsError && <p className="form-error" role="alert">{optionsError}</p>}
@@ -213,7 +432,7 @@ export function CartView() {
             className="button button-primary button-wide"
             type="button"
             onClick={() => void checkout()}
-            disabled={busy || optionsLoading || hasUnconfiguredShop}
+            disabled={busy || (!requiresLogin && (optionsLoading || freightLoading || !freight || Boolean(freightError) || hasUnconfiguredShop))}
           >
             {busy ? "A criar encomenda…" : optionsError ? "Tentar carregar pagamentos" : requiresLogin ? "Entrar para pagar" : "Continuar para pagamento"}
           </button>

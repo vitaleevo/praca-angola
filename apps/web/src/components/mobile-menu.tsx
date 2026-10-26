@@ -11,12 +11,16 @@ export function MobileMenu({
   loggingOut,
   onLogout,
   workspace = false,
+  sessionError = false,
+  onRetry,
 }: {
   user: SessionUser | null;
   loading: boolean;
   loggingOut: boolean;
   onLogout: () => Promise<void>;
   workspace?: boolean;
+  sessionError?: boolean;
+  onRetry?: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const triggerRef=useRef<HTMLButtonElement>(null);
@@ -24,6 +28,9 @@ export function MobileMenu({
   const links: [string, string][] = [
     ["Explorar", "/"],
     ["Produtos", "/produtos"],
+    ["Empresas", "/empresas"],
+    ["Imóveis", "/imoveis"],
+    ["Automóveis", "/automoveis"],
     ["Lojas", "/lojas"],
     ["Serviços e profissionais", "/servicos"],
     ["Perfil profissional", "/profissional"],
@@ -46,6 +53,12 @@ export function MobileMenu({
       </button>
       {open && (
         <nav id="mobile-navigation" className="mobile-navigation" aria-label="Navegação móvel">
+          {sessionError && (
+            <div className="mobile-session-error">
+              <p>Não foi possível verificar a tua sessão.</p>
+              {onRetry && <button type="button" onClick={onRetry}>Reverificar sessão</button>}
+            </div>
+          )}
           {loading ? <p className="mobile-session-loading" role="status">A verificar a tua sessão…</p> : user ? (
             <>
               {links.map(([label, href]) => <Link href={href} key={href} onClick={() => setOpen(false)}>{label}</Link>)}

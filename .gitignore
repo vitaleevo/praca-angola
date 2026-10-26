@@ -13,6 +13,11 @@ coverage
 apps/api/uploads/
 .playwright-cli/
 output/playwright/
+.deploy-inspect/
+.tmp/
+wiza.pdf
+__pycache__/
+.pytest_cache/
 .superpowers/
 
 .vercel

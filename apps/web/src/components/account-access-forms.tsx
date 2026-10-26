@@ -99,8 +99,9 @@ export function VerifyEmailForm({ token }: { token: string }) {
       <div className="auth-confirmation" role="status" aria-live="polite">
         <span className="auth-confirmation-icon" aria-hidden="true">✓</span>
         <h2>E-mail confirmado</h2>
-        <p>A tua conta está ativa. Já podes entrar na PUVO.</p>
+        <p>O e-mail está confirmado. Já podes entrar na tua conta PUVO.</p>
         <Link className="button button-primary button-wide auth-submit" href="/entrar">Entrar na minha conta</Link>
+        <Link className="auth-inline-link" href="https://gestao.puvo.vitaleevo.ao/entrar?next=%2F">Sou da equipa PUVO — entrar na gestão</Link>
       </div>
     );
   }

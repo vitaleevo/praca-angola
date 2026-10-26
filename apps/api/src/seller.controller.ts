@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException, Controller, Delete, ForbiddenException, Get, NotFoundException, Param, ParseUUIDPipe, Patch, Post, Put, Body, UseGuards } from "@nestjs/common";
-import { ArrayMaxSize, IsArray, IsBoolean, IsEmail, IsIn, IsInt, IsNumber, IsOptional, IsString, Length, Max, MaxLength, Min, Matches, IsUUID } from "class-validator";
+import { ArrayMaxSize, IsArray, IsBoolean, IsEmail, IsIn, IsInt, IsNumber, IsObject, IsOptional, IsString, Length, Max, MaxLength, Min, Matches, IsUUID } from "class-validator";
 import { Type } from "class-transformer";
 import { randomBytes } from "node:crypto";
 import { StoreContextService } from "./store-context.service";
@@ -9,6 +9,9 @@ import { CurrentUser } from "./auth/current-user.decorator";
 import { SessionGuard } from "./auth/session.guard";
 import { decryptPrivateValue, encryptPrivateValue } from "./auth/auth.crypto";
 import { maskPaymentIdentifier } from "./payments/payment-methods";
+import { AiClientService } from "./ai/ai-client.service";
+import { ModerationAlertsService } from "./moderation-alerts.service";
+import { LISTING_MARKETPLACES, ListingMarketplace, parseListingAttributes } from "./listing-attributes";
 
 class StoreDto {
   @IsIn(["individual", "business"]) profileType!: "individual" | "business";
@@ -45,7 +48,9 @@ class StoreMemberRoleDto {
 class ListingDto {
   @IsString() @Length(4, 140) title!: string;
   @IsString() @Length(10, 8000) description!: string;
+  @IsOptional() @IsIn([...LISTING_MARKETPLACES]) marketplace?: ListingMarketplace;
   @IsString() @Length(2, 80) categorySlug!: string;
+  @IsOptional() @IsObject() attributes?: Record<string, unknown>;
   @Type(() => Number) @IsNumber({ maxDecimalPlaces: 2 }) @Min(1) price!: number;
   @IsIn(["new", "used", "refurbished"]) condition!: "new" | "used" | "refurbished";
   @IsOptional() @IsBoolean() priceNegotiable?: boolean;
@@ -67,7 +72,12 @@ function slugify(value: string): string {
 @Controller("seller")
 @UseGuards(SessionGuard)
 export class SellerController {
-  constructor(private readonly database: DatabaseService, private readonly context: StoreContextService) {}
+  constructor(
+    private readonly database: DatabaseService,
+    private readonly context: StoreContextService,
+    private readonly aiClient: AiClientService,
+    private readonly moderationAlerts: ModerationAlertsService,
+  ) {}
 
   @Get("profile")
   async getProfile(@CurrentUser() user: AuthenticatedUser) {
@@ -322,6 +332,25 @@ export class SellerController {
     return store?.status === 'active' && roles.includes(store.role) ? store : null;
   }
   private async ownerStoreId(user: AuthenticatedUser) { return this.context.owner(user); }
+  private async listingContext(body: ListingDto) {
+    const marketplace = body.marketplace ?? "produtos";
+    const attributes = parseListingAttributes(marketplace, body.attributes);
+    if (!attributes.ok) {
+      throw new BadRequestException({ code: attributes.code, message: attributes.message, field: attributes.field });
+    }
+    const category = await this.database.query<{ id: string }>(
+      `SELECT c.id FROM categories c JOIN marketplaces m ON m.id = c.marketplace_id
+       WHERE c.slug = $1 AND c.is_active AND m.slug = $2 AND m.status = 'active'`,
+      [body.categorySlug, marketplace],
+    );
+    if (!category.rowCount) throw new BadRequestException({ code: "INVALID_CATEGORY", message: "Escolhe uma categoria disponível." });
+    return {
+      categoryId: category.rows[0].id,
+      attributes: JSON.stringify(attributes.value),
+      condition: marketplace === "empresas" ? "new" : body.condition,
+      availableQuantity: marketplace === "produtos" ? body.availableQuantity : 1,
+    };
+  }
   @Get("team")
   async getTeam(@CurrentUser() user: AuthenticatedUser) {
     const storeId = await this.ownerStoreId(user);
@@ -388,8 +417,9 @@ export class SellerController {
     if (!store) return { items: [] };
     const result = await this.database.query(
       `SELECT l.id, l.slug, l.title, l.price::text, l.available_quantity, l.status, l.rejection_reason, l.updated_at,
-              c.name AS category, ${`COALESCE((SELECT json_agg(json_build_object('url', li.image_url, 'alt', li.alt_text) ORDER BY li.sort_order) FROM listing_images li WHERE li.listing_id = l.id), '[]'::json) AS images`}
-       FROM listings l JOIN categories c ON c.id = l.category_id
+              m.slug AS marketplace, m.name AS marketplace_name, c.name AS category,
+              ${`COALESCE((SELECT json_agg(json_build_object('url', li.image_url, 'alt', li.alt_text) ORDER BY li.sort_order) FROM listing_images li WHERE li.listing_id = l.id), '[]'::json) AS images`}
+       FROM listings l JOIN categories c ON c.id = l.category_id JOIN marketplaces m ON m.id = c.marketplace_id
        WHERE l.seller_profile_id = $1 ORDER BY l.updated_at DESC LIMIT 100`,
       [store.id],
     );
@@ -402,9 +432,10 @@ export class SellerController {
     if (!selected) throw new ForbiddenException('Seleciona uma loja com permissão de edição.');
     const result = await this.database.query(
       `SELECT l.id, l.slug, l.title, l.description, l.price::text, l.condition, l.price_negotiable,
-              l.available_quantity, l.province, l.municipality, l.status, c.slug AS category_slug,
+              l.available_quantity, l.province, l.municipality, l.status, l.attributes,
+              m.slug AS marketplace, c.slug AS category_slug,
               COALESCE((SELECT json_agg(json_build_object('id', li.media_asset_id, 'url', li.image_url, 'alt', li.alt_text) ORDER BY li.sort_order) FROM listing_images li WHERE li.listing_id = l.id), '[]'::json) AS images
-       FROM listings l JOIN categories c ON c.id = l.category_id JOIN store_memberships sm ON sm.seller_profile_id = l.seller_profile_id
+       FROM listings l JOIN categories c ON c.id = l.category_id JOIN marketplaces m ON m.id = c.marketplace_id JOIN store_memberships sm ON sm.seller_profile_id = l.seller_profile_id
        WHERE l.id = $1 AND sm.user_id = $2 AND sm.role IN ('owner', 'editor') AND l.seller_profile_id=$3`, [id, user.id, selected.id],
     );
     if (!result.rowCount) throw new BadRequestException({ code: "LISTING_NOT_FOUND", message: "Anúncio não encontrado." });
@@ -419,37 +450,84 @@ export class SellerController {
       if (membership.rowCount) throw new ForbiddenException({ code: "STORE_LISTING_PERMISSION_REQUIRED", message: "O teu papel na loja não permite gerir anúncios." });
       throw new BadRequestException({ code: "STORE_PROFILE_REQUIRED", message: "Completa primeiro o perfil da tua loja." });
     }
-    const category = await this.database.query<{ id: string }>(
-      "SELECT c.id FROM categories c JOIN marketplaces m ON m.id = c.marketplace_id WHERE c.slug = $1 AND c.is_active AND m.slug = 'produtos'",
-      [body.categorySlug],
-    );
-    if (!category.rowCount) throw new BadRequestException({ code: "INVALID_CATEGORY", message: "Escolhe uma categoria disponível." });
+    const context = await this.listingContext(body);
     const imageIds = [...new Set(body.imageIds ?? [])];
+
+    // Moderação preliminar via IA
+    const aiMod = await this.aiClient.moderateContent({
+      title: body.title,
+      description: body.description,
+      price: body.price,
+    });
+    const isAutoRejected = aiMod.action === "auto_reject";
+    const initialStatus = isAutoRejected ? "rejected" : "pending_review";
+    const rejectionReason = isAutoRejected ? aiMod.flaggedReasons.join(". ") : null;
+
     const id = await this.database.transaction(async (client) => {
       const listing = await client.query<{ id: string; slug: string }>(
-        `INSERT INTO listings (seller_profile_id, category_id, slug, title, description, price, condition, price_negotiable, available_quantity, status, province, municipality)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'pending_review', $10, $11) RETURNING id, slug`,
-        [profile.id, category.rows[0].id, slugify(body.title), body.title.trim(), body.description.trim(), body.price, body.condition, Boolean(body.priceNegotiable), body.availableQuantity, body.province.trim(), body.municipality.trim()],
+        `INSERT INTO listings (seller_profile_id, category_id, slug, title, description, price, condition, price_negotiable, available_quantity, status, rejection_reason, province, municipality, ai_risk_score, ai_flagged_reasons, ai_suggested_action, attributes)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17) RETURNING id, slug`,
+        [
+          profile.id,
+          context.categoryId,
+          slugify(body.title),
+          body.title.trim(),
+          body.description.trim(),
+          body.price,
+          context.condition,
+          Boolean(body.priceNegotiable),
+          context.availableQuantity,
+          initialStatus,
+          rejectionReason,
+          body.province.trim(),
+          body.municipality.trim(),
+          aiMod.riskScore,
+          aiMod.flaggedReasons,
+          aiMod.suggestedModeratorAction ?? null,
+          context.attributes,
+        ],
       );
       for (let i = 0; i < imageIds.length; i++) {
         const asset = await client.query("SELECT id FROM media_assets WHERE id = $1 AND owner_user_id = $2 AND deleted_at IS NULL", [imageIds[i], user.id]);
         if (!asset.rowCount) throw new BadRequestException({ code: "INVALID_IMAGE", message: "Uma das imagens não está disponível." });
         await client.query("INSERT INTO listing_images (listing_id, media_asset_id, image_url, alt_text, sort_order) VALUES ($1, $2, $3, $4, $5)", [listing.rows[0].id, imageIds[i], `/api/v1/media/${imageIds[i]}`, body.title.trim(), i]);
       }
-      await client.query("INSERT INTO audit_events (actor_id, action, entity_type, entity_id) VALUES ($1, 'listing.created', 'listing', $2)", [user.id, listing.rows[0].id]);
+      const auditAction = isAutoRejected ? "listing.ai_auto_rejected" : "listing.created";
+      await client.query("INSERT INTO audit_events (actor_id, action, entity_type, entity_id) VALUES ($1, $2, 'listing', $3)", [user.id, auditAction, listing.rows[0].id]);
       return listing.rows[0];
     });
-    return { ...id, status: "pending_review" };
+
+    if (aiMod.riskScore >= 70 || isAutoRejected) {
+      this.moderationAlerts.emitAlert({
+        type: "high_risk_listing",
+        entityId: id.id,
+        title: body.title.trim(),
+        riskScore: aiMod.riskScore,
+        reasons: aiMod.flaggedReasons,
+        suggestedAction: aiMod.suggestedModeratorAction ?? undefined,
+      });
+    }
+
+    return { ...id, status: initialStatus, rejectionReason };
   }
 
   @Put("listings/:id")
   async updateListing(@Param("id") id: string, @Body() body: ListingDto, @CurrentUser() user: AuthenticatedUser) {
     const selected = await this.storeForMember(user, ['owner','editor']);
     if (!selected) throw new ForbiddenException('Seleciona uma loja com permissão de edição.');
-    const category = await this.database.query<{ id: string }>("SELECT c.id FROM categories c JOIN marketplaces m ON m.id = c.marketplace_id WHERE c.slug = $1 AND c.is_active AND m.slug = 'produtos'", [body.categorySlug]);
-    if (!category.rowCount) throw new BadRequestException({ code: "INVALID_CATEGORY", message: "Escolhe uma categoria disponível." });
+    const context = await this.listingContext(body);
     const imageIds = [...new Set(body.imageIds ?? [])];
-    return this.database.transaction(async (client) => {
+
+    const aiMod = await this.aiClient.moderateContent({
+      title: body.title,
+      description: body.description,
+      price: body.price,
+    });
+    const isAutoRejected = aiMod.action === "auto_reject";
+    const status = isAutoRejected ? "rejected" : "pending_review";
+    const rejectionReason = isAutoRejected ? aiMod.flaggedReasons.join(". ") : null;
+
+    const result = await this.database.transaction(async (client) => {
       const owns = await client.query<{ id: string }>(
         `SELECT l.id FROM listings l JOIN store_memberships sm ON sm.seller_profile_id = l.seller_profile_id
          JOIN seller_profiles s ON s.id = l.seller_profile_id
@@ -458,9 +536,27 @@ export class SellerController {
       if (!owns.rowCount) throw new BadRequestException({ code: "LISTING_NOT_FOUND", message: "Anúncio não encontrado." });
       await client.query(
         `UPDATE listings SET category_id = $2, title = $3, description = $4, price = $5, condition = $6, price_negotiable = $7,
-         available_quantity = $8, status = 'pending_review', rejection_reason = NULL, province = $9, municipality = $10, updated_at = now()
+         available_quantity = $8, status = $9, rejection_reason = $10, province = $11, municipality = $12,
+         ai_risk_score = $13, ai_flagged_reasons = $14, ai_suggested_action = $15, attributes = $16::jsonb, updated_at = now()
          WHERE id = $1`,
-        [id, category.rows[0].id, body.title.trim(), body.description.trim(), body.price, body.condition, Boolean(body.priceNegotiable), body.availableQuantity, body.province.trim(), body.municipality.trim()],
+        [
+          id,
+          context.categoryId,
+          body.title.trim(),
+          body.description.trim(),
+          body.price,
+          context.condition,
+          Boolean(body.priceNegotiable),
+          context.availableQuantity,
+          status,
+          rejectionReason,
+          body.province.trim(),
+          body.municipality.trim(),
+          aiMod.riskScore,
+          aiMod.flaggedReasons,
+          aiMod.suggestedModeratorAction ?? null,
+          context.attributes,
+        ],
       );
       const existingImages = await client.query<{ media_asset_id: string }>("SELECT media_asset_id FROM listing_images WHERE listing_id = $1", [id]);
       const retainedImages = new Set(existingImages.rows.map((image) => image.media_asset_id));
@@ -470,9 +566,23 @@ export class SellerController {
         if (!asset.rowCount && !retainedImages.has(imageIds[i])) throw new BadRequestException({ code: "INVALID_IMAGE", message: "Uma das imagens não está disponível." });
         await client.query("INSERT INTO listing_images (listing_id, media_asset_id, image_url, alt_text, sort_order) VALUES ($1, $2, $3, $4, $5)", [id, imageIds[i], `/api/v1/media/${imageIds[i]}`, body.title.trim(), i]);
       }
-      await client.query("INSERT INTO audit_events (actor_id, action, entity_type, entity_id) VALUES ($1, 'listing.updated', 'listing', $2)", [user.id, id]);
-      return { id, status: "pending_review" };
+      const auditAction = isAutoRejected ? "listing.ai_auto_rejected" : "listing.updated";
+      await client.query("INSERT INTO audit_events (actor_id, action, entity_type, entity_id) VALUES ($1, $2, 'listing', $3)", [user.id, auditAction, id]);
+      return { id, status, rejectionReason };
     });
+
+    if (aiMod.riskScore >= 70 || isAutoRejected) {
+      this.moderationAlerts.emitAlert({
+        type: "high_risk_listing",
+        entityId: id,
+        title: body.title.trim(),
+        riskScore: aiMod.riskScore,
+        reasons: aiMod.flaggedReasons,
+        suggestedAction: aiMod.suggestedModeratorAction ?? undefined,
+      });
+    }
+
+    return result;
   }
 
   @Patch("listings/:id/status")

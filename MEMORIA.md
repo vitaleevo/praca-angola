@@ -1,42 +1,229 @@
+# Integração local e publicação PUVO — 26/10/2026
+
+- Branch `codex/integrate-local-online`, PR #12: reúne o CRM Meta, a administração separada, a navegação operacional, a identidade PUVO e os mercados locais de Empresas, Imóveis e Automóveis. A branch está publicada no GitHub; integrar em `main` após os últimos gates. PR #11 ficou incluída no conteúdo desta integração.
+- API Railway `e02df63a-c241-4713-a8dd-aae9a11054f6` **SUCCESS**; web Vercel `dpl_Cf8QuajJrcukVMvaZeqStx1VyX76` **READY** em `puvo.vitaleevo.ao`; admin Vercel `dpl_AfhCxg3Xu3gKWgWb6c3rNSC5W4Cs` **READY** em `gestao.puvo.vitaleevo.ao`. Migração 024 aplicada: os três novos mercados estão ativos, cada um com seis categorias. Smoke público: raiz, marketplaces, os três mercados, conta e CRM responderam 200. A CI da PR passou em quality, migrations e E2E.
+- Validação local antes da publicação: 76 testes de API, typecheck, lint e build de API, web e admin; migrações 001–024 numa base PostgreSQL isolada; filtros e páginas de detalhe dos novos mercados; navegação desktop e móvel no Playwright. Fixtures locais não foram para produção.
+- A PR #12 tem um check vermelho no projeto Vercel `api`, que está inativo (`live: false`) e procura uma entrada de aplicação Node na raiz. A API real é servida pelo Railway e foi publicada com sucesso. Resolver/desligar esse check antes de exigir gates verdes em GitHub. Os pontos Meta e operacionais ainda pendentes encontram-se abaixo; a publicação dos mercados não os conclui.
+
+---
+
+# Integração Meta PUVO — 26/10/2026
+
+## Última etapa: comentários Facebook/Instagram em produção
+
+- A branch `codex/account-sidebars` contém o CRM Meta atual; `main` continua atrás e não deve ser usado para republicar a API. API Railway `2d722960-f254-4cc9-83b0-bae37102c8bc` **SUCCESS** e web Vercel `dpl_FqdrmhW38w1S5XH4n3P3VMeiyq8s` **READY**, no domínio `puvo.vitaleevo.ao`.
+- Quatro canais ligados à loja de Alexandre: Facebook Vitaleevo e Bajaj Angola, Instagram @vitaleevo e @bajajangola. Login for Business `1376617274547161` foi atualizado para dez permissões; após reautorização, **Verificar acesso** confirmou os âmbitos de comentários.
+- `/vendedor/crm/redes-sociais` lê perfil, publicações e comentários paginados e responde a comentários da Página. A resposta real Instagram ao comentário “muito bom” e a resposta real Facebook ao comentário “goog” foram aceites pela Meta e confirmadas no CRM. A paginação de publicações Facebook foi corrigida e validada em produção. Foram aprovados 67 testes da API, typecheck, lint e builds locais.
+- Continuam pendentes: importação retroativa de mensagens, moderação/publicação/agendamento/insights, número WhatsApp Cloud ligado à loja e App Review para lojistas externos. Tech Provider permanece em análise. O campo Terms of Service URL ainda está vazio e `/termos` devolve 404. A chave TypeSafe Jev devolveu HTTP 401; não reutilizar até substituição.
+- Detalhes e sequência histórica em `docs/PUVO_CRM_META_STATUS.md`. Os parágrafos abaixo descrevem etapas anteriores e não substituem este estado.
+
+### Histórico anterior à entrega de comentários
+
+- Causa inicial confirmada no painel Meta: a configuração OAuth antiga `1120855583871113` pede apenas permissões WhatsApp. A nova configuração social foi aplicada e a loja já tem os canais Vitaleevo associados.
+- Criada a configuração **PUVO Redes Sociais** `1376617274547161` com token de utilizador e sete permissões para listar Páginas, Messenger, Instagram Direct e leads. A variável `META_BUSINESS_LOGIN_CONFIG_ID` no Railway `@praca/api` foi alterada e o valor confirmado. Não alterar a configuração WhatsApp antiga.
+- Adicionadas aos casos de uso da app `instagram_manage_messages`, `instagram_manage_comments` e `pages_manage_engagement`; aparecem como **Ready for testing**, sem acesso avançado para lojistas externos.
+- Agência Holyweb: business verification **Verified**; access verification como **Tech Provider** submetida em 10/10/2026 e ainda **In review**. O App Review da PUVO está **Not submitted** e Meta bloqueia a submissão até completar verificação, usos permitidos, tratamento de dados e instruções de teste. O rascunho inclui também permissões sem uso no CRM e precisa de revisão.
+- O titular concluiu nova autenticação Facebook e autorizou apenas a Página **Vitaleevo** e o Instagram profissional **@vitaleevo**. O CRM mostra dois canais autorizados. **Verificar acesso** confirmou tokens válidos para a app PUVO e permissões de mensagens presentes em ambos. Para comentários faltam `pages_read_user_content` e `pages_manage_engagement` no Facebook, e `instagram_manage_comments` no Instagram. Nunca pedir ou partilhar senha/tokens.
+- Railway: os primeiros builds falharam no BuildKit. Um redeploy da fonte GitHub `main` (`d786f4f0-db42-47d6-a182-a5646c88461c`) terminou com sucesso, mas publicou código antigo sem rotas CRM, causando 404. A publicação do checkout local (`cc523bcc-a821-44c4-8b96-97b775e8553d`) terminou com **SUCCESS** em 26/10/2026, restaurou as rotas CRM e aplicou `META_BUSINESS_LOGIN_CONFIG_ID`. `GET /api/v1/health/ready` responde 200; `/api/v1/crm/workspace` e `/api/v1/crm/meta/connect` respondem 401 sem sessão, confirmando que existem e exigem autenticação. A branch `codex/account-sidebars` foi atualizada no GitHub até `01d7f80`; `main` continua atrás e não deve ser usado como fonte de redeploy da API até integrar estas alterações.
+- O CRM ainda não importa histórico nem gere comentários. Não apresentar essas funções como prontas à Meta. O campo Terms of Service URL está vazio no painel Meta e `/termos` devolve 404.
+
+Estado do projeto: API CRM e configuração OAuth social publicadas em produção; Vitaleevo/@vitaleevo e Bajaj Angola/@bajajangola associados à loja (quatro canais). Entrada e resposta Instagram confirmadas; entrada Messenger na Página Bajaj Angola, webhook HTTP 200, resposta enviada pelo CRM e receção na conta remetente também confirmadas. Ainda faltam WhatsApp Cloud API, permissões e implementação de comentários, acesso avançado e App Review. A ligação foi concluída numa sessão Playwright visível, com credenciais introduzidas pelo titular. A seleção de Páginas inicia vazia para evitar ligações acidentais. Detalhes em `docs/PUVO_CRM_META_STATUS.md`.
+
+AVISO: O teste Messenger de Bajaj Angola foi concluído nos dois sentidos após a ligação da Página; o teste Vitaleevo ainda não recebeu uma mensagem de origem verificável. Comentários novos chegaram ao Meta Business Suite, mas ainda não há gestão de comentários no CRM nem permissões no token. O WhatsApp ainda não está ligado à loja. O próximo passo é ligar WhatsApp Cloud API real, implementar comentários e concluir o App Review quando a Meta permitir. Antes de iniciar, leia `MEMORIA.md` e `docs/PUVO_CRM_META_STATUS.md` para continuar exatamente de onde o projeto parou, entender o que já foi feito e integrar a solução com o sistema atual sem reler todo o repositório.
+
+---
+
+# Integração Meta PUVO — 25/10/2026
+
+App Meta própria PUVO (`2161321067754105`) criada na Agência Holyweb e em modo Live. A revisão `6538580` foi enviada para `codex/puvo-release-2026-10-25`; a API Railway `e053900e-2ed6-4b20-b480-7ada40112f66` aplicou a migração 023 e o site publicou o gestor no Vercel `dpl_FuFSFhzSGJFkXG6jN9CkiG22aQVu`. O CRM agora liga Página Facebook e Instagram profissional por OAuth, cifra os tokens no servidor, ingere Messenger/Instagram Direct/WhatsApp de forma idempotente e envia respostas de texto pelo mesmo inbox. `META_APP_SECRET`, `META_WEBHOOK_VERIFY_TOKEN`, `META_APP_ID` e `META_OAUTH_REDIRECT_URI` estão em `@praca/api`; a app Meta está subscrita nos objetos `page`, `instagram` e `whatsapp_business_account` para o callback PUVO. Verificação produção: inbox HTTP 200, readiness HTTP 200, POST HMAC válido HTTP 200 e assinatura inválida HTTP 403. Falta operacional: adicionar `https://puvo.vitaleevo.ao/api/v1/crm/webhooks/meta/callback` nas URLs OAuth válidas Meta e ligar as contas reais no CRM. Para WhatsApp, o formulário seguro pede `phone_number_id` e token de System User. Não mexer na app “Agentes” ligada ao CRM existente. Ver `docs/meta-webhook-puvo.md`.
+
+---
+
+# Publicação concluída — 25/10/2026
+
+Revisão de aplicação `ddb1d84` publicada em produção: [site](https://puvo.vitaleevo.ao), [gestão](https://gestao.puvo.vitaleevo.ao), API Railway e worker de IA privado. Domínios e DNS respondem; site, gestão, API readiness e `ai/status` passaram smoke HTTP. Migrações 020–021 aplicadas, com backup prévio `ba337715-0f37-4bed-8afa-5d07b384ece6`. Testes locais: API 55/55, worker 7/7, builds/typecheck/lint; E2E 21/22 na suite e o último isoladamente. O webhook Meta requer credenciais ainda ausentes, e o fluxo de pagamento real não foi executado em produção. Estado detalhado e IDs em `docs/release-audit-2026-10-25.md`. Os parágrafos históricos abaixo descrevem etapas anteriores e não o estado atual.
+
+---
+
+# Auditoria de publicação — 25/10/2026 (histórico anterior ao deploy)
+
+A revisão local passou typecheck, lint, 55 testes API, 7 testes Python e build Web/Admin/API. A primeira suite E2E passou 20/20 antes dos últimos ajustes; a segunda teve 17/20, e os três casos afetados passaram isoladamente após corrigir o checkout e reiniciar o Docker. As migrações 001–020 passaram numa base descartável. As falhas de autorização/PIN na logística, o acesso ao chat público, o destino de IA personalizado e o webhook Meta foram endurecidos localmente. **Produção continua na versão anterior:** o checkout com estafeta mostra um total com frete que a API não grava, o Railway ainda não tem `ai-worker`, e faltam uma suite E2E integral verde na revisão final, configuração remota e Git/CI estáveis. Ver `docs/release-audit-2026-10-25.md` para evidência e sequência de release. Jev devolveu HTTP 401; substituir a chave antes de novo uso.
+
+---
+
+# Consola independente; dashboard do proprietário renovado (25/10/2026)
+
+Objetivo: evoluir a aplicação separada da equipa PUVO sem alterar a API, a base de dados ou o domínio público do marketplace.
+
+## Última etapa concluída: renovação visual da consola
+
+Foi feito:
+
+- Corrigido o transbordo de descrições sem espaços na fila de anúncios; o conteúdo completo fica acessível em “Ver descrição completa” e quebra linhas ao expandir.
+- Reorganizados os anúncios em cartões responsivos com imagem/estado vazio, preço e localização em destaque, ações agrupadas e hierarquia visual mais clara. As denúncias também quebram texto longo sem alargar a página.
+- Ajustado o cabeçalho para mostrar o papel administrativo em português (“Proprietário da plataforma”, “Administrador” ou “Moderador”) em vez de expor os nomes técnicos dos papéis.
+- Reforçada a especificidade dos estilos para prevalecer sobre as regras herdadas da UI do marketplace.
+- Renovado o dashboard inicial do proprietário: hero de operação, ação rápida, indicadores agrupados por atividade e revisão, valores prioritários destacados e cartões que abrem diretamente cada fila.
+- Atualizado o shell partilhado da consola com fundo, sidebar, navegação, cartões, títulos, focos visíveis e breakpoints mais consistentes.
+- Nesta etapa, cada anúncio ganhou cartão e hierarquia de leitura próprios; descrição longa fica recolhida, quebra mesmo quando não contém espaços, e os controlos reorganizam-se em ecrãs pequenos.
+- A fila agora mostra skeletons durante a carga, diferencia dados indisponíveis de listas vazias, permite atualizar, bloqueia ações repetidas enquanto uma decisão é guardada e confirma o resultado de cada ação.
+- Reforçados contraste dos textos auxiliares, foco de teclado e quebra de texto em metadados flexíveis.
+- Por instrução do proprietário, a separação foi concluída localmente: as páginas `/admin/**`, a navegação e os componentes administrativos antigos foram removidos de `apps/web`; `apps/admin` só serve hosts de produção `gestao.puvo.vitaleevo.ao` e as URLs de retorno de login usam `/moderacao`.
+- Rotas operacionais e documentação foram atualizadas para o domínio de gestão. A API continua partilhada e valida os papéis; os endpoints `/api/v1/admin/**` não são páginas do marketplace.
+- Publicado Preview `dpl_HX5NDKb26a6VvDFwEAxF6aGUD7uC`, `READY`, em `https://praca-angola-admin-ki12q4373-vitaleevos-projects.vercel.app`; alias `gestao.puvo.vitaleevo.ao` aponta para esse deployment. Domínio e aplicação pública do marketplace não foram alterados.
+
+Arquivos principais: `apps/admin/src/components/platform-overview.tsx`, `apps/admin/src/components/admin-workspace.tsx`, `apps/admin/src/components/moderation-dashboard.tsx`, `apps/admin/src/app/owner-console.css`, `apps/admin/src/app/moderation-console.css`, `apps/admin/src/app/layout.tsx`.
+
+Verificação executada:
+
+- `pnpm --filter @puvo/admin typecheck` — passou.
+- `pnpm --filter @puvo/admin lint` — passou.
+- `pnpm --filter @puvo/admin build` — passou localmente e no build Vercel do Preview.
+- Após o polimento local desta etapa, `pnpm --filter @puvo/admin typecheck`, `pnpm --filter @puvo/admin lint` e `pnpm --filter @puvo/admin build` passaram novamente. Estas alterações ainda não foram publicadas.
+- Após o corte, `pnpm --filter @puvo/web typecheck`, `pnpm --filter @puvo/web lint` e `pnpm --filter @puvo/web build` passaram; o manifesto final não contém nenhuma rota `/admin`. `apps/admin` também passou typecheck, lint e build após a restrição de host. Nenhum teste E2E foi executado nesta etapa.
+- O primeiro typecheck Web encontrou referências obsoletas em `.next/dev/types`; removi apenas os tipos de rotas gerados pelo Next e a verificação passou. Não alterar manualmente os tipos gerados.
+- `git diff --check` — passou; Git indicou apenas normalização LF/CRLF em ficheiros já modificados.
+- `vercel inspect` — deployment `dpl_HX5NDKb26a6VvDFwEAxF6aGUD7uC` classificado como `preview`, estado `READY`.
+- `GET https://gestao.puvo.vitaleevo.ao/` e o CSS publicado — HTTP 200; CSS contém o hero, cartões de indicadores e breakpoint móvel a 480 px.
+- `GET https://gestao.puvo.vitaleevo.ao/moderacao` e o CSS publicado — HTTP 200; CSS inclui quebra de texto e breakpoint móvel a 420 px.
+- A conferência visual autenticada das alterações desta etapa ainda está pendente. O histórico registou que `cua.getState()` devolveu “Local browser use is disabled in Work settings”; não contornar essa definição.
+
+Estado atual:
+
+- Os dois apps compilam; o manifesto Web não inclui páginas administrativas. O Preview anterior continua publicado; o polimento e o corte de host/páginas desta etapa estão apenas no checkout local.
+- A conta `gestao@vitaleevo.ao` tem `platform_owner`, verificação de email e bootstrap auditado. O utilizador precisa definir a senha pelo fluxo de recuperação para smoke autenticado.
+- `apps/web` já não contém páginas nem links de administração; o app `apps/admin` é a única interface staff. As alterações ainda não foram publicadas. Nenhuma ação de moderação foi executada.
+
+## Estado do projeto
+
+- Fase/trilha atual: corte local da interface administrativa antiga e restrição da consola ao domínio `gestao.puvo.vitaleevo.ao`.
+- Sólido agora: build, TypeScript e lint da consola passam; domínio de gestão entrega a versão Preview nova por HTTPS.
+- Falta imediato: publicar `apps/web` e `apps/admin`, confirmar 404 nas rotas antigas no domínio público, bloqueio de outros hosts e acesso staff no domínio de gestão; concluir smoke autenticado e isolamento da sessão.
+- Distância do fim: a separação está implementada no checkout mas ainda não está ativa nos domínios públicos; deploy e validação operacional continuam pendentes.
+
+## Próximo passo recomendado
+
+Publicar as alterações de `apps/web` e `apps/admin`; confirmar que o domínio público devolve 404 para `/admin/**` e que só `gestao.puvo.vitaleevo.ao` serve a consola. Depois, com a sessão staff, validar overview, moderação, profissionais, denúncias, publicidade e negação para conta comum.
+
+AVISO: O próximo passo é confirmar visualmente o dashboard e concluir o smoke autenticado da consola da equipa. Antes de iniciar, leia `MEMORIA.md` e `docs/platform-operations-console-plan.md` para continuar exatamente de onde o projeto parou, entender o que já foi feito e integrar a solução com o sistema atual sem reler todo o repositório.
+---
+
+# Ultima etapa concluida — sidebar reutilizavel publicada (24/10/2026)
+
+Objetivo: substituir a navegação atual das contas por uma sidebar consistente e preparar o sistema para reaproveitar os componentes.
+
+Foi feito:
+
+- Criados `WorkspacePage` e `WorkspaceNavigation` em `apps/web/src/components`, configuráveis por área (`account`, `seller`, `services`, `admin`), com links partilhados, estado ativo, foco visível e menu móvel acessível.
+- Migradas as páginas de conta, vendedor, profissional/serviços e administração para o layout partilhado. Ações e links redundantes saíram dos cabeçalhos dos workspaces; as verificações de sessão/permissão permanecem nas páginas/API.
+- CSS responsivo em `apps/web/src/app/workspace.css`; guia para acrescentar páginas em `docs/account-workspace-navigation.md`.
+- PR #8 integrado em `main`, commit `119bdb177c0446e3b1aefa683d63d898adad232c`. Uma falha E2E por link duplicado do cabeçalho foi corrigida e a CI do PR passou: typecheck, lint, build, testes API, migrações e suite E2E completa. Preview Vercel Web e API em estado Ready.
+- Produção verificada em `https://puvo.vitaleevo.ao/conta` e `/admin/moderacao`: HTTP 200 com a sidebar e o controlo de navegação móvel no HTML. Inspeção local também confirmou responsividade a 320, 768 e 1024 px sem overflow.
+
+Arquivos principais: `apps/web/src/components/workspace-navigation.tsx`, `apps/web/src/components/workspace-page.tsx`, `apps/web/src/components/site-header.tsx`, `apps/web/src/app/workspace.css`, páginas de `conta`, `vendedor`, `profissional`, `servicos` e `admin`, `tests/e2e/platform-owner.spec.mjs` e `docs/account-workspace-navigation.md`.
+
+Verificação executada: `pnpm --filter @puvo/web typecheck`; `pnpm --filter @puvo/web lint`; `pnpm --filter @puvo/web build`; `git diff --check`; CI do PR #8; inspeção das rotas públicas de produção.
+
+Resultado: todos os checks do PR passaram e a nova navegação está publicada em produção. A CI adicional disparada após o merge também passou (quality, E2E e migrations).
+
+## Estado do projeto
+
+- Fase/trilha atual: shell partilhado das áreas autenticadas implementado e publicado.
+- Sólido agora: comprador, vendedor, profissional/serviços e administração usam a mesma base visual e componentes reaproveitáveis; páginas de produção respondem 200.
+- Falta imediato: executar smoke autenticado dos métodos de pagamento em produção e reproduzir o 502 com o ficheiro de imagem original. Falta também revisão jurídica local final da página de privacidade.
+- Distância do fim: esta etapa da sidebar está concluída; o produto PUVO ainda tem trabalho operacional de lançamento e validação.
+
+## Próximo passo recomendado
+
+Executar o smoke autenticado dos métodos de pagamento em produção e reproduzir o erro 502 quando estiver disponível a imagem original, correlacionando o pedido com os logs. Fechar a revisão jurídica local da política de privacidade.
+
+AVISO: O proximo passo e executar o smoke autenticado dos métodos de pagamento em produção e reproduzir o erro 502 com a imagem original. Antes de iniciar, leia `MEMORIA.md` para continuar exatamente de onde o projeto parou, entender o que ja foi feito e integrar a solucao com o sistema atual sem reler todo o repositorio.
+
+---
+
+# Última etapa concluída — métodos de pagamento manuais por vendedor publicados (24/10/2026)
+
+Objetivo: permitir que cada loja ative os recebimentos que consegue aceitar, entre Multicaixa Express e transferência bancária, e que o comprador escolha o método disponível no checkout.
+
+Foi feito:
+
+- Migração `012_seller_payment_methods.sql`: configuração cifrada por loja, migração dos dados MCX existentes, método da encomenda e cópia cifrada do destino escolhido. A migração foi aplicada duas vezes no PostgreSQL local sem duplicar alterações.
+- Proprietário gere os métodos em `/vendedor`, incluindo ativar, desativar, atualizar parcialmente e apagar os dados. A API devolve identificadores mascarados ao proprietário e dados completos apenas ao comprador da encomenda. Encomendas MCX antigas pendentes bloqueiam alteração/remoção dos seus dados legados.
+- Checkout lista só métodos ativos por loja, valida a escolha novamente na compra e mostra os dados corretos na encomenda. O vendedor continua a confirmar manualmente o crédito no extrato. PayPal não está integrado nesta etapa; depende de elegibilidade e fluxo próprio.
+- Criadas as páginas `/ajuda` e `/privacidade`, anteriormente ligadas no rodapé mas ausentes, com conteúdo baseado nos fluxos atuais. A página de privacidade identifica o responsável e o contacto indicados pelo utilizador, explica dados obrigatórios/facultativos, destinatários, conservação e direitos segundo a informação da Agência de Protecção de Dados. Esta revisão técnica/editorial não substitui parecer jurídico local.
+- O formulário da loja agora valida tipo e tamanho da imagem antes do envio e apresenta uma mensagem própria se o serviço devolver erro 5xx. Isso melhora o erro visível, mas não resolve nem identifica sozinho o 502 original.
+- Documentação atualizada em `docs/marketplaces-v2.md` e `docs/store-operations.md`.
+
+Arquivos principais: `apps/api/migrations/012_seller_payment_methods.sql`, `apps/api/src/seller.controller.ts`, `apps/api/src/orders.controller.ts`, `apps/api/src/payments/payment-methods.ts`, `apps/web/src/components/seller-payment-settings-fields.tsx`, `apps/web/src/components/cart-view.tsx`, `apps/web/src/components/order-detail.tsx`, `apps/web/src/app/ajuda/page.tsx`, `apps/web/src/app/privacidade/page.tsx`, `tests/e2e/marketplaces.spec.mjs` e `tests/e2e/seller-profile.spec.mjs`.
+
+Verificação: API e Web typecheck; Web lint; builds de produção API e Web; 24 testes de API; E2E do perfil sem MCX, envio de logótipo e gravação da loja, regressão MCX e novo fluxo bancário com 320 px, isolamento de terceiros, escolha entre dois métodos, confirmação do vendedor e preservação do IBAN original após alteração; `git diff --check`. Todos passaram após corrigir um timeout da navegação do servidor Next em desenvolvimento. Web typecheck e lint repetidos após a validação de imagem. A CI do PR #7 passou em qualidade, migrações executadas duas vezes e E2E completo. A limpeza das fixtures locais terminou com zero contas e zero encomendas E2E. Migração 012 presente uma vez na base local.
+
+Estado do projeto:
+
+- Fase/trilha atual: métodos manuais por loja integrados em `main` pelo PR #7, commit `c83bfdbe939306658a16c6e3d2791423af785cd4`. Vercel Web `dpl_4KTEYgAscJgSeNC6MqQMcYByHkXa` e Railway API `48248527-bb68-498a-b5b5-7e91561cc9cf` ficaram `READY`/`SUCCESS`.
+- Sólido agora: MCX legado, conta bancária cifrada, escolha por loja, autorização por encomenda e confirmação manual. A API aplicou `012_seller_payment_methods.sql` no arranque. `GET /api/v1/health/ready` pelo domínio PUVO respondeu 200 com `db:ok`, `media:ok` e outbox sem atraso; `/ajuda` e `/privacidade` responderam 200; `POST /api/v1/orders/payment-options` e `GET /api/v1/seller/profile` responderam 401 sem sessão, como esperado. Sem 5xx da API Railway nos 30 minutos consultados após o deploy.
+- Falta imediato: smoke autenticado em produção numa conta de teste controlada, revisão jurídica local da página de privacidade e reprodução do 502 com a imagem original. O utilizador forneceu apenas a captura de ecrã e o URL do projeto Railway, não o ficheiro que falha. Nos logs HTTP Railway consultados para `POST /api/v1/media` havia 201, 400 e 401, sem 502; a Vercel não apresentou 502 no período consultável. A origem exata permanece desconhecida. A integração Railway do Codex continua a pedir autenticação, embora a CLI local esteja autenticada.
+- Distância do fim: esta fatia está publicada e o smoke público passou; o produto completo continua com outras etapas de operação e observabilidade.
+
+## Próximo passo recomendado
+
+Confirmar os métodos de uma loja real e verificar uma compra de teste sem transferência de dinheiro, com uma conta de teste controlada. Reproduzir o erro de upload com o ficheiro original e correlacionar o pedido com os logs.
+
+AVISO: O proximo passo e executar o smoke autenticado dos métodos de pagamento em produção e reproduzir o 502 com a imagem original. Antes de iniciar, leia `MEMORIA.md` para continuar exatamente de onde o projeto parou, entender o que ja foi feito e integrar a solucao com o sistema atual sem reler todo o repositorio.
+
+---
+
+# Atualização de produção — bootstrap do proprietário global (24/10/2026)
+
+A consulta read-only na Railway não encontrou a conta indicada: account_count=0, active_count=0, eligible_count=0. O bootstrap não foi executado e nenhum papel foi concedido. O formulário público em https://puvo.vitaleevo.ao/registar foi aberto e está pronto para o utilizador preencher. Por segurança, o utilizador deve inserir e submeter as próprias credenciais e confirmar o email; depois, repetir a verificação e executar o bootstrap único, validando o papel e o evento de auditoria. Nenhuma senha ou código foi solicitado ou consultado.
+
+---
+
+# Estado mais recente — proprietário global da PUVO (24/10/2026)
+
+Objetivo: estabelecer o primeiro acesso global seguro ao sistema e publicar o painel do proprietário.
+
+## Foi feito
+
+- Papel único `platform_owner`, protegido por constraint e índice parcial no PostgreSQL.
+- Comando operacional de bootstrap, fora da API pública, que exige conta ativa com email confirmado, confirmação explícita, lock transacional e evento de auditoria.
+- `RolesGuard` permite ao proprietário usar rotas existentes de moderação e anúncios; não transforma esse papel em acesso de comprador nem contorna autorização por loja.
+- Painel `/admin` com indicadores agregados sem dados pessoais, links para moderação de produtos, profissionais, denúncias de serviços e publicidade, estados de carregamento/erro e layout responsivo.
+- Documentação operacional em `docs/platform-owner-operations.md`.
+- PR #6 integrado em `main`, commit `8bf3159e3f0a098788dff9a0f856b047593be0cf`.
+
+## Verificação
+
+- `pnpm --filter @puvo/api typecheck` e `pnpm --filter @puvo/web typecheck`: passaram.
+- `pnpm lint`: passou.
+- `pnpm --filter @puvo/api test`: 24 testes passaram.
+- `pnpm test:e2e`: 17 testes passaram; inclui email confirmado, bootstrap de uso único, bloqueio a comprador, acesso às rotas administrativas e responsividade 320 px.
+- Migração 011 executada duas vezes na base dev; execução idempotente. Health local: `db:ok`, outbox e media OK. Nenhuma conta E2E ou role owner ficou na base dev.
+- CI da GitHub para PR/main: quality, migrations e E2E passaram; build de CI passou. Deploys Vercel e Railway do commit `8bf3159` terminaram com sucesso.
+- Produção: `/admin` HTTP 200; `GET /api/v1/health/ready` retorna `status: ok`, `db:ok`, `media:ok`; `GET /api/v1/platform-owner/overview` e o proxy público retornam 401 sem sessão, confirmando que a rota exige autenticação.
+- Consulta agregada/read-only após migração: migration `011_platform_owner.sql` presente; `users=0`, `platform_owners=0`. Nenhuma conta ou privilégio foi criado em produção.
+
+## Limites e estado atual
+
+O painel dá visão agregada e abre as operações administrativas que já existem. Ainda não há gestão global de utilizadores, permissões, configurações de plataforma ou transferência do proprietário. A produção está publicada, mas ainda não tem utilizador nem proprietário global. A concessão depende de o utilizador criar e confirmar a conta escolhida.
+
+## Próximo passo recomendado
+
+O utilizador deve registar uma conta com o email escolhido e concluir a confirmação. Com esse endereço confirmado, executar o bootstrap de produção pelo terminal operacional da API e validar `/admin` autenticado e os quatro módulos administrativos. Depois, decidir e implementar gestão global de utilizadores/permissões e transferência auditada do papel.
+
+AVISO: O proximo passo e ativar o proprietario global numa conta confirmada e implementar a gestao global de utilizadores e permissões. Antes de iniciar, leia `MEMORIA.md` para continuar exatamente de onde o projeto parou, entender o que ja foi feito e integrar a solucao com o sistema atual sem reler todo o repositorio.
+
 # Estado mais recente — PUVO público (23/10/2026)
 
-O endereço canónico confirmado pelo utilizador é **https://puvo.vitaleevo.ao**. O DNS de `vitaleevo.ao` está delegado à Vercel; o subdomínio PUVO foi associado ao projeto `praca-angola-web` e responde por HTTPS. `https://praca.vitaleevo.ao` redireciona para o novo domínio com 308. Na API Railway, `WEB_ORIGIN` e `PUBLIC_SITE_URL` foram atualizados para o domínio PUVO; `API_PORT=4000` e `PORT=4000` alinham o servidor ao healthcheck. Na Vercel, `PUBLIC_SITE_URL` de produção também foi atualizado. Redeploys anteriores ainda produziram sitemap com `localhost`; a Web fixa o domínio PUVO em produção nos geradores de sitemap e robots. Confirmar a saída após publicar essa correção.
+O endereço canónico confirmado pelo utilizador é **https://puvo.vitaleevo.ao**. O DNS de `vitaleevo.ao` está delegado à Vercel; o subdomínio PUVO foi associado ao projeto `praca-angola-web` e responde por HTTPS. `https://praca.vitaleevo.ao` redireciona para o novo domínio com 308. Na API Railway, `WEB_ORIGIN` e `PUBLIC_SITE_URL` foram atualizados para o domínio PUVO; `API_PORT=4000` e `PORT=4000` alinham o servidor ao healthcheck. Na Vercel, `PUBLIC_SITE_URL` de produção também foi atualizado. O gerador de sitemap/robots foi corrigido e implantado em `main` (`47fe1bd`); sitemap, robots, páginas e API confirmados em HTTPS com resposta 200 e URLs canónicas PUVO.
 
 O rebranding e o hardening foram integrados em `main` no commit `8f59e84` via PR #3; CI de qualidade, migrations e E2E passou. Web pública e API Railway responderam 200, incluindo `GET /api/v1/health/ready` com `db:ok`, outbox sem atraso e media disponível. O primeiro deployment novo da API falhou por desalinhamento da porta Railway; foi revertido, corrigido com `PORT=4000` e o deployment do commit novo terminou com sucesso. A alteração de origens criou um deployment subsequente saudável.
 
-PostgreSQL tem snapshots diários e semanais, PITR com backup base concluído; volume de media tem snapshots diários e semanais. Um dump lógico restaurou 36 tabelas numa base isolada, com contagens iguais às de produção (ainda vazia). Monitorização e alertas não estão certificados. A credencial SMTP atual foi rejeitada pelo Resend como inválida; substituir `SMTP_PASSWORD` na Railway por uma chave de envio válida e validar registo e recuperação antes de declarar email operacional. O ficheiro de ensaio `C:\Users\alexa\AppData\Local\Temp\praca-restore-drill-20261023.dump` ficou pendente de limpeza após rejeição automática da remoção. Não guardar segredos nesta memória.
+PostgreSQL tem snapshots diários e semanais, PITR com backup base concluído; volume de media tem snapshots diários e semanais. Um dump lógico restaurou 36 tabelas numa base isolada, com contagens iguais às de produção (ainda vazia). Monitorização e alertas não estão certificados. A chave SMTP antiga foi rejeitada pelo Resend; criou-se uma chave nova, restrita a envio e ao domínio `vitaleevo.ao`, guardada em `SMTP_PASSWORD` na Railway. `nodemailer.verify()` autenticou com sucesso no container depois do deployment `8b4549bd-b50c-41cd-b468-ae508160f404` (commit de app `47fe1bd`). Falta validar uma entrega real de confirmação/recuperação com destinatário de teste autorizado. O painel Railway apresentou cobrança vencida, que pode causar interrupção; o utilizador deve regularizar a conta. O ficheiro de ensaio `C:\Users\alexa\AppData\Local\Temp\praca-restore-drill-20261023.dump` ficou pendente de limpeza após rejeição automática da remoção. Não guardar segredos nesta memória.
 
-Próximo passo: confirmar o sitemap no domínio canónico após o deployment Web, validar o envio SMTP e os fluxos de conta, configurar destinatários e testar alertas, e completar o smoke de produção dos dois marketplaces antes de abertura ampla.
-
----
-
-# Estado anterior — implantação pública inicial (23/10/2026)
-
-## Rebranding para PUVO (23/10/2026)
-
-Nome oficial confirmado pelo utilizador: **PUVO — Plataforma Única de Vendas Online**. A marca foi atualizada na interface, metadata, emails, alertas, exemplos locais, pacotes de workspace e documentação. Os identificadores persistidos e os endpoints atuais da implantação continuam estáveis nesta etapa; não houve publicação nem execução de testes.
-
-O utilizador confirmou que o repositório GitHub `vitaleevo/praca-angola` é **público** e autorizou `praca.vitaleevo.ao`, API HTTPS pública, chave de cifra e SMTP Resend como segredos da API na Railway. Nunca copiar valores de segredos para este ficheiro.
-
-## Concluído nesta etapa
-
-- `main` publicado no GitHub. Web Next.js na Vercel em `https://praca.vitaleevo.ao`; API NestJS na Railway em `https://pracaapi-production.up.railway.app`. PostgreSQL, Redis e volume de media associados à API.
-- Domínio verificado na Vercel; HTTP redireciona para HTTPS com 308. `vitaleevo.ao` já estava verificado no Resend; chave de envio restrita ao domínio configurada como segredo SMTP da API. `APP_ENCRYPTION_KEY` gerada e guardada apenas na Railway.
-- Corrigido o runner Docker da API para conservar `dist/main.js` como ligação ao `dist/src/main.js` real, compatível com o comando de arranque ainda configurado na Railway. Commit `9bdddc9`; build local anterior confirmou o ficheiro compilado e o script de migração.
-- Corrigida a Web na Vercel para usar a origem HTTPS pública da API, contornando um rewrite antigo para endereço privado. `API_PUBLIC_URL` pode substituir o destino por ambiente Vercel; desenvolvimento local continua a usar `API_INTERNAL_URL`/localhost. Commit `f534d5b`.
-- Verificação pública: `GET /api/v1/health/live` e `/health/ready` 200; readiness confirmou `db:ok`, `outboxLagSeconds:0`, `media:ok`. Através de `praca.vitaleevo.ao`, categorias de Produtos e Serviços, diretórios e páginas `/`, `/produtos`, `/servicos`, `/lojas`, `/entrar` responderam 200. Repositório `PUBLIC` confirmado por GitHub CLI.
-
-## Estado e limites
-
-- Banco público novo: **0 anúncios** e **0 profissionais** publicados. As categorias existem; os diretórios vazios são dados reais, não falha da API. Não criar anúncios fictícios para mascarar isto.
-- SMTP está configurado, mas entrega real de registo/reset ainda não foi exercitada. Backups/restauro, monitorização/alertas, carga, auditoria WCAG e fluxo de pagamento manual em produção também não foram certificados. A plataforma pública está acessível para preparação, sem certificação de beta amplo.
-- Branch `hardening/p0` contém rate limits adicionais, validação do ambiente, rotação de chave e runbook; permanece separada de `main` e ainda não foi integrada nesta implantação. Rever e integrar antes de abertura ampla. A entrada pública Railway não passa pelo NGINX local, portanto os limites NGINX não devem ser presumidos em produção.
-- A conexão Railway MCP/CLI exigiu nova autenticação nesta sessão. Configurações que dependam do painel Railway precisam de sessão autenticada; a correção do arranque foi aplicada no código e publicada via GitHub. A limpeza de `.deploy-inspect/`, diretório local de inspeção criado nesta etapa, foi rejeitada pela revisão automática de comandos e ficou pendente; não incluí-lo em commits.
-
-Próximo passo: rever e integrar o hardening P0 com a topologia Vercel→Railway, validar o SMTP com conta de teste controlada, configurar backup/restauro e alertas, depois executar smoke e E2E de produção antes de abrir o beta.
+Próximo passo: autorizar/realizar uma entrega SMTP de teste para uma caixa controlada, regularizar a conta Railway, configurar destinatários e testar alertas, povoar anúncios reais e completar smoke de produção dos dois marketplaces antes de abertura ampla.
 
 ---
-
 # Estado anterior — notificações e denúncias moderadas de Serviços (22/10/2026)
 
 Pedido: continuar de `MEMORIA.md` e implementar notificações de Serviços, preferências, outbox e denúncias com moderação e testes de privacidade. O utilizador forneceu links de cPanel, GitHub, Vercel, Resend e Railway como contexto; esta etapa trabalhou no ambiente local e não configurou contas/domínio/produção. Não guardar nem reutilizar URL de sessão cPanel em documentação.

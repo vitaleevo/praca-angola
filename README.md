@@ -1,6 +1,6 @@
-# PUVO — Plataforma Única de Vendas Online
+# P.U.V.O. — Plataforma Unificada de Vendas Online
 
-**PUVO** é a Plataforma Única de Vendas Online de Angola, com **Produtos** e **Serviços** (profissionais liberais e empresas prestadoras). A arquitetura é um monólito modular, preparado para abrir outros marketplaces sem criar um serviço independente para cada área.
+**P.U.V.O.** é a Plataforma Unificada de Vendas Online de Angola, com **Produtos** e **Serviços** (profissionais liberais e empresas prestadoras). A arquitetura é um monólito modular, preparado para abrir outros marketplaces sem criar um serviço independente para cada área.
 
 ## Stack
 
@@ -75,7 +75,7 @@ O comando `admin:grant` promove uma conta existente e ativa. Executa-o apenas pa
 - Públicas: `/`, `/produtos`, `/produtos/[slug]`, `/categorias/[slug]`, `/lojas`, `/lojas/[slug]`, `/marketplaces`.
 - Conta: `/entrar`, `/registar`, `/confirmar-email`, `/verificar-email`, `/recuperar-palavra-passe`, `/redefinir-palavra-passe`, `/conta`, `/conta/favoritos`, `/conta/mensagens`, `/conta/encomendas`.
 - Vendedor: `/vendedor`, `/vendedor/anuncios/novo`, `/vendedor/anuncios/[id]`.
-- Operações da equipa: `https://gestao.puvo.vitaleevo.ao/moderacao` (consola separada; sem páginas administrativas no marketplace público).
+- Gestão da equipa PUVO (domínio separado): [gestao.puvo.vitaleevo.ao](https://gestao.puvo.vitaleevo.ao/), com filas em `/moderacao`, `/profissionais`, `/denuncias-servicos` e `/publicidade`. O marketplace público não publica páginas administrativas.
 
 - Serviços públicos: `/servicos`, `/servicos/profissionais/[slug]`.
 - Profissional e contratação: `/profissional`, `/servicos/pedidos`, `/servicos/pedidos/novo`, `/servicos/pedidos/[id]`, `/servicos/notificacoes`.
