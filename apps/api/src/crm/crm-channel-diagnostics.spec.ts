@@ -34,15 +34,21 @@ describe("CRM channel diagnostics", () => {
   it("returns missing message and comment scopes without exposing the token", async () => {
     process.env.APP_ENCRYPTION_KEY = "diagnostics-test-encryption-key-long-enough";
     const credentials_ciphertext = encryptPrivateValue(JSON.stringify({ accessToken: "page-token-private" }));
-    const database = { query: vi.fn().mockResolvedValue({ rows: [{ channel_type: "facebook_page", status: "connected", credentials_ciphertext }] }) };
-    const graph = { inspectAccessToken: vi.fn().mockResolvedValue({ valid: true, appMatches: true, expiresAt: null, grantedScopes: ["pages_messaging"] }) };
+    const database = { query: vi.fn().mockResolvedValue({ rows: [{ channel_type: "facebook_page", status: "connected", external_account_id: "page-a", credentials_ciphertext }] }) };
+    const graph = {
+      inspectAccessToken: vi.fn().mockResolvedValue({ valid: true, appMatches: true, expiresAt: null, grantedScopes: ["pages_messaging"] }),
+      inspectPageSubscription: vi.fn().mockResolvedValue({ subscribed: true, fields: ["messages", "leadgen"] }),
+    };
     const service = new CrmService(database as never, {} as never, {} as never, graph as never);
 
     const result = await service.getChannelDiagnostics("workspace-a", "channel-a");
     expect(result.messagingMissing).toEqual(["pages_manage_metadata"]);
     expect(result.commentsMissing).toEqual(["pages_read_engagement", "pages_read_user_content", "pages_manage_engagement"]);
+    expect(result.pageWebhookSubscribed).toBe(true);
+    expect(result.pageWebhookFields).toEqual(["messages", "leadgen"]);
     expect(JSON.stringify(result)).not.toContain("page-token-private");
     expect(graph.inspectAccessToken).toHaveBeenCalledWith("page-token-private");
+    expect(graph.inspectPageSubscription).toHaveBeenCalledWith("page-a", "page-token-private");
   });
 
   it("checks token validity with the app token and returns no credential", async () => {
@@ -59,5 +65,24 @@ describe("CRM channel diagnostics", () => {
     const requested = new URL(fetchMock.mock.calls[0][0]);
     expect(requested.pathname).toContain("/debug_token");
     expect(requested.searchParams.get("input_token")).toBe("page-token-private");
+  });
+
+  it("checks the Page webhook subscription without returning its token", async () => {
+    process.env.META_APP_ID = "123456789";
+    process.env.META_APP_SECRET = "test-secret";
+    process.env.META_OAUTH_REDIRECT_URI = "https://example.com/callback";
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ data: [
+      { id: "other-app", subscribed_fields: ["messages"] },
+      { id: "123456789", subscribed_fields: ["messages", "leadgen"] },
+    ] }) });
+    vi.stubGlobal("fetch", fetchMock);
+    const graph = new MetaGraphService();
+
+    const result = await graph.inspectPageSubscription("page-a", "page-token-private");
+    expect(result).toEqual({ subscribed: true, fields: ["messages", "leadgen"] });
+    expect(JSON.stringify(result)).not.toContain("page-token-private");
+    const requested = new URL(fetchMock.mock.calls[0][0]);
+    expect(requested.pathname).toContain("/page-a/subscribed_apps");
+    expect(requested.searchParams.get("access_token")).toBe("page-token-private");
   });
 });

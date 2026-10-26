@@ -17,7 +17,7 @@ import {
   CreateKnowledgeDto,
 } from "./crm.types";
 import { decryptPrivateValue, encryptPrivateValue } from "../auth/auth.crypto";
-import { MetaGraphService } from "./meta-graph.service";
+import { MetaGraphService, type MetaPageSubscriptionDiagnostics } from "./meta-graph.service";
 
 const DEFAULT_STAGES = [
   { name: "Novo Lead", slug: "new", color: "#3b82f6", sort_order: 1 },
@@ -504,8 +504,9 @@ export class CrmService {
       channel_type: string;
       status: string;
       credentials_ciphertext: string;
+      external_account_id: string;
     }>(
-      `SELECT channel_type, status, credentials_ciphertext FROM crm_channel_connections
+      `SELECT channel_type, status, credentials_ciphertext, external_account_id FROM crm_channel_connections
        WHERE id = $1 AND workspace_id = $2 LIMIT 1`,
       [channelId, workspaceId],
     );
@@ -523,6 +524,14 @@ export class CrmService {
       throw new BadRequestException({ code: "CHANNEL_CREDENTIALS_INVALID", message: "As credenciais guardadas são inválidas. Liga o canal novamente." });
     }
     const token = await this.metaGraph.inspectAccessToken(accessToken);
+    let pageSubscription: MetaPageSubscriptionDiagnostics | null = null;
+    if (channel.channel_type === "facebook_page" && token.valid && token.appMatches) {
+      try {
+        pageSubscription = await this.metaGraph.inspectPageSubscription(channel.external_account_id, accessToken);
+      } catch {
+        // Token diagnostics remain useful when Meta does not allow this Page subscription query.
+      }
+    }
     const messagingScopes = channel.channel_type === "facebook_page"
       ? ["pages_messaging", "pages_manage_metadata"]
       : ["instagram_basic", "instagram_manage_messages"];
@@ -538,6 +547,8 @@ export class CrmService {
       expiresAt: token.expiresAt,
       messagingMissing: messagingScopes.filter((scope) => !granted.has(scope)),
       commentsMissing: commentScopes.filter((scope) => !granted.has(scope)),
+      pageWebhookSubscribed: pageSubscription?.subscribed ?? null,
+      pageWebhookFields: pageSubscription?.fields ?? [],
       historyAvailable: false,
       commentsAvailable: false,
     };

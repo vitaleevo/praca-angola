@@ -16,6 +16,11 @@ export interface MetaTokenDiagnostics {
   grantedScopes: string[];
 }
 
+export interface MetaPageSubscriptionDiagnostics {
+  subscribed: boolean;
+  fields: string[];
+}
+
 interface GraphErrorPayload {
   error?: { message?: string; type?: string; code?: number; error_subcode?: number };
 }
@@ -170,6 +175,20 @@ export class MetaGraphService {
       appMatches: data?.app_id === appId,
       expiresAt: data?.expires_at && data.expires_at > 0 ? data.expires_at : null,
       grantedScopes: Array.isArray(data?.scopes) ? data.scopes : [],
+    };
+  }
+
+  async inspectPageSubscription(pageId: string, accessToken: string): Promise<MetaPageSubscriptionDiagnostics> {
+    const { appId } = this.oauthConfig();
+    const result = await this.graphGet<{ data?: Array<{ id?: string; subscribed_fields?: string[] }> }>(`${pageId}/subscribed_apps`, {
+      fields: "id,subscribed_fields",
+      limit: "100",
+      access_token: accessToken,
+    });
+    const subscription = result.data?.find((entry) => entry.id === appId);
+    return {
+      subscribed: Boolean(subscription),
+      fields: Array.isArray(subscription?.subscribed_fields) ? subscription.subscribed_fields : [],
     };
   }
 

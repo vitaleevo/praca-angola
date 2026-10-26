@@ -18,6 +18,8 @@ type ChannelDiagnostics = {
   expiresAt: number | null;
   messagingMissing: string[];
   commentsMissing: string[];
+  pageWebhookSubscribed: boolean | null;
+  pageWebhookFields: string[];
   historyAvailable: boolean;
   commentsAvailable: boolean;
 };
@@ -238,6 +240,7 @@ export function CrmChannelManager() {
               <strong>{diagnostics[channel.id].tokenValid && diagnostics[channel.id].appMatches ? "Token válido para a app PUVO" : "Token inválido ou de outra app — volta a ligar este canal"}</strong>
               <span>Mensagens: {diagnostics[channel.id].messagingMissing.length ? `faltam ${diagnostics[channel.id].messagingMissing.join(", ")}` : "permissões presentes no token"}.</span>
               <span>Comentários: {diagnostics[channel.id].commentsMissing.length ? `faltam ${diagnostics[channel.id].commentsMissing.join(", ")}` : "permissões presentes no token"}.</span>
+              {channel.channel_type === "facebook_page" && <span>Webhook da Página: {diagnostics[channel.id].pageWebhookSubscribed === null ? "não foi possível verificar" : diagnostics[channel.id].pageWebhookSubscribed ? diagnostics[channel.id].pageWebhookFields.includes("messages") ? "app inscrita para mensagens" : "app inscrita, mas sem o campo messages" : "app não inscrita nesta Página"}.</span>}
               <small>Mesmo com as permissões no token, a Meta exige acesso aprovado para clientes em produção. Importação de histórico e gestão de comentários ainda não estão disponíveis no CRM.</small>
             </div>}
           </article>
