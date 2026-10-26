@@ -4,7 +4,7 @@ import { CrmContactsView } from "../../../../components/crm-contacts";
 
 export default function CrmContactsPage() {
   return (
-    <WorkspacePage area="seller">
+    <WorkspacePage area="seller" crm>
       <div className="breadcrumbs">
         <Link href="/">Início</Link>
         <span>/</span>

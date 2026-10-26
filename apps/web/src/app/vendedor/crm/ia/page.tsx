@@ -4,7 +4,7 @@ import { CrmAiConfig } from "../../../../components/crm-ai-config";
 
 export default function CrmAiConfigPage() {
   return (
-    <WorkspacePage area="seller">
+    <WorkspacePage area="seller" crm>
       <div className="breadcrumbs">
         <Link href="/">Início</Link>
         <span>/</span>

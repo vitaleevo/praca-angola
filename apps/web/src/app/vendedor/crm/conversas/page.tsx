@@ -4,7 +4,7 @@ import { CrmLiveInbox } from "../../../../components/crm-live-inbox";
 
 export default function CrmConversationsPage() {
   return (
-    <WorkspacePage area="seller">
+    <WorkspacePage area="seller" crm>
       <div className="breadcrumbs">
         <Link href="/">Início</Link>
         <span>/</span>

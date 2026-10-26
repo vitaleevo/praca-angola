@@ -5,12 +5,13 @@ type Props = {
   area: WorkspaceArea;
   children: React.ReactNode;
   services?: boolean;
+  crm?: boolean;
   className?: string;
 };
 
-export function WorkspacePage({ area, children, services = false, className = "" }: Props) {
+export function WorkspacePage({ area, children, services = false, crm = false, className = "" }: Props) {
   return (
-    <main className={`${services ? "market-shell services-shell" : ""} ${className}`}>
+    <main className={`${services ? "market-shell services-shell" : ""} ${crm ? "crm-workspace" : ""} ${className}`}>
       <SiteHeader services={services} workspace />
       <div className="workspace-layout">
         <WorkspaceNavigation area={area} />
