@@ -62,10 +62,10 @@ export class AdminController {
       `SELECT l.id, l.slug, l.title, l.description, l.price::text, l.condition, l.province, l.municipality, l.created_at,
               COALESCE(l.ai_risk_score, 0) AS ai_risk_score,
               COALESCE(l.ai_flagged_reasons, '{}') AS ai_flagged_reasons,
-              l.ai_suggested_action,
+              l.ai_suggested_action, l.attributes, m.slug AS marketplace, m.name AS marketplace_name,
               c.name AS category, s.id AS store_id, s.display_name AS store_name, s.slug AS store_slug,
               COALESCE((SELECT json_agg(json_build_object('url', li.image_url, 'alt', li.alt_text) ORDER BY li.sort_order) FROM listing_images li WHERE li.listing_id = l.id), '[]'::json) AS images
-       FROM listings l JOIN categories c ON c.id = l.category_id JOIN seller_profiles s ON s.id = l.seller_profile_id
+       FROM listings l JOIN categories c ON c.id = l.category_id JOIN marketplaces m ON m.id = c.marketplace_id JOIN seller_profiles s ON s.id = l.seller_profile_id
        WHERE l.status = 'pending_review' ORDER BY l.ai_risk_score DESC, l.created_at ASC LIMIT 100`,
     );
     return { items: result.rows };

@@ -1182,3 +1182,33 @@
   color: #3c414c;
 }
 
+.moderation-attributes ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 6px 18px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.moderation-attributes li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0;
+  border-bottom: 1px solid #edf0f5;
+  font-size: 12px;
+  color: #3c414c;
+}
+
+.moderation-attributes li b {
+  color: #6b7280;
+  font-weight: 600;
+}
+
+.moderation-attributes li span {
+  text-align: right;
+  color: #0a1b4f;
+  font-weight: 600;
+}
+

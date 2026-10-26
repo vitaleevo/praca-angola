@@ -17,11 +17,35 @@ type Listing = {
   province: string;
   municipality: string;
   category: string;
+  marketplace?: string;
+  marketplace_name?: string;
+  attributes?: Record<string, unknown>;
   store_name: string;
   images: { url: string; alt: string }[];
   ai_risk_score: number;
   ai_flagged_reasons: string[];
   ai_suggested_action: string | null;
+};
+
+const attributeLabels: Record<string, string> = {
+  companyType: "Tipo de empresa",
+  sector: "Setor",
+  coverage: "Cobertura",
+  delivery: "Entrega",
+  website: "Website",
+  transaction: "Transação",
+  bedrooms: "Quartos",
+  bathrooms: "Casas de banho",
+  areaM2: "Área (m²)",
+  parking: "Estacionamento",
+  furnished: "Mobilado",
+  make: "Marca",
+  model: "Modelo",
+  year: "Ano",
+  mileageKm: "Quilometragem (km)",
+  fuel: "Combustível",
+  transmission: "Caixa",
+  color: "Cor",
 };
 
 type Report = {
@@ -521,11 +545,21 @@ export function ModerationDashboard() {
                         )}
                         <div className="moderation-listing-details">
                           <span className="product-category">
-                            <span>{listing.category}</span><span aria-hidden="true">·</span><span>{listing.store_name}</span>
+                            <span>{listing.marketplace_name ?? "Produtos"}</span><span aria-hidden="true">·</span><span>{listing.category}</span><span aria-hidden="true">·</span><span>{listing.store_name}</span>
                           </span>
                           <h3>{listing.title}</h3>
                           <p className="moderation-listing-price">{kwanza(listing.price)}</p>
                           <small className="moderation-listing-location">{location || "Localização não indicada"}</small>
+                          {listing.attributes && Object.keys(listing.attributes).length > 0 && (
+                            <details className="moderation-description moderation-attributes">
+                              <summary>Ver detalhes do anúncio</summary>
+                              <ul>
+                                {Object.entries(listing.attributes).map(([key, value]) => (
+                                  <li key={key}><b>{attributeLabels[key] ?? key}</b> <span>{typeof value === "boolean" ? (value ? "Sim" : "Não") : String(value)}</span></li>
+                                ))}
+                              </ul>
+                            </details>
+                          )}
                           <details className="moderation-description">
                             <summary>Ver descrição completa</summary>
                             <p>{listing.description || "Este anúncio não tem descrição."}</p>

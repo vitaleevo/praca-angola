@@ -26,6 +26,33 @@ const destinations = [
     icon: "people",
     tone: "services",
   },
+  {
+    slug: "empresas",
+    href: "/empresas",
+    title: "Empresas",
+    description: "Encontra fornecedores, lojas e serviços empresariais em Angola.",
+    action: "Explorar empresas",
+    icon: "building",
+    tone: "services",
+  },
+  {
+    slug: "imoveis",
+    href: "/imoveis",
+    title: "Imóveis",
+    description: "Explora casas, apartamentos, terrenos e espaços comerciais.",
+    action: "Explorar imóveis",
+    icon: "home",
+    tone: "products",
+  },
+  {
+    slug: "automoveis",
+    href: "/automoveis",
+    title: "Automóveis",
+    description: "Procura carros, motas e viaturas de trabalho.",
+    action: "Explorar automóveis",
+    icon: "car",
+    tone: "services",
+  },
 ] as const;
 
 export function MarketplaceFocusCards({ markets }: { markets: PublicMarketplace[] }) {

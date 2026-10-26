@@ -16,6 +16,9 @@ export function SiteNav({ services = false }: { services?: boolean }) {
     : [
         { label: "Explorar", href: "/", active: pathname === "/" },
         { label: "Produtos", href: "/produtos", active: pathname === "/produtos" || pathname.startsWith("/produtos/") },
+        { label: "Empresas", href: "/empresas", active: pathname === "/empresas" || pathname.startsWith("/empresas/") },
+        { label: "Imóveis", href: "/imoveis", active: pathname === "/imoveis" || pathname.startsWith("/imoveis/") },
+        { label: "Automóveis", href: "/automoveis", active: pathname === "/automoveis" || pathname.startsWith("/automoveis/") },
         { label: "Lojas", href: "/lojas", active: pathname === "/lojas" || pathname.startsWith("/lojas/") },
         { label: "Serviços", href: "/servicos", active: pathname === "/servicos" || pathname.startsWith("/servicos/") },
       ];

@@ -5,13 +5,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { kwanza } from "../lib/api";
+import { listingPath } from "../lib/marketplaces";
 import { StoreSwitcher } from "./store-switcher";
 import { StoreTeamManager } from "./store-team-manager";
 import { SellerPaymentSettingsFields } from "./seller-payment-settings-fields";
 
 type SellerPaymentMethod = { method: "manual_multicaixa_express_transfer" | "manual_bank_transfer"; enabled: boolean; configured: boolean; recipientName: string | null; providerName: string | null; maskedIdentifier: string };
 type Profile = { id: string; profile_type: "individual" | "business"; slug: string; display_name: string; description: string; province: string; municipality: string; status: string; is_verified: boolean; role: "owner" | "editor" | "support"; has_payment_destination: boolean; masked_phone?: string | null; payment_methods?: SellerPaymentMethod[]; logo_media_asset_id?: string | null; cover_media_asset_id?: string | null; contact_email?: string | null; contact_phone?: string | null; contact_email_public?: boolean; contact_phone_public?: boolean; delivery_policy?: string; returns_policy?: string; terms_policy?: string };
-type SellerListing = { id: string; slug: string; title: string; price: string; available_quantity: number; status: string; rejection_reason?: string; category: string };
+type SellerListing = { id: string; slug: string; title: string; price: string; available_quantity: number; status: string; rejection_reason?: string; category: string; marketplace?: "produtos" | "servicos" | "empresas" | "imoveis" | "automoveis"; marketplace_name?: string };
 
 export function SellerDashboard() {
   const router = useRouter();
@@ -126,14 +127,62 @@ export function SellerDashboard() {
     await load();
   }
   if (loading) return <div className="loading-state" role="status">A carregar a tua área de vendedor…</div>;
-  return <div className="seller-dashboard"><StoreSwitcher onSelected={load}/>{profile && <section className="seller-store-overview"><div className="seller-store-overview-brand">{logoImageId ? <Image className="seller-store-overview-logo" src={`/api/v1/media/${logoImageId}`} alt="Logótipo da loja" width={64} height={64} sizes="64px"/> : <span className="store-mark store-green store-mark-large" aria-hidden="true">{profile.display_name.slice(0, 1).toUpperCase()}</span>}<div><p className="eyebrow eyebrow-dark"><span className="eyebrow-line"/> A tua montra pública</p><h2>{profile.display_name}</h2><p>{profile.province} · {profile.municipality} <span className="seller-store-status">{profile.status === "active" ? "Ativa" : "Em revisão"}</span></p></div></div><div className="seller-store-overview-stats"><div><b>{publishedCount}</b><span>publicados</span></div><div><b>{reviewCount}</b><span>em revisão</span></div><div><b>{items.length}</b><span>anúncios</span></div></div><div className="seller-store-overview-actions"><Link className="button button-primary" href={`/lojas/${profile.slug}`}>Ver a loja <span aria-hidden="true">↗</span></Link>{profile.role !== "support" && <Link className="button button-secondary" href="/vendedor/anuncios/novo">Adicionar produto <span aria-hidden="true">＋</span></Link>}</div></section>}{profile?.role === "owner" || !profile ? <section key={profile?.id ?? "new"} className="panel seller-profile-panel"><div className="section-heading"><div><h2>{profile ? "Dados da loja" : "Cria a tua montra"}</h2><p>Os dados comerciais são públicos quando optas por os mostrar. Os dados dos métodos de recebimento permanecem privados.</p></div>{profile?.has_payment_destination && <span className="subtle-chip">MCX configurado · {profile.masked_phone}</span>}</div><form className="stack-form two-column-form" onSubmit={save}><label>Tipo de vendedor<select name="profileType" defaultValue={profile?.profile_type ?? "business"}><option value="business">Empresa ou loja</option><option value="individual">Vendedor individual</option></select></label><label>Nome público<input name="displayName" defaultValue={profile?.display_name ?? ""} required minLength={2} maxLength={100}/></label><label>Província<input name="province" defaultValue={profile?.province ?? "Luanda"} required minLength={2} maxLength={100}/></label><label>Município<input name="municipality" defaultValue={profile?.municipality ?? "Luanda"} required minLength={2} maxLength={100}/></label><label className="form-span">Descrição da loja<textarea name="description" defaultValue={profile?.description ?? ""} maxLength={2000} rows={3}/></label><div className="store-branding-fields form-span"><h3>Identidade da montra</h3><p>Personaliza a página pública com o logótipo e uma fotografia de capa. JPEG, PNG ou WebP até 5 MB cada.</p><div className="store-branding-grid"><label>Logótipo da loja<span className="store-branding-preview store-branding-logo">{logoImageId ? <Image src={`/api/v1/media/${logoImageId}`} alt="Pré-visualização do logótipo" width={160} height={160} sizes="160px"/> : profile?.display_name.slice(0, 1).toUpperCase()}</span><input type="file" accept="image/jpeg,image/png,image/webp" disabled={brandBusy} onChange={(event) => void uploadStoreImage("logo", event.target.files?.[0])}/><small>Imagem quadrada recomendada.</small></label><label>Capa da montra<span className="store-branding-preview store-branding-cover">{coverImageId ? <Image src={`/api/v1/media/${coverImageId}`} alt="Pré-visualização da capa" fill sizes="(max-width: 767px) 100vw, 620px"/> : <span>A tua montra, com a tua identidade</span>}</span><input type="file" accept="image/jpeg,image/png,image/webp" disabled={brandBusy} onChange={(event) => void uploadStoreImage("cover", event.target.files?.[0])}/><small>Uma imagem horizontal fica melhor.</small></label></div>{brandBusy && <p className="form-status" role="status">A enviar imagem…</p>}{brandError && <p className="form-error" role="alert">{brandError}</p>}</div><fieldset className="store-settings-group form-span"><legend>Contactos comerciais públicos</legend><p>Os compradores só verão os canais que ativares. Não uses aqui o número privado de recebimento Multicaixa Express.</p><label>E-mail comercial<input type="email" name="contactEmail" maxLength={254} defaultValue={profile?.contact_email ?? ""} placeholder="contacto@loja.ao"/></label><label className="checkbox-label"><input type="checkbox" name="contactEmailPublic" defaultChecked={profile?.contact_email_public}/> Autorizo publicar este e-mail na montra</label><label>Telefone comercial<input type="tel" name="contactPhone" inputMode="tel" pattern="(\+244)?9[0-9]{8}" defaultValue={profile?.contact_phone ?? ""} placeholder="9xxxxxxxx ou +2449xxxxxxxx"/></label><label className="checkbox-label"><input type="checkbox" name="contactPhonePublic" defaultChecked={profile?.contact_phone_public}/> Autorizo publicar este telefone na montra</label></fieldset><fieldset className="store-settings-group form-span"><legend>Entrega, trocas e condições</legend><label>Informação sobre entrega<textarea name="deliveryPolicy" maxLength={2000} rows={3} defaultValue={profile?.delivery_policy ?? ""} placeholder="Zonas, custos e prazos de entrega…"/></label><label>Trocas e devoluções<textarea name="returnsPolicy" maxLength={2000} rows={3} defaultValue={profile?.returns_policy ?? ""} placeholder="Prazo e condições para solicitar uma troca…"/></label><label>Condições de venda<textarea name="termsPolicy" maxLength={2000} rows={3} defaultValue={profile?.terms_policy ?? ""} placeholder="Condições importantes antes de confirmar uma encomenda…"/></label></fieldset><SellerPaymentSettingsFields paymentMethods={profile?.payment_methods ?? []} hasPaymentDestination={Boolean(profile?.has_payment_destination)} maskedPhone={profile?.masked_phone} mcxEnabled={mcxEnabled} setMcxEnabled={setMcxEnabled} bankTransferEnabled={bankTransferEnabled} setBankTransferEnabled={setBankTransferEnabled} /><div className="form-span"><button className="button button-primary" type="submit" disabled={brandBusy || profileBusy}>{brandBusy ? "A enviar imagem…" : profileBusy ? "A guardar…" : "Guardar dados da loja"}</button>{error && <p className="form-error" role="alert">{error}</p>}{saveStatus && <p className="success-message" role="status">{saveStatus}</p>}</div></form></section> : <section className="panel store-readonly-notice"><b>Permissões da loja</b><span>{profile.role === "editor" ? "Podes gerir anúncios da montra. Só o proprietário altera dados comerciais, contactos e recebimentos." : "Podes responder a conversas e consultar o trabalho da loja. Alterações comerciais ficam reservadas ao proprietário."}</span></section>}{profile?.role === "owner" && <StoreTeamManager key={profile.id}/>}<section className="panel"><div className="section-heading"><div><h2>Os anúncios da loja</h2><p>Os anúncios passam por revisão antes de ficarem públicos.</p></div>{profile?.role !== "support" && <Link className="button button-primary" href="/vendedor/anuncios/novo">Publicar produto</Link>}</div>{items.length ? <div className="seller-listings">{items.map((item) => <article className="seller-listing" key={item.id}><span className="listing-status">{item.status.replaceAll("_", " ")}</span><div><b>{item.title}</b><small>{item.category} · {item.available_quantity} em stock · {kwanza(item.price)}</small>{item.rejection_reason && <small className="form-error">Motivo: {item.rejection_reason}</small>}</div><div className="seller-listing-actions">{item.status === "published" && <Link href={`/produtos/${item.slug}`}>Ver anúncio</Link>}{profile?.role !== "support" && item.status === "published" && <button className="text-button" onClick={() => void setListingStatus(item.id, "paused")}>Pausar</button>}{profile?.role !== "support" && item.status === "paused" && <button className="text-button" onClick={() => void setListingStatus(item.id, "published")}>Retomar</button>}{profile?.role !== "support" && <Link href={`/vendedor/anuncios/${item.id}`}>Editar</Link>}</div></article>)}</div> : <div className="empty-state"><b>Ainda não publicaste produtos.</b><span>Cria o teu primeiro anúncio para aparecer na montra pública.</span></div>}</section></div>;
+  return <div className="seller-dashboard"><StoreSwitcher onSelected={load}/>{profile && <section className="seller-store-overview"><div className="seller-store-overview-brand">{logoImageId ? <Image className="seller-store-overview-logo" src={`/api/v1/media/${logoImageId}`} alt="Logótipo da loja" width={64} height={64} sizes="64px"/> : <span className="store-mark store-green store-mark-large" aria-hidden="true">{profile.display_name.slice(0, 1).toUpperCase()}</span>}<div><p className="eyebrow eyebrow-dark"><span className="eyebrow-line"/> A tua montra pública</p><h2>{profile.display_name}</h2><p>{profile.province} · {profile.municipality} <span className="seller-store-status">{profile.status === "active" ? "Ativa" : "Em revisão"}</span></p></div></div><div className="seller-store-overview-stats"><div><b>{publishedCount}</b><span>publicados</span></div><div><b>{reviewCount}</b><span>em revisão</span></div><div><b>{items.length}</b><span>anúncios</span></div></div><div className="seller-store-overview-actions"><Link className="button button-primary" href={`/lojas/${profile.slug}`}>Ver a loja <span aria-hidden="true">↗</span></Link>{profile.role !== "support" && <Link className="button button-secondary" href="/vendedor/anuncios/novo">Adicionar anúncio <span aria-hidden="true">＋</span></Link>}</div></section>}{profile?.role === "owner" || !profile ? <section key={profile?.id ?? "new"} className="panel seller-profile-panel"><div className="section-heading"><div><h2>{profile ? "Dados da loja" : "Cria a tua montra"}</h2><p>Os dados comerciais são públicos quando optas por os mostrar. Os dados dos métodos de recebimento permanecem privados.</p></div>{profile?.has_payment_destination && <span className="subtle-chip">MCX configurado · {profile.masked_phone}</span>}</div><form className="stack-form two-column-form" onSubmit={save}><label>Tipo de vendedor<select name="profileType" defaultValue={profile?.profile_type ?? "business"}><option value="business">Empresa ou loja</option><option value="individual">Vendedor individual</option></select></label><label>Nome público<input name="displayName" defaultValue={profile?.display_name ?? ""} required minLength={2} maxLength={100}/></label><label>Província<input name="province" defaultValue={profile?.province ?? "Luanda"} required minLength={2} maxLength={100}/></label><label>Município<input name="municipality" defaultValue={profile?.municipality ?? "Luanda"} required minLength={2} maxLength={100}/></label><label className="form-span">Descrição da loja<textarea name="description" defaultValue={profile?.description ?? ""} maxLength={2000} rows={3}/></label><div className="store-branding-fields form-span"><h3>Identidade da montra</h3><p>Personaliza a página pública com o logótipo e uma fotografia de capa. JPEG, PNG ou WebP até 5 MB cada.</p><div className="store-branding-grid"><label>Logótipo da loja<span className="store-branding-preview store-branding-logo">{logoImageId ? <Image src={`/api/v1/media/${logoImageId}`} alt="Pré-visualização do logótipo" width={160} height={160} sizes="160px"/> : profile?.display_name.slice(0, 1).toUpperCase()}</span><input type="file" accept="image/jpeg,image/png,image/webp" disabled={brandBusy} onChange={(event) => void uploadStoreImage("logo", event.target.files?.[0])}/><small>Imagem quadrada recomendada.</small></label><label>Capa da montra<span className="store-branding-preview store-branding-cover">{coverImageId ? <Image src={`/api/v1/media/${coverImageId}`} alt="Pré-visualização da capa" fill sizes="(max-width: 767px) 100vw, 620px"/> : <span>A tua montra, com a tua identidade</span>}</span><input type="file" accept="image/jpeg,image/png,image/webp" disabled={brandBusy} onChange={(event) => void uploadStoreImage("cover", event.target.files?.[0])}/><small>Uma imagem horizontal fica melhor.</small></label></div>{brandBusy && <p className="form-status" role="status">A enviar imagem…</p>}{brandError && <p className="form-error" role="alert">{brandError}</p>}</div><fieldset className="store-settings-group form-span"><legend>Contactos comerciais públicos</legend><p>Os compradores só verão os canais que ativares. Não uses aqui o número privado de recebimento Multicaixa Express.</p><label>E-mail comercial<input type="email" name="contactEmail" maxLength={254} defaultValue={profile?.contact_email ?? ""} placeholder="contacto@loja.ao"/></label><label className="checkbox-label"><input type="checkbox" name="contactEmailPublic" defaultChecked={profile?.contact_email_public}/> Autorizo publicar este e-mail na montra</label><label>Telefone comercial<input type="tel" name="contactPhone" inputMode="tel" pattern="(\+244)?9[0-9]{8}" defaultValue={profile?.contact_phone ?? ""} placeholder="9xxxxxxxx ou +2449xxxxxxxx"/></label><label className="checkbox-label"><input type="checkbox" name="contactPhonePublic" defaultChecked={profile?.contact_phone_public}/> Autorizo publicar este telefone na montra</label></fieldset><fieldset className="store-settings-group form-span"><legend>Entrega, trocas e condições</legend><label>Informação sobre entrega<textarea name="deliveryPolicy" maxLength={2000} rows={3} defaultValue={profile?.delivery_policy ?? ""} placeholder="Zonas, custos e prazos de entrega…"/></label><label>Trocas e devoluções<textarea name="returnsPolicy" maxLength={2000} rows={3} defaultValue={profile?.returns_policy ?? ""} placeholder="Prazo e condições para solicitar uma troca…"/></label><label>Condições de venda<textarea name="termsPolicy" maxLength={2000} rows={3} defaultValue={profile?.terms_policy ?? ""} placeholder="Condições importantes antes de confirmar uma encomenda…"/></label></fieldset><SellerPaymentSettingsFields paymentMethods={profile?.payment_methods ?? []} hasPaymentDestination={Boolean(profile?.has_payment_destination)} maskedPhone={profile?.masked_phone} mcxEnabled={mcxEnabled} setMcxEnabled={setMcxEnabled} bankTransferEnabled={bankTransferEnabled} setBankTransferEnabled={setBankTransferEnabled} /><div className="form-span"><button className="button button-primary" type="submit" disabled={brandBusy || profileBusy}>{brandBusy ? "A enviar imagem…" : profileBusy ? "A guardar…" : "Guardar dados da loja"}</button>{error && <p className="form-error" role="alert">{error}</p>}{saveStatus && <p className="success-message" role="status">{saveStatus}</p>}</div></form></section> : <section className="panel store-readonly-notice"><b>Permissões da loja</b><span>{profile.role === "editor" ? "Podes gerir anúncios da montra. Só o proprietário altera dados comerciais, contactos e recebimentos." : "Podes responder a conversas e consultar o trabalho da loja. Alterações comerciais ficam reservadas ao proprietário."}</span></section>}{profile?.role === "owner" && <StoreTeamManager key={profile.id}/>}<section className="panel"><div className="section-heading"><div><h2>Os anúncios da loja</h2><p>Os anúncios passam por revisão antes de ficarem públicos.</p></div>{profile?.role !== "support" && <Link className="button button-primary" href="/vendedor/anuncios/novo">Publicar produto</Link>}</div>{items.length ? <div className="seller-listings">{items.map((item) => <article className="seller-listing" key={item.id}><span className="listing-status">{item.status.replaceAll("_", " ")}</span><div><b>{item.title}</b><small>{(item.marketplace_name ?? "Produtos")} · {item.category} · {kwanza(item.price)}</small>{item.rejection_reason && <small className="form-error">Motivo: {item.rejection_reason}</small>}</div><div className="seller-listing-actions">{item.status === "published" && <Link href={listingPath({ slug: item.slug, marketplace: item.marketplace })}>Ver anúncio</Link>}{profile?.role !== "support" && item.status === "published" && <button className="text-button" onClick={() => void setListingStatus(item.id, "paused")}>Pausar</button>}{profile?.role !== "support" && item.status === "paused" && <button className="text-button" onClick={() => void setListingStatus(item.id, "published")}>Retomar</button>}{profile?.role !== "support" && <Link href={`/vendedor/anuncios/${item.id}`}>Editar</Link>}</div></article>)}</div> : <div className="empty-state"><b>Ainda não publicaste anúncios.</b><span>Cria o teu primeiro anúncio para aparecer na montra pública.</span></div>}</section></div>;
 }
 
 type Category = { id: string; name: string; slug: string };
 type UploadedImage = { id: string; url: string; name: string };
-type ListingInitial = { title: string; description: string; category_slug: string; price: string; condition: string; price_negotiable: boolean; available_quantity: number; province: string; municipality: string; images: { id: string; url: string; alt: string }[] };
+type ListingInitial = { title: string; description: string; category_slug: string; price: string; condition: string; price_negotiable: boolean; available_quantity: number; province: string; municipality: string; marketplace?: string; attributes?: Record<string, unknown>; images: { id: string; url: string; alt: string }[] };
 
-export function ListingForm({ listingId, initial }: { listingId?: string; initial?: ListingInitial }) {
+const listingMarkets = [
+  { slug: "produtos", label: "Produtos" },
+  { slug: "empresas", label: "Empresas" },
+  { slug: "imoveis", label: "Imóveis" },
+  { slug: "automoveis", label: "Automóveis" },
+] as const;
+type ListingMarket = (typeof listingMarkets)[number]["slug"];
+
+function asListingMarket(value: string | undefined): ListingMarket {
+  return listingMarkets.some((market) => market.slug === value) ? value as ListingMarket : "produtos";
+}
+
+function asAttributeState(input?: Record<string, unknown>): Record<string, string | boolean> {
+  if (!input) return {};
+  return Object.fromEntries(Object.entries(input).flatMap(([key, value]) => {
+    if (typeof value === "boolean" || typeof value === "string") return [[key, value]];
+    if (typeof value === "number") return [[key, String(value)]];
+    return [];
+  }));
+}
+
+const listingCopy: Record<ListingMarket, { titlePlaceholder: string; descriptionPlaceholder: string; categoryLabel: string; priceHint: string }> = {
+  produtos: {
+    titlePlaceholder: "Ex.: Sofá de 3 lugares",
+    descriptionPlaceholder: "Descreve o estado, características e condições de venda.",
+    categoryLabel: "Categoria",
+    priceHint: "",
+  },
+  empresas: {
+    titlePlaceholder: "Ex.: Distribuidora de materiais de construção",
+    descriptionPlaceholder: "Descreve a empresa, os produtos ou serviços e a zona onde opera.",
+    categoryLabel: "Categoria da empresa",
+    priceHint: "Valor de referência do produto ou serviço.",
+  },
+  imoveis: {
+    titlePlaceholder: "Ex.: Apartamento T3 no Talatona",
+    descriptionPlaceholder: "Descreve o imóvel, a localização, o estado e as condições.",
+    categoryLabel: "Tipo de imóvel",
+    priceHint: "Indica a renda mensal se for arrendamento.",
+  },
+  automoveis: {
+    titlePlaceholder: "Ex.: Toyota Hilux 2021",
+    descriptionPlaceholder: "Descreve a viatura, o estado, o histórico e os extras.",
+    categoryLabel: "Tipo de automóvel",
+    priceHint: "Preço de venda da viatura.",
+  },
+};
+
+export function ListingForm({ listingId, initial, defaultMarketplace }: { listingId?: string; initial?: ListingInitial; defaultMarketplace?: string }) {
   const router = useRouter();
   const [categories, setCategories] = useState<Category[]>([]);
   const [images, setImages] = useState<UploadedImage[]>(initial?.images?.flatMap((image) => image.id ? [{ id: image.id, url: image.url, name: image.alt || "Imagem do anúncio" }] : []) ?? []);
@@ -141,6 +190,8 @@ export function ListingForm({ listingId, initial }: { listingId?: string; initia
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
 
+  const [marketplace, setMarketplace] = useState<ListingMarket>(asListingMarket(initial?.marketplace ?? defaultMarketplace));
+  const [attributes, setAttributes] = useState<Record<string, string | boolean>>(() => asAttributeState(initial?.attributes));
   const [title, setTitle] = useState(initial?.title ?? "");
   const [categorySlug, setCategorySlug] = useState(initial?.category_slug ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
@@ -156,14 +207,19 @@ export function ListingForm({ listingId, initial }: { listingId?: string; initia
   const [aiNotice, setAiNotice] = useState("");
 
   useEffect(() => {
-    fetch("/api/v1/catalog/categories")
+    let active = true;
+    setCategories([]);
+    fetch(`/api/v1/catalog/categories?marketplace=${marketplace}`)
       .then((response) => response.json())
-      .then((data: Category[]) => setCategories(data))
-      .catch(() => setError("Não foi possível carregar categorias."));
-  }, []);
+      .then((data: Category[]) => { if (active) setCategories(data); })
+      .catch(() => { if (active) setError("Não foi possível carregar categorias."); });
+    return () => { active = false; };
+  }, [marketplace]);
 
   useEffect(() => {
     if (initial) {
+      setMarketplace(asListingMarket(initial.marketplace ?? defaultMarketplace));
+      setAttributes(asAttributeState(initial.attributes));
       setTitle(initial.title || "");
       setCategorySlug(initial.category_slug || "");
       setDescription(initial.description || "");
@@ -174,9 +230,24 @@ export function ListingForm({ listingId, initial }: { listingId?: string; initia
       setPriceNegotiable(Boolean(initial.price_negotiable));
       setAvailableQuantity(initial.available_quantity ?? 1);
     }
-  }, [initial]);
+  }, [initial, defaultMarketplace]);
+
+  function changeMarketplace(value: string) {
+    const next = asListingMarket(value);
+    setMarketplace(next);
+    setCategorySlug("");
+    setAttributes({});
+    setError("");
+    if (next !== "produtos") setAvailableQuantity(1);
+    if (next === "empresas") setCondition("new");
+  }
+
+  function setAttribute(key: string, value: string | boolean) {
+    setAttributes((current) => ({ ...current, [key]: value }));
+  }
 
   async function handleAiSuggest() {
+    if (marketplace !== "produtos") return;
     if (!aiPrompt.trim()) return;
     setAiLoading(true);
     setAiNotice("");
@@ -245,11 +316,13 @@ export function ListingForm({ listingId, initial }: { listingId?: string; initia
     const payload = {
       title,
       description,
+      marketplace,
       categorySlug,
+      attributes: marketplace === "produtos" ? undefined : attributes,
       price: Number(price),
       condition,
       priceNegotiable,
-      availableQuantity: Number(availableQuantity),
+      availableQuantity: marketplace === "produtos" ? Number(availableQuantity) : 1,
       province,
       municipality,
       imageIds: images.map((image) => image.id),
@@ -261,7 +334,7 @@ export function ListingForm({ listingId, initial }: { listingId?: string; initia
       body: JSON.stringify(payload),
     });
     const data = await response.json().catch(() => ({})) as { id?: string; message?: string | string[] };
-    if (response.status === 401) { router.replace("/entrar?next=/vendedor/anuncios/novo"); return; }
+    if (response.status === 401) { router.replace(`/entrar?next=${encodeURIComponent(listingId ? window.location.pathname : `/vendedor/anuncios/novo?marketplace=${marketplace}`)}`); return; }
     if (!response.ok) {
       setError(Array.isArray(data.message) ? data.message.join(" ") : data.message ?? "Não foi possível guardar o anúncio.");
       setBusy(false);
@@ -272,9 +345,11 @@ export function ListingForm({ listingId, initial }: { listingId?: string; initia
     if (!listingId) window.setTimeout(() => router.push("/vendedor"), 1600);
   }
 
+  const copy = listingCopy[marketplace];
+
   return (
     <div className="listing-form-wrapper">
-      <div className="panel" style={{ marginBottom: "1.5rem", border: "1px solid #b9d4ff", background: "linear-gradient(135deg, #eef4ff 0%, #f7f9fd 100%)", borderRadius: "12px", padding: "1.25rem" }}>
+      {marketplace === "produtos" && <div className="panel" style={{ marginBottom: "1.5rem", border: "1px solid #b9d4ff", background: "linear-gradient(135deg, #eef4ff 0%, #f7f9fd 100%)", borderRadius: "12px", padding: "1.25rem" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
           <span style={{ fontSize: "1.25rem" }}>✨</span>
           <h3 style={{ margin: 0, fontSize: "1.05rem", fontWeight: 700, color: "#012480" }}>Assistente de IA PUVO</h3>
@@ -312,9 +387,17 @@ export function ListingForm({ listingId, initial }: { listingId?: string; initia
             {aiNotice}
           </p>
         )}
-      </div>
+      </div>}
 
       <form className="stack-form listing-form" onSubmit={submit}>
+        <label>
+          Mercado
+          <select name="marketplace" value={marketplace} onChange={(e) => changeMarketplace(e.target.value)}>
+            {listingMarkets.map((market) => <option key={market.slug} value={market.slug}>{market.label}</option>)}
+          </select>
+          <small>O mercado define os campos e as categorias disponíveis.</small>
+        </label>
+
         <label>
           Título
           <input
@@ -324,12 +407,12 @@ export function ListingForm({ listingId, initial }: { listingId?: string; initia
             required
             minLength={4}
             maxLength={140}
-            placeholder="Ex.: Sofá de 3 lugares"
+            placeholder={copy.titlePlaceholder}
           />
         </label>
 
         <label>
-          Categoria
+          {copy.categoryLabel}
           <select
             name="categorySlug"
             required
@@ -353,7 +436,7 @@ export function ListingForm({ listingId, initial }: { listingId?: string; initia
             minLength={10}
             maxLength={8000}
             rows={6}
-            placeholder="Descreve o estado, características e condições de venda."
+            placeholder={copy.descriptionPlaceholder}
           />
         </label>
 
@@ -369,31 +452,36 @@ export function ListingForm({ listingId, initial }: { listingId?: string; initia
               onChange={(e) => setPrice(e.target.value)}
               required
             />
+            {copy.priceHint && <small>{copy.priceHint}</small>}
           </label>
-          <label>
-            Estado
-            <select
-              name="condition"
-              value={condition}
-              onChange={(e) => setCondition(e.target.value)}
-            >
-              <option value="new">Novo</option>
-              <option value="used">Usado</option>
-              <option value="refurbished">Recondicionado</option>
-            </select>
-          </label>
-          <label>
-            Quantidade disponível
-            <input
-              name="availableQuantity"
-              type="number"
-              min="1"
-              max="100000"
-              value={availableQuantity}
-              onChange={(e) => setAvailableQuantity(Number(e.target.value))}
-              required
-            />
-          </label>
+          {(marketplace === "produtos" || marketplace === "automoveis") && (
+            <label>
+              Estado
+              <select
+                name="condition"
+                value={condition}
+                onChange={(e) => setCondition(e.target.value)}
+              >
+                <option value="new">Novo</option>
+                <option value="used">Usado</option>
+                <option value="refurbished">Recondicionado</option>
+              </select>
+            </label>
+          )}
+          {marketplace === "produtos" && (
+            <label>
+              Quantidade disponível
+              <input
+                name="availableQuantity"
+                type="number"
+                min="1"
+                max="100000"
+                value={availableQuantity}
+                onChange={(e) => setAvailableQuantity(Number(e.target.value))}
+                required
+              />
+            </label>
+          )}
           <label>
             Província
             <input
@@ -417,6 +505,124 @@ export function ListingForm({ listingId, initial }: { listingId?: string; initia
             />
           </label>
         </div>
+
+        {marketplace === "empresas" && (
+          <fieldset className="listing-attributes">
+            <legend>Detalhes da empresa</legend>
+            <div className="two-column-fields">
+              <label>
+                Tipo de empresa
+                <select required value={String(attributes.companyType ?? "")} onChange={(e) => setAttribute("companyType", e.target.value)}>
+                  <option value="" disabled>Escolhe o tipo</option>
+                  <option value="loja">Loja</option>
+                  <option value="fornecedor">Fornecedor</option>
+                  <option value="prestador">Prestador de serviços</option>
+                  <option value="distribuidor">Distribuidor</option>
+                  <option value="fabricante">Fabricante</option>
+                </select>
+              </label>
+              <label>
+                Setor
+                <input required minLength={2} maxLength={80} value={String(attributes.sector ?? "")} onChange={(e) => setAttribute("sector", e.target.value)} placeholder="Ex.: Construção" />
+              </label>
+              <label>
+                Cobertura
+                <input maxLength={120} value={String(attributes.coverage ?? "")} onChange={(e) => setAttribute("coverage", e.target.value)} placeholder="Ex.: Luanda e Benguela" />
+              </label>
+              <label>
+                Website
+                <input maxLength={200} value={String(attributes.website ?? "")} onChange={(e) => setAttribute("website", e.target.value)} placeholder="https://empresa.ao" />
+              </label>
+            </div>
+            <label className="checkbox-label">
+              <input type="checkbox" checked={attributes.delivery === true} onChange={(e) => setAttribute("delivery", e.target.checked)} />
+              A empresa faz entregas aos clientes
+            </label>
+          </fieldset>
+        )}
+
+        {marketplace === "imoveis" && (
+          <fieldset className="listing-attributes">
+            <legend>Detalhes do imóvel</legend>
+            <div className="two-column-fields">
+              <label>
+                Transação
+                <select required value={String(attributes.transaction ?? "")} onChange={(e) => setAttribute("transaction", e.target.value)}>
+                  <option value="" disabled>Comprar ou arrendar</option>
+                  <option value="venda">Venda</option>
+                  <option value="arrendamento">Arrendamento</option>
+                </select>
+              </label>
+              <label>
+                Área (m²)
+                <input required type="number" min="1" max="1000000" step="0.01" value={String(attributes.areaM2 ?? "")} onChange={(e) => setAttribute("areaM2", e.target.value)} placeholder="Ex.: 120" />
+              </label>
+              <label>
+                Quartos
+                <input type="number" min="0" max="50" step="1" value={String(attributes.bedrooms ?? "")} onChange={(e) => setAttribute("bedrooms", e.target.value)} placeholder="Ex.: 3" />
+              </label>
+              <label>
+                Casas de banho
+                <input type="number" min="0" max="50" step="1" value={String(attributes.bathrooms ?? "")} onChange={(e) => setAttribute("bathrooms", e.target.value)} placeholder="Ex.: 2" />
+              </label>
+              <label>
+                Lugares de estacionamento
+                <input type="number" min="0" max="100" step="1" value={String(attributes.parking ?? "")} onChange={(e) => setAttribute("parking", e.target.value)} placeholder="Ex.: 1" />
+              </label>
+            </div>
+            <label className="checkbox-label">
+              <input type="checkbox" checked={attributes.furnished === true} onChange={(e) => setAttribute("furnished", e.target.checked)} />
+              O imóvel está mobilado
+            </label>
+          </fieldset>
+        )}
+
+        {marketplace === "automoveis" && (
+          <fieldset className="listing-attributes">
+            <legend>Detalhes do automóvel</legend>
+            <div className="two-column-fields">
+              <label>
+                Marca
+                <input required minLength={2} maxLength={60} value={String(attributes.make ?? "")} onChange={(e) => setAttribute("make", e.target.value)} placeholder="Ex.: Toyota" />
+              </label>
+              <label>
+                Modelo
+                <input required minLength={2} maxLength={80} value={String(attributes.model ?? "")} onChange={(e) => setAttribute("model", e.target.value)} placeholder="Ex.: Hilux" />
+              </label>
+              <label>
+                Ano
+                <input required type="number" min="1950" max={new Date().getFullYear() + 1} step="1" value={String(attributes.year ?? "")} onChange={(e) => setAttribute("year", e.target.value)} placeholder="Ex.: 2021" />
+              </label>
+              <label>
+                Quilometragem (km)
+                <input type="number" min="0" max="2000000" step="1" value={String(attributes.mileageKm ?? "")} onChange={(e) => setAttribute("mileageKm", e.target.value)} placeholder="Ex.: 85000" />
+              </label>
+              <label>
+                Combustível
+                <select required value={String(attributes.fuel ?? "")} onChange={(e) => setAttribute("fuel", e.target.value)}>
+                  <option value="" disabled>Escolhe o combustível</option>
+                  <option value="gasolina">Gasolina</option>
+                  <option value="gasoleo">Gasóleo</option>
+                  <option value="eletrico">Elétrico</option>
+                  <option value="hibrido">Híbrido</option>
+                  <option value="gpl">GPL</option>
+                </select>
+              </label>
+              <label>
+                Caixa
+                <select value={String(attributes.transmission ?? "")} onChange={(e) => setAttribute("transmission", e.target.value)}>
+                  <option value="">Não indicar</option>
+                  <option value="manual">Manual</option>
+                  <option value="automatica">Automática</option>
+                </select>
+              </label>
+              <label>
+                Cor
+                <input maxLength={40} value={String(attributes.color ?? "")} onChange={(e) => setAttribute("color", e.target.value)} placeholder="Ex.: Branco" />
+              </label>
+            </div>
+          </fieldset>
+        )}
 
         <label className="checkbox-label">
           <input
@@ -468,7 +674,7 @@ export function ListingForm({ listingId, initial }: { listingId?: string; initia
         </button>
 
         <p className="legal-note">
-          Não publiques artigos proibidos, falsificados ou com informações enganosas. Os anúncios são moderados antes da publicação.
+          Não publiques anúncios proibidos, falsificados ou com informações enganosas. Os anúncios são moderados antes da publicação.
         </p>
       </form>
     </div>

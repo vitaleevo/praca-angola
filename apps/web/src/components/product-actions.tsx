@@ -31,14 +31,14 @@ export function FavoriteButton({ listingId }: { listingId: string }) {
   async function toggle() {
     const response = await fetch(saved ? "/api/v1/favorites/remove" : "/api/v1/favorites", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ listingId }) });
     if (!await requireSession(response, router)) return;
-    if (!response.ok) { setMessage("Não foi possível guardar este produto."); return; }
+    if (!response.ok) { setMessage("Não foi possível guardar este anúncio."); return; }
     setSaved(!saved);
     setMessage(saved ? "Removido dos favoritos." : "Guardado nos favoritos.");
   }
   return <div><button className="button button-secondary" type="button" onClick={toggle}>{saved ? "♥ Guardado" : "♡ Guardar"}</button>{message && <span className="sr-only" role="status">{message}</span>}</div>;
 }
 
-export function ContactSellerForm({ listingId }: { listingId: string }) {
+export function ContactSellerForm({ listingId, title = "Mensagem para a loja", placeholder = "Olá, este produto ainda está disponível?", buttonLabel = "Falar com a loja" }: { listingId: string; title?: string; placeholder?: string; buttonLabel?: string }) {
   const router = useRouter();
   const [message, setMessage] = useState("");
   const [status, setStatus] = useState("");
@@ -50,14 +50,14 @@ export function ContactSellerForm({ listingId }: { listingId: string }) {
     if (!response.ok || !data.conversationId) { setStatus(data.message ?? "Não foi possível enviar a mensagem."); return; }
     router.push(`/conta/mensagens/${data.conversationId}`);
   }
-  return <form className="stack-form contact-form" onSubmit={submit}><label htmlFor="seller-message">Mensagem para a loja</label><textarea id="seller-message" required minLength={1} maxLength={3000} value={message} onChange={(event) => setMessage(event.target.value)} placeholder="Olá, este produto ainda está disponível?"/><button className="button button-secondary" type="submit">Falar com a loja</button>{status && <p className="form-status" role="status">{status}</p>}</form>;
+  return <form className="stack-form contact-form" onSubmit={submit}><label htmlFor="seller-message">{title}</label><textarea id="seller-message" required minLength={1} maxLength={3000} value={message} onChange={(event) => setMessage(event.target.value)} placeholder={placeholder}/><button className="button button-secondary" type="submit">{buttonLabel}</button>{status && <p className="form-status" role="status">{status}</p>}</form>;
 }
 
 export function ReportListingButton({ listingId }: { listingId: string }) {
   const router = useRouter();
   const [status, setStatus] = useState("");
   async function report() {
-    const reason = window.prompt("Indica o motivo: produto proibido, informação enganosa, duplicado, suspeita de fraude ou outro.");
+    const reason = window.prompt("Indica o motivo: anúncio proibido, informação enganosa, duplicado, suspeita de fraude ou outro.");
     if (!reason) return;
     const response = await fetch("/api/v1/reports", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ listingId, reason: reason.toLowerCase().includes("fraude") ? "suspected_fraud" : reason.toLowerCase().includes("proibido") ? "prohibited_item" : reason.toLowerCase().includes("duplicado") ? "duplicate" : reason.toLowerCase().includes("enganosa") ? "misleading" : "other", details: reason }) });
     if (!await requireSession(response, router)) return;

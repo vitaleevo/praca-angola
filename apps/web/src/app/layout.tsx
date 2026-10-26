@@ -11,6 +11,8 @@ import './workspace.css';
 import './logistics-ui.css';
 import './header-navigation.css';
 import './marketplace-focus.css';
+import './vertical-market.css';
+import './accessibility.css';
 
 const inter = localFont({
   src: "./fonts/inter-latin.woff2",
@@ -38,11 +40,11 @@ export const metadata: Metadata = {
     template: "%s — P.U.V.O.",
   },
   description:
-    "Todos os canais. Uma só operação. Descobre produtos, lojas, profissionais e serviços em Angola na P.U.V.O., a Plataforma Unificada de Vendas Online.",
+    "Todos os canais. Uma só operação. Descobre produtos, empresas, imóveis, automóveis, lojas, profissionais e serviços em Angola na P.U.V.O., a Plataforma Unificada de Vendas Online.",
   openGraph: {
     title: "P.U.V.O. — Todos os canais. Uma só operação.",
     description:
-      "Produtos, lojas, profissionais e serviços de Angola num só lugar. Uma plataforma para comprar, vender e crescer.",
+      "Produtos, empresas, imóveis, automóveis, lojas e serviços de Angola num só lugar. Uma plataforma para comprar, vender e crescer.",
     url: "/",
     siteName: "P.U.V.O.",
     locale: "pt_AO",
@@ -60,7 +62,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "P.U.V.O. — Todos os canais. Uma só operação.",
     description:
-      "Produtos, lojas, profissionais e serviços de Angola num só lugar.",
+      "Produtos, empresas, imóveis, automóveis, lojas e serviços de Angola num só lugar.",
     images: ["/brand/puvo-og.png"],
   },
 };

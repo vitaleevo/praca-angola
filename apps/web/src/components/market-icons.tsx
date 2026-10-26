@@ -1,6 +1,62 @@
-export const categoryIcons:Record<string,string>={'telemoveis-tecnologia':'phone','casa-mobiliario':'home','moda-acessorios':'bag','casa-cozinha':'home','design-grafico':'pen','desenvolvimento-web':'laptop','electricidade':'bolt','canalizacao':'tool','limpeza':'drop','fotografia':'camera','marketing-digital':'chart','construcao':'home','consultoria':'people','transporte':'truck'};
-export function MarketIcon({name='grid'}:{name?:string}){
- const paths:Record<string,string>={search:'m21 21-5-5 M18 10a8 8 0 1 1-16 0a8 8 0 0 1 16 0',pin:'M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0 M15 10a3 3 0 1 1-6 0a3 3 0 0 1 6 0',grid:'M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z',phone:'M7 2h10v20H7z M10 18h4',home:'m2 11 10-9 10 9 M5 9v13h14V9 M10 22v-8h4v8',bag:'M4 7h16l1 15H3z M8 8V6a4 4 0 0 1 8 0v2',pen:'m4 16 12-12 4 4L8 20l-5 1z M14 6l4 4',laptop:'M4 3h16v14H4z M1 21h22l-3-4H4z',bolt:'m13 2-9 12h7l-1 8 10-13h-7z',tool:'m3 21 9-9 M14 3a6 6 0 0 0-2 9 6 6 0 0 0 9-2l-5 1-3-3z',drop:'M12 2C8 8 4 11 4 15a8 8 0 0 0 16 0c0-4-4-7-8-13',camera:'M3 6h5l2-3h4l2 3h5v15H3z M16 13a4 4 0 1 1-8 0a4 4 0 0 1 8 0',chart:'M3 3v18h18 M6 15l5-5 4 3 6-8',people:'M16 6a4 4 0 1 1-8 0a4 4 0 0 1 8 0 M4 22v-4a8 8 0 0 1 16 0v4',truck:'M2 5h13v12H2z M15 10h4l3 4v3h-7 M8 19a2 2 0 1 1-4 0a2 2 0 0 1 4 0 M20 19a2 2 0 1 1-4 0a2 2 0 0 1 4 0'};
- return <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d={paths[name]??paths.grid}/></svg>;
-}
+export const categoryIcons: Record<string, string> = {
+  'telemoveis-tecnologia': 'phone',
+  'casa-mobiliario': 'home',
+  'moda-acessorios': 'bag',
+  'casa-cozinha': 'home',
+  'design-grafico': 'pen',
+  'desenvolvimento-web': 'laptop',
+  'electricidade': 'bolt',
+  'canalizacao': 'tool',
+  'limpeza': 'drop',
+  'fotografia': 'camera',
+  'marketing-digital': 'chart',
+  'construcao': 'home',
+  'consultoria': 'people',
+  'transporte': 'truck',
+  'lojas-fornecedores': 'store',
+  'servicos-empresariais': 'people',
+  'equipamentos-materiais': 'tool',
+  'distribuicao-logistica': 'truck',
+  'tecnologia-escritorio': 'laptop',
+  'publicidade-marketing': 'chart',
+  'apartamentos': 'building',
+  'casas-moradias': 'home',
+  'terrenos': 'land',
+  'escritorios-lojas': 'building',
+  'armazens': 'warehouse',
+  'novos-empreendimentos': 'building',
+  'carros': 'car',
+  'suv-4x4': 'suv',
+  'comerciais': 'truck',
+  'motas': 'moto',
+  'pecas-acessorios': 'tool',
+  'viaturas-eletricas': 'bolt',
+};
 
+export function MarketIcon({ name = 'grid' }: { name?: string }) {
+  const paths: Record<string, string> = {
+    search: 'm21 21-5-5 M18 10a8 8 0 1 1-16 0a8 8 0 0 1 16 0',
+    pin: 'M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0 M15 10a3 3 0 1 1-6 0a3 3 0 0 1 6 0',
+    grid: 'M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z',
+    phone: 'M7 2h10v20H7z M10 18h4',
+    home: 'm2 11 10-9 10 9 M5 9v13h14V9 M10 22v-8h4v8',
+    bag: 'M4 7h16l1 15H3z M8 8V6a4 4 0 0 1 8 0v2',
+    store: 'M3 9l2-6h14l2 6 M4 9v12h16V9 M9 21v-7h6v7',
+    pen: 'm4 16 12-12 4 4L8 20l-5 1z M14 6l4 4',
+    laptop: 'M4 3h16v14H4z M1 21h22l-3-4H4z',
+    bolt: 'm13 2-9 12h7l-1 8 10-13h-7z',
+    tool: 'm3 21 9-9 M14 3a6 6 0 0 0-2 9 6 6 0 0 0 9-2l-5 1-3-3z',
+    drop: 'M12 2C8 8 4 11 4 15a8 8 0 0 0 16 0c0-4-4-7-8-13',
+    camera: 'M3 6h5l2-3h4l2 3h5v15H3z M16 13a4 4 0 1 1-8 0a4 4 0 0 1 8 0',
+    chart: 'M3 3v18h18 M6 15l5-5 4 3 6-8',
+    people: 'M16 6a4 4 0 1 1-8 0a4 4 0 0 1 8 0 M4 22v-4a8 8 0 0 1 16 0v4',
+    truck: 'M2 5h13v12H2z M15 10h4l3 4v3h-7 M8 19a2 2 0 1 1-4 0a2 2 0 0 1 4 0 M20 19a2 2 0 1 1-4 0a2 2 0 0 1 4 0',
+    building: 'M4 22V3h10v19 M14 9h6v13 M8 7h2 M8 11h2 M8 15h2 M17 13h1 M17 17h1',
+    land: 'M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z M9 3v15 M15 6v15',
+    warehouse: 'M3 21V9l9-6 9 6v12z M7 21v-7h10v7 M7 17h10',
+    car: 'M3 13l2-6h14l2 6v5h-2a2 2 0 0 1-4 0H9a2 2 0 0 1-4 0H3z M5 13h14 M7 17h.01 M17 17h.01',
+    suv: 'M3 13l2-5h10l3 3 3 1v6h-2a2 2 0 0 1-4 0H9a2 2 0 0 1-4 0H3z M5 13h14 M7 17h.01 M17 17h.01 M6 8V5h8v3',
+    moto: 'M5 18a3 3 0 1 0 0-6a3 3 0 0 0 0 6 M19 18a3 3 0 1 0 0-6a3 3 0 0 0 0 6 M8 15h5l3-6h3 M11 9h3 M9 9l-2 6',
+  };
+  return <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d={paths[name] ?? paths.grid}/></svg>;
+}

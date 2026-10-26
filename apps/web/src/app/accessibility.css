@@ -1,0 +1,39 @@
+/* Keep secondary copy readable while preserving the existing PUVO palette. */
+.eyebrow-dark,
+.section-heading p,
+.product-category,
+.product-location,
+.products-bottom,
+.store-copy small,
+.store-copy .store-location {
+  color: #56645b;
+}
+
+.marketplace-index-heading > p:last-child,
+.marketplace-roadmap summary > span,
+.marketplace-roadmap li span {
+  color: #536158;
+}
+
+.market-product-grid .product-category,
+.suggested-store-grid p,
+.store-directory-heading p:not(.eyebrow),
+.store-directory-intro span,
+.store-directory-card .store-directory-description,
+.store-directory-meta > span,
+.professional-card-body > p {
+  color: #536158;
+}
+
+.footer-v2-grid > div > p,
+.footer-v2-grid nav,
+.footer-v2-bottom {
+  color: #526368;
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid #0b3d2d;
+  outline-offset: 3px;
+}

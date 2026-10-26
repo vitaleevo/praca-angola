@@ -39,11 +39,12 @@ export class FavoritesController {
   @Get()
   async list(@CurrentUser() user: AuthenticatedUser) {
     const result = await this.database.query(
-      `SELECT l.id, l.slug, l.title, l.price::text, l.currency, l.condition, l.province, l.municipality, c.name AS category,
+      `SELECT l.id, l.slug, l.title, l.price::text, l.currency, l.condition, l.province, l.municipality, l.attributes,
+              c.name AS category, m.slug AS marketplace, m.name AS marketplace_name,
               s.slug AS store_slug, s.display_name AS store_name,
               COALESCE((SELECT json_agg(json_build_object('url', li.image_url, 'alt', li.alt_text) ORDER BY li.sort_order) FROM listing_images li WHERE li.listing_id = l.id), '[]'::json) AS images,
               f.created_at AS favorited_at
-       FROM favorites f JOIN listings l ON l.id = f.listing_id JOIN categories c ON c.id = l.category_id JOIN seller_profiles s ON s.id = l.seller_profile_id
+       FROM favorites f JOIN listings l ON l.id = f.listing_id JOIN categories c ON c.id = l.category_id JOIN marketplaces m ON m.id = c.marketplace_id JOIN seller_profiles s ON s.id = l.seller_profile_id
        WHERE f.user_id = $1 AND l.status = 'published' AND l.available_quantity > 0 AND s.status = 'active' ORDER BY f.created_at DESC`,
       [user.id],
     );

@@ -30,10 +30,18 @@ export type Listing = {
   available_quantity?: number;
   province: string;
   municipality: string;
+  marketplace?: "produtos" | "servicos" | "empresas" | "imoveis" | "automoveis";
+  marketplace_name?: string;
+  attributes?: Record<string, unknown>;
   category: string;
   category_slug?: string;
   store_slug: string;
   store_name: string;
+  store_description?: string;
+  store_province?: string;
+  store_municipality?: string;
+  is_verified?: boolean;
+  published_at?: string;
   images?: { url: string; alt: string }[];
 };
 
