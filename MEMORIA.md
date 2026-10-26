@@ -1,3 +1,21 @@
+# Integração Meta PUVO — 26/10/2026
+
+## Última etapa: acesso a Páginas e preparação do App Review
+
+- Causa confirmada no painel Meta: a configuração OAuth antiga `1120855583871113` pede apenas permissões WhatsApp. O CRM da loja estava sem canais associados, por isso **Verificar acesso** ainda não tem canal para testar.
+- Criada a configuração **PUVO Redes Sociais** `1376617274547161` com token de utilizador e sete permissões para listar Páginas, Messenger, Instagram Direct e leads. A variável `META_BUSINESS_LOGIN_CONFIG_ID` no Railway `@praca/api` foi alterada e o valor confirmado. Não alterar a configuração WhatsApp antiga.
+- Adicionadas aos casos de uso da app `instagram_manage_messages`, `instagram_manage_comments` e `pages_manage_engagement`; aparecem como **Ready for testing**, sem acesso avançado para lojistas externos.
+- Agência Holyweb: business verification **Verified**; access verification como **Tech Provider** submetida em 10/10/2026 e ainda **In review**. O App Review da PUVO está **Not submitted** e Meta bloqueia a submissão até completar verificação, usos permitidos, tratamento de dados e instruções de teste. O rascunho inclui também permissões sem uso no CRM e precisa de revisão.
+- OAuth real exige que o titular volte a autenticar no Facebook. Uma tentativa anterior contém o ID WhatsApp e deve ser descartada; iniciar nova ligação após o novo deploy. Nunca pedir ou partilhar senha/tokens.
+- Railway: a alteração de variável disparou quatro builds (`ff754485-a6ee-4509-8efd-f6d45e6a094d`, `63263acb-a871-495a-8419-f4c63a439a58`, `ee4c65d8-ef7f-4535-b155-445e1260a655`, `5520bf61-8138-45f1-a373-cc5d69c7cf49`), todos falhados antes de compilar, com erro de conexão do daemon BuildKit. O painel Railway anuncia incidente de snapshots na região EU West (Amsterdam). A variável nova está guardada, mas a API ainda executa o deployment anterior, que responde `status:ok` no readiness. Não iniciar novo OAuth até um deploy com sucesso.
+- O CRM ainda não importa histórico nem gere comentários. Não apresentar essas funções como prontas à Meta. O campo Terms of Service URL está vazio no painel Meta e `/termos` devolve 404.
+
+Estado do projeto: integração técnica de webhook e OAuth em produção, mas ligação social real e acesso avançado ainda pendentes. Primeiro confirmar deploy Railway; depois o titular deve concluir a reautenticação e selecionar uma Página. Em paralelo, aguardar o resultado da verificação Tech Provider e preparar um App Review limitado às funções implementadas. Detalhes em `docs/PUVO_CRM_META_STATUS.md`.
+
+AVISO: O próximo passo é confirmar o deploy Railway, ligar uma Página real no CRM e executar **Verificar acesso**; depois concluir o App Review quando a Meta aprovar o Tech Provider. Antes de iniciar, leia `MEMORIA.md` e `docs/PUVO_CRM_META_STATUS.md` para continuar exatamente de onde o projeto parou, entender o que já foi feito e integrar a solução com o sistema atual sem reler todo o repositório.
+
+---
+
 # Integração Meta PUVO — 25/10/2026
 
 App Meta própria PUVO (`2161321067754105`) criada na Agência Holyweb e em modo Live. A revisão `6538580` foi enviada para `codex/puvo-release-2026-10-25`; a API Railway `e053900e-2ed6-4b20-b480-7ada40112f66` aplicou a migração 023 e o site publicou o gestor no Vercel `dpl_FuFSFhzSGJFkXG6jN9CkiG22aQVu`. O CRM agora liga Página Facebook e Instagram profissional por OAuth, cifra os tokens no servidor, ingere Messenger/Instagram Direct/WhatsApp de forma idempotente e envia respostas de texto pelo mesmo inbox. `META_APP_SECRET`, `META_WEBHOOK_VERIFY_TOKEN`, `META_APP_ID` e `META_OAUTH_REDIRECT_URI` estão em `@praca/api`; a app Meta está subscrita nos objetos `page`, `instagram` e `whatsapp_business_account` para o callback PUVO. Verificação produção: inbox HTTP 200, readiness HTTP 200, POST HMAC válido HTTP 200 e assinatura inválida HTTP 403. Falta operacional: adicionar `https://puvo.vitaleevo.ao/api/v1/crm/webhooks/meta/callback` nas URLs OAuth válidas Meta e ligar as contas reais no CRM. Para WhatsApp, o formulário seguro pede `phone_number_id` e token de System User. Não mexer na app “Agentes” ligada ao CRM existente. Ver `docs/meta-webhook-puvo.md`.
