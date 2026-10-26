@@ -2,7 +2,7 @@
 
 ## Integração Meta posterior
 
-A app Meta própria PUVO (`2161321067754105`) foi criada no negócio Agência Holyweb e está em modo Live. O webhook processa lotes e deduplica reentregas pela migração 022. Após o redeploy `039edb45-3b13-4bd9-ab3e-101110395b20`, a verificação Meta devolve HTTP 200, o POST HMAC SHA-256 válido devolve HTTP 200 e uma assinatura inválida devolve HTTP 403. O utilizador confirmou a subscrição `messages` no painel Meta. Consultar `docs/meta-webhook-puvo.md`; a app “Agentes” existente não foi modificada.
+A app Meta própria PUVO (`2161321067754105`) foi criada no negócio Agência Holyweb e está em modo Live. A revisão `6538580` adiciona OAuth para ligar Páginas Facebook/Instagram profissionais por loja, armazenamento cifrado de tokens, receção idempotente de Messenger/Instagram/WhatsApp e envio de respostas de texto pelo inbox. O deployment Railway `e053900e-2ed6-4b20-b480-7ada40112f66` aplicou a migração 023; verificação Meta e assinatura HMAC continuam a passar. Consultar `docs/meta-webhook-puvo.md`; a app “Agentes” existente não foi modificada.
 
 ## Estado
 
@@ -27,7 +27,7 @@ Os registos DNS `puvo` e `gestao.puvo` foram criados na zona Vercel de `vitaleev
 
 ## Limites operacionais
 
-- O webhook Meta está ativo e validado contra assinatura HMAC em produção. Para o CRM associar mensagens reais, a ligação `whatsapp_cloud` da loja deve usar o `phone_number_id` recebido pela Meta. Para envio ativo de mensagens, ainda são necessários `WHATSAPP_CLOUD_ACCESS_TOKEN` e `WHATSAPP_CLOUD_PHONE_NUMBER_ID` em `@praca/api`; não são exigidos para receber eventos. A integração personalizada de IA também requer configuração de hosts permitidos. Estas credenciais não foram inventadas.
+- A API de gestão omnichannel está publicada; para concluir a operação, falta adicionar o URL de retorno OAuth nas definições Meta, subscrever Page/Instagram e autorizar as contas reais através do CRM. O WhatsApp pede o `phone_number_id` e token de System User no formulário seguro do CRM. A integração personalizada de IA também requer configuração de hosts permitidos. Estas credenciais não foram inventadas.
 - Não foi executado um fluxo autenticado de pagamento/entrega em produção para evitar transações reais sem contas de ensaio. O fluxo foi coberto pelos testes locais.
 - A CLI Railway não conseguiu abrir SSH (`ssh.railway.com` sem resolução DNS local); a ligação ao worker foi verificada pelo endpoint da própria API.
 - O serviço Railway Web antigo permanece sem uso como origem do domínio público. Não foi removido nesta publicação.
