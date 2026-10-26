@@ -12,7 +12,7 @@
 
 Estado do projeto: API CRM e configuração OAuth social publicadas em produção; Página Facebook e Instagram Vitaleevo associados e tokens de mensagens válidos. Ainda faltam mensagem recebida e resposta reais, permissões de comentários, acesso avançado e App Review. O browser partilhado continua desativado nas definições Work; a ligação foi concluída numa sessão Playwright visível, com credenciais introduzidas pelo titular. A seleção de Páginas agora inicia vazia para evitar ligar outras Páginas por engano; a correção foi publicada no Vercel production deployment `dpl_FkfdEaeSdy8FncRrSBfpYSxnA566` (**READY**), com CRM a responder 200 após reload. Detalhes em `docs/PUVO_CRM_META_STATUS.md`.
 
-AVISO: O próximo passo é testar uma mensagem real por canal e uma resposta no CRM; depois concluir o App Review quando a Meta aprovar o Tech Provider. Antes de iniciar, leia `MEMORIA.md` e `docs/PUVO_CRM_META_STATUS.md` para continuar exatamente de onde o projeto parou, entender o que já foi feito e integrar a solução com o sistema atual sem reler todo o repositório.
+AVISO: Uma mensagem real Instagram chegou ao CRM e a API Meta aceitou uma resposta pelo CRM; falta confirmar que a resposta apareceu na conta de origem. O próximo passo é receber uma mensagem Messenger enviada à Página Vitaleevo por uma conta externa e responder pelo CRM; depois concluir o App Review quando a Meta aprovar o Tech Provider. Antes de iniciar, leia `MEMORIA.md` e `docs/PUVO_CRM_META_STATUS.md` para continuar exatamente de onde o projeto parou, entender o que já foi feito e integrar a solução com o sistema atual sem reler todo o repositório.
 
 ---
 
