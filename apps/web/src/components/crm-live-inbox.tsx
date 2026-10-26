@@ -277,11 +277,10 @@ export function CrmLiveInbox() {
 
   return (
     <div className="crm-container">
-      <CrmChannelManager />
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+      <div className="crm-section-toolbar">
         <div>
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <h2 style={{ fontSize: "1.25rem", fontWeight: 700, margin: 0 }}>Live Inbox Omnichannel</h2>
+          <div className="crm-inbox-title-row">
+            <h2>Live Inbox</h2>
             <span
               style={{
                 display: "inline-flex",
@@ -309,28 +308,30 @@ export function CrmLiveInbox() {
               {isLiveConnected ? "Stream Live" : "A conectar…"}
             </span>
           </div>
-          <p style={{ margin: "2px 0 0 0", fontSize: "0.875rem", color: "#64748b" }}>
-            Conversa com clientes por WhatsApp, Instagram Direct e Chat da Loja sem sair da PUVO.
+          <p>
+            Todas as conversas com clientes num só lugar.
           </p>
         </div>
         <Link href="/vendedor/crm" className="button button-secondary">
-          ← Voltar ao Funil Kanban
+          Ver funil de vendas
         </Link>
       </div>
+      <CrmChannelManager />
 
       <div className="crm-inbox-grid">
         {/* Left Column: Thread List */}
         <div className="crm-inbox-threads">
           <div className="crm-inbox-threads-header">
-            <span style={{ fontSize: "13px", fontWeight: 700 }}>Conversas Ativas</span>
-            <span style={{ fontSize: "11px", color: "#64748b" }}>{conversations.length} contactos</span>
+            <span>Conversas</span>
+            <span className="crm-thread-count">{conversations.length}</span>
           </div>
 
           {conversations.map((convo) => (
-            <div
+            <button type="button"
               key={convo.id}
               className={`crm-thread-item ${selectedConvo?.id === convo.id ? "active" : ""}`}
               onClick={() => setSelectedConvo(convo)}
+              aria-pressed={selectedConvo?.id === convo.id}
             >
               <div className="crm-thread-avatar">
                 {convo.contact_name.slice(0, 1).toUpperCase()}
@@ -362,7 +363,7 @@ export function CrmLiveInbox() {
                 </div>
                 <div className="crm-thread-preview">{convo.last_message_preview || "Sem mensagens recentes"}</div>
               </div>
-            </div>
+            </button>
           ))}
 
           {conversations.length === 0 && (

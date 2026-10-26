@@ -160,19 +160,19 @@ export function CrmKanban() {
       </div>
 
       {/* Action Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", margin: "8px 0" }}>
+      <div className="crm-section-toolbar">
         <div>
-          <h2 style={{ fontSize: "1.25rem", fontWeight: 700, margin: 0 }}>Funil de Vendas</h2>
-          <p style={{ margin: "2px 0 0 0", fontSize: "0.875rem", color: "#64748b" }}>
-            Arrasta ou altera a fase dos teus leads para acompanhar o fecho de negócios.
+          <h2>Funil de vendas</h2>
+          <p>
+            Acompanha cada oportunidade desde o primeiro contacto até à venda.
           </p>
         </div>
-        <div style={{ display: "flex", gap: "10px" }}>
+        <div className="crm-section-actions">
           <Link href="/vendedor/crm/conversas" className="button button-secondary">
-            💬 Abrir Live Inbox
+            Abrir Live Inbox
           </Link>
           <button type="button" className="button button-primary" onClick={() => setShowModal(true)}>
-            ＋ Novo Lead / Oportunidade
+            + Nova oportunidade
           </button>
         </div>
       </div>

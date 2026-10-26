@@ -29,6 +29,7 @@ export function CrmChannelManager() {
   const [attemptId, setAttemptId] = useState<string | null>(null);
   const [selectedPages, setSelectedPages] = useState<string[]>([]);
   const [showWhatsApp, setShowWhatsApp] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const [whatsApp, setWhatsApp] = useState({ accountName: "", phoneNumberId: "", accessToken: "" });
 
   async function loadChannels() {
@@ -160,18 +161,22 @@ export function CrmChannelManager() {
       <div className="crm-channel-manager-heading">
         <div>
           <p className="crm-channel-kicker">Canais da loja</p>
-          <h2 id="crm-channel-manager-title">Liga e gere os teus canais</h2>
-          <p>Recebe e responde a mensagens no mesmo inbox. As credenciais ficam cifradas no servidor.</p>
+          <h2 id="crm-channel-manager-title">Canais de atendimento</h2>
+          <p>{loading ? "A verificar ligações…" : `${channels.filter((channel) => channel.status === "connected").length} canais ligados · Facebook, Instagram e WhatsApp no mesmo inbox.`}</p>
         </div>
         <div className="crm-channel-manager-actions">
-          <button type="button" className="button button-secondary" onClick={() => void startMetaConnection()} disabled={working}>Ligar Facebook e Instagram</button>
-          <button type="button" className="button button-primary" onClick={() => setShowWhatsApp((shown) => !shown)} disabled={working}>Ligar WhatsApp</button>
+          <button type="button" className="button button-secondary" aria-expanded={expanded} aria-controls="crm-channel-details" onClick={() => setExpanded((open) => !open)}>{expanded ? "Fechar canais" : "Gerir canais"}</button>
         </div>
       </div>
 
       {error && <p className="crm-channel-feedback error" role="alert">{error}</p>}
       {notice && <p className="crm-channel-feedback success" role="status">{notice}</p>}
 
+      <div id="crm-channel-details" hidden={!expanded && !pages && !showWhatsApp}>
+      <div className="crm-channel-manager-actions crm-channel-connect-actions">
+        <button type="button" className="button button-secondary" onClick={() => void startMetaConnection()} disabled={working}>Ligar Facebook e Instagram</button>
+        <button type="button" className="button button-primary" onClick={() => setShowWhatsApp((shown) => !shown)} disabled={working}>Ligar WhatsApp</button>
+      </div>
       {pages && (
         <div className="crm-channel-selection" aria-live="polite">
           <h3>Escolhe as Páginas a ligar</h3>
@@ -203,6 +208,7 @@ export function CrmChannelManager() {
             <div className="crm-channel-row-actions"><span className={`crm-channel-status ${channel.status}`}>{channel.status === "connected" ? "Ligado" : channel.status === "expired" ? "Expirado" : "Desligado"}</span><button type="button" className="button button-secondary" onClick={() => void disconnect(channel)} disabled={working || channel.status === "disconnected"}>Desligar</button></div>
           </article>
         )) : <p className="crm-channel-empty">Ainda não tens canais ligados. Liga uma Página, Instagram ou WhatsApp para começar.</p>}
+      </div>
       </div>
     </section>
   );
