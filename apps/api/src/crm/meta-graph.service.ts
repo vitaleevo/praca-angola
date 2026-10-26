@@ -9,6 +9,13 @@ export interface MetaPageCandidate {
   instagram?: { id: string; name: string; username?: string };
 }
 
+export interface MetaTokenDiagnostics {
+  valid: boolean;
+  appMatches: boolean;
+  expiresAt: number | null;
+  grantedScopes: string[];
+}
+
 interface GraphErrorPayload {
   error?: { message?: string; type?: string; code?: number; error_subcode?: number };
 }
@@ -143,6 +150,26 @@ export class MetaGraphService {
     return Object.fromEntries((result.field_data ?? []).flatMap((field) =>
       field.name && field.values?.[0] ? [[field.name, field.values[0]]] : [],
     ));
+  }
+
+  async inspectAccessToken(accessToken: string): Promise<MetaTokenDiagnostics> {
+    const { appId, appSecret } = this.oauthConfig();
+    const result = await this.graphGet<{ data?: {
+      app_id?: string;
+      is_valid?: boolean;
+      expires_at?: number;
+      scopes?: string[];
+    } }>("debug_token", {
+      input_token: accessToken,
+      access_token: `${appId}|${appSecret}`,
+    });
+    const data = result.data;
+    return {
+      valid: data?.is_valid === true,
+      appMatches: data?.app_id === appId,
+      expiresAt: data?.expires_at && data.expires_at > 0 ? data.expires_at : null,
+      grantedScopes: Array.isArray(data?.scopes) ? data.scopes : [],
+    };
   }
 
   private async graphGet<T>(path: string, params: Record<string, string>): Promise<T> {

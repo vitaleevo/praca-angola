@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Sse, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query, Sse, UseGuards } from "@nestjs/common";
 import { SessionGuard } from "../auth/session.guard";
 import { CurrentUser } from "../auth/current-user.decorator";
 import { AuthenticatedUser } from "../auth/auth.types";
@@ -190,6 +190,12 @@ export class CrmController {
   async getChannels(@CurrentUser() user: AuthenticatedUser) {
     const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
     return this.crmService.getChannels(workspace.id);
+  }
+
+  @Get("channels/:id/diagnostics")
+  async getChannelDiagnostics(@Param("id", ParseUUIDPipe) id: string, @CurrentUser() user: AuthenticatedUser) {
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
+    return this.crmService.getChannelDiagnostics(workspace.id, id);
   }
 
   @Get("meta/connect")

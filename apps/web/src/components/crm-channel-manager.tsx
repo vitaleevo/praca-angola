@@ -11,6 +11,16 @@ type Channel = {
 };
 
 type MetaPage = { id: string; name: string; instagram: { id: string; name: string; username?: string } | null };
+type ChannelDiagnostics = {
+  connected: boolean;
+  tokenValid: boolean;
+  appMatches: boolean;
+  expiresAt: number | null;
+  messagingMissing: string[];
+  commentsMissing: string[];
+  historyAvailable: boolean;
+  commentsAvailable: boolean;
+};
 
 const channelLabels: Record<Channel["channel_type"], string> = {
   facebook_page: "Facebook Messenger e Leads",
@@ -31,6 +41,8 @@ export function CrmChannelManager() {
   const [showWhatsApp, setShowWhatsApp] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [whatsApp, setWhatsApp] = useState({ accountName: "", phoneNumberId: "", accessToken: "" });
+  const [checkingId, setCheckingId] = useState<string | null>(null);
+  const [diagnostics, setDiagnostics] = useState<Record<string, ChannelDiagnostics>>({});
 
   async function loadChannels() {
     try {
@@ -156,6 +168,21 @@ export function CrmChannelManager() {
     }
   }
 
+  async function checkChannel(channel: Channel) {
+    setCheckingId(channel.id);
+    setError("");
+    try {
+      const response = await fetch(`/api/v1/crm/channels/${channel.id}/diagnostics`, { credentials: "include" });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.message || "Não foi possível verificar este canal.");
+      setDiagnostics((current) => ({ ...current, [channel.id]: payload }));
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Não foi possível verificar este canal.");
+    } finally {
+      setCheckingId(null);
+    }
+  }
+
   return (
     <section className="crm-channel-manager" aria-labelledby="crm-channel-manager-title">
       <div className="crm-channel-manager-heading">
@@ -206,7 +233,13 @@ export function CrmChannelManager() {
         {loading ? <p className="crm-channel-empty">A carregar canais…</p> : channels.length ? channels.map((channel) => (
           <article className="crm-channel-row" key={channel.id}>
             <div><strong>{channelLabels[channel.channel_type]}</strong><span>{channel.account_name}</span><small>Última mensagem recebida: {channel.last_sync_at ? new Date(channel.last_sync_at).toLocaleString("pt-AO") : "nenhuma mensagem recebida"}</small></div>
-            <div className="crm-channel-row-actions"><span className={`crm-channel-status ${channel.status}`}>{channel.status === "connected" ? "Ligado" : channel.status === "expired" ? "Expirado" : "Desligado"}</span><button type="button" className="button button-secondary" onClick={() => void disconnect(channel)} disabled={working || channel.status === "disconnected"}>Desligar</button></div>
+            <div className="crm-channel-row-actions"><span className={`crm-channel-status ${channel.status}`}>{channel.status === "connected" ? "Autorizado" : channel.status === "expired" ? "Expirado" : "Desligado"}</span>{["facebook_page", "instagram_direct"].includes(channel.channel_type) && <button type="button" className="button button-secondary" onClick={() => void checkChannel(channel)} disabled={checkingId === channel.id}>{checkingId === channel.id ? "A verificar…" : "Verificar acesso"}</button>}<button type="button" className="button button-secondary" onClick={() => void disconnect(channel)} disabled={working || channel.status === "disconnected"}>Desligar</button></div>
+            {diagnostics[channel.id] && <div className="crm-channel-diagnostics" role="status">
+              <strong>{diagnostics[channel.id].tokenValid && diagnostics[channel.id].appMatches ? "Token válido para a app PUVO" : "Token inválido ou de outra app — volta a ligar este canal"}</strong>
+              <span>Mensagens: {diagnostics[channel.id].messagingMissing.length ? `faltam ${diagnostics[channel.id].messagingMissing.join(", ")}` : "permissões presentes no token"}.</span>
+              <span>Comentários: {diagnostics[channel.id].commentsMissing.length ? `faltam ${diagnostics[channel.id].commentsMissing.join(", ")}` : "permissões presentes no token"}.</span>
+              <small>Mesmo com as permissões no token, a Meta exige acesso aprovado para clientes em produção. Importação de histórico e gestão de comentários ainda não estão disponíveis no CRM.</small>
+            </div>}
           </article>
         )) : <p className="crm-channel-empty">Ainda não tens canais ligados. Liga uma Página, Instagram ou WhatsApp para começar.</p>}
       </div>

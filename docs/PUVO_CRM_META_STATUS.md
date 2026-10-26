@@ -15,6 +15,7 @@
 - O estilo destas duas páginas usa o CSS do CRM e os controlos visuais da loja, sem emoji como ícone de ação.
 - `last_sync_at` passa a indicar a última mensagem recebida; ligar um canal já não simula uma sincronização.
 - O gestor de canais explica a diferença entre autorização, mensagens novas e importação de histórico/comentários.
+- Cada canal Facebook/Instagram pode agora ser verificado no CRM. A API consulta a validade e o âmbito do token na Meta, devolvendo somente o estado e as permissões em falta; a consulta é limitada à loja autenticada e não revela credenciais.
 
 ## Próximo passo para operação real
 

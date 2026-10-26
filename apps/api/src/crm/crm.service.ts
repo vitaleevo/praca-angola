@@ -499,6 +499,50 @@ export class CrmService {
     return { channels: channels.rows };
   }
 
+  async getChannelDiagnostics(workspaceId: string, channelId: string) {
+    const result = await this.database.query<{
+      channel_type: string;
+      status: string;
+      credentials_ciphertext: string;
+    }>(
+      `SELECT channel_type, status, credentials_ciphertext FROM crm_channel_connections
+       WHERE id = $1 AND workspace_id = $2 LIMIT 1`,
+      [channelId, workspaceId],
+    );
+    const channel = result.rows[0];
+    if (!channel) throw new NotFoundException({ code: "CHANNEL_NOT_FOUND", message: "Canal não encontrado." });
+    if (!["facebook_page", "instagram_direct"].includes(channel.channel_type)) {
+      throw new BadRequestException({ code: "DIAGNOSTICS_UNAVAILABLE", message: "Esta verificação está disponível para Facebook e Instagram." });
+    }
+    let accessToken: string;
+    try {
+      const credentials = JSON.parse(decryptPrivateValue(channel.credentials_ciphertext));
+      if (typeof credentials.accessToken !== "string" || !credentials.accessToken) throw new Error("missing token");
+      accessToken = credentials.accessToken;
+    } catch {
+      throw new BadRequestException({ code: "CHANNEL_CREDENTIALS_INVALID", message: "As credenciais guardadas são inválidas. Liga o canal novamente." });
+    }
+    const token = await this.metaGraph.inspectAccessToken(accessToken);
+    const messagingScopes = channel.channel_type === "facebook_page"
+      ? ["pages_messaging", "pages_manage_metadata"]
+      : ["instagram_basic", "instagram_manage_messages"];
+    const commentScopes = channel.channel_type === "facebook_page"
+      ? ["pages_read_engagement", "pages_read_user_content", "pages_manage_engagement"]
+      : ["instagram_basic", "instagram_manage_comments"];
+    const granted = new Set(token.grantedScopes);
+    return {
+      channelType: channel.channel_type,
+      connected: channel.status === "connected",
+      tokenValid: token.valid,
+      appMatches: token.appMatches,
+      expiresAt: token.expiresAt,
+      messagingMissing: messagingScopes.filter((scope) => !granted.has(scope)),
+      commentsMissing: commentScopes.filter((scope) => !granted.has(scope)),
+      historyAvailable: false,
+      commentsAvailable: false,
+    };
+  }
+
   async connectChannel(
     workspaceId: string,
     channelType: "facebook_page" | "instagram_direct" | "whatsapp_cloud" | "whatsapp_instance",
