@@ -12,7 +12,10 @@ const nextConfig: NextConfig = {
     const api = process.env.VERCEL
       ? process.env.API_PUBLIC_URL ?? "https://pracaapi-production.up.railway.app/api/v1"
       : process.env.API_INTERNAL_URL ?? "http://localhost:4000/api/v1";
-    return [{ source: "/api/v1/:path*", destination: `${api}/:path*` }];
+    return [
+      { source: "/api/crm/automations/:path*", destination: `${api}/crm/automations/:path*` },
+      { source: "/api/v1/:path*", destination: `${api}/:path*` },
+    ];
   },
   async headers() {
     const development = process.env.NODE_ENV !== "production";
