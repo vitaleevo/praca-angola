@@ -5,3 +5,5 @@
 @media(max-width:767px){.workspace-sidebar nav.workspace-nav-list{display:none}.workspace-sidebar nav.workspace-nav-list.open{display:grid}}
 @media(max-width:767px){.workspace-content .store-branding-grid{grid-template-columns:minmax(0,1fr)}.workspace-content .store-branding-grid label{min-width:0}}
 @media(max-width:1023px){.workspace-content .store-branding-grid{grid-template-columns:minmax(0,1fr)}}
+
+@media(min-width:768px){.workspace-sidebar{max-height:calc(100vh - 48px)}.workspace-nav-list{min-height:0;overflow-y:auto;padding-right:2px}}
