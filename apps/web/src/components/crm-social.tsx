@@ -111,7 +111,7 @@ export function CrmSocial() {
       <button type="button" onClick={() => void loadMedia(channelId)} disabled={!channelId || busy}>Atualizar</button>
     </div>
     <p className="crm-social-hint">Publicações e comentários disponíveis na Meta. A importação depende das permissões concedidas a esta Página e à app PUVO.</p>
-    {missingPermissions.length > 0 && <p role="status" className="crm-social-error">Para ler e responder a comentários neste canal, volta a autorizar a Página após a Meta conceder: {missingPermissions.join(", ")}.</p>}
+    {missingPermissions.length > 0 && <p role="status" className="crm-social-error">A Meta concedeu acesso parcial aos comentários. Nomes dos autores ou respostas podem falhar até autorizares novamente o canal com: {missingPermissions.join(", ")}.</p>}
     {profile && <div className="crm-social-profile"><strong>{profile.name}</strong>{profile.username && <span>@{profile.username}</span>}{profile.followers !== null && <span>{profile.followers.toLocaleString("pt-AO")} seguidores</span>}{profile.mediaCount !== null && <span>{profile.mediaCount.toLocaleString("pt-AO")} publicações</span>}{profile.description && <p>{profile.description}</p>}{profile.website && <a href={profile.website} target="_blank" rel="noopener noreferrer">Website</a>}</div>}
     {busy && <p role="status">A carregar dados da Meta…</p>}
     {error && <p role="alert" className="crm-social-error">{error}</p>}
@@ -134,7 +134,7 @@ export function CrmSocial() {
           {comments.map((comment) => <article key={comment.ref} className="crm-social-card">
             <strong>{comment.author}</strong><small>{date(comment.createdAt)}</small><p>{comment.text}</p>
             <label>Responder a {comment.author}<textarea rows={2} maxLength={1000} value={reply[comment.ref] ?? ""} onChange={(event) => setReply((previous) => ({ ...previous, [comment.ref]: event.target.value }))} /></label>
-            <button type="button" onClick={() => void sendReply(comment)} disabled={busy || missingPermissions.length > 0 || !reply[comment.ref]?.trim()}>Publicar resposta</button>
+            <button type="button" onClick={() => void sendReply(comment)} disabled={busy || !reply[comment.ref]?.trim()}>Publicar resposta</button>
           </article>)}
           {commentsNext && <button type="button" onClick={() => void loadComments(selected, commentsNext)} disabled={busy}>Carregar mais comentários</button>}
         </>}
