@@ -29,6 +29,7 @@
 .crm-channel-status.expired { color: #994c00; background: #fff4de; }
 .crm-channel-status.disconnected { color: #59655d; background: #eef1ef; }
 .crm-channel-empty { margin: 0; padding: 12px 0; color: #607167; font-size: .875rem; }
+.crm-channel-help { margin: 16px 0 0; padding: 12px 14px; border: 1px solid #dbe5df; border-radius: 10px; background: #f7faf7; color: #526859; font-size: 12px; line-height: 1.5; }
 @media (max-width: 760px) { .crm-channel-manager-heading, .crm-channel-row { align-items: stretch; flex-direction: column; } .crm-whatsapp-form { grid-template-columns: 1fr; } .crm-channel-row-actions { justify-content: space-between; } }
 .crm-container {
   display: flex;
@@ -920,6 +921,37 @@
   padding: 60px 20px;
   font-size: 14px;
   color: #64748b;
+}
+
+/* CRM pages share the account workspace scale, colour and controls. */
+.workspace-content .crm-automations,
+.workspace-content .crm-analytics-container { padding: 0; max-width: none; margin: 0; color: #20362a; }
+.workspace-content .crm-analytics-header { margin-bottom: 16px; gap: 16px; }
+.workspace-content .crm-analytics-title,
+.workspace-content .crm-automations-header h2 { color: #173a29; font: 750 clamp(18px, 2vw, 23px) var(--font-display); }
+.workspace-content .crm-btn-primary { background: #167a48; border-radius: 10px; }
+.workspace-content .crm-btn-primary:hover { box-shadow: 0 4px 12px rgba(22,122,72,.18); }
+.workspace-content .crm-btn-secondary,
+.workspace-content .crm-btn-outline { background: #fff; color: #205d39; border: 1px solid #b8d3c2; border-radius: 10px; padding: 10px 16px; font-weight: 700; cursor: pointer; }
+.workspace-content .crm-btn-icon { color: #205d39; font-size: 12px; font-weight: 700; border: 1px solid #dce8df; padding: 8px; }
+.workspace-content .crm-btn-icon.danger { color: #a13320; }
+.workspace-content .crm-automation-card,
+.workspace-content .crm-kpi-card,
+.workspace-content .crm-analytics-panel { border-color: #dce8df; box-shadow: 0 3px 12px rgba(20,58,37,.035); }
+.workspace-content .crm-insights-box { background: #f2f8f3; border-color: #dce8df; }
+.workspace-content .crm-badge-ai { background: #e5f3e8; color: #20613b; border-color: #b8d3c2; }
+.workspace-content .badge-info { background: #e9f4ec; color: #20613b; }
+.workspace-content .crm-spinner { border-top-color: #167a48; }
+.workspace-content .crm-tab.active { color: #205d39; }
+.workspace-content .crm-form-group input:focus,
+.workspace-content .crm-form-group select:focus,
+.workspace-content .crm-form-group textarea:focus { border-color: #167a48; box-shadow: 0 0 0 3px rgba(22,122,72,.12); }
+@media (max-width: 760px) {
+  .workspace-content .crm-analytics-header,
+  .workspace-content .crm-automations-header { align-items: stretch; flex-direction: column; }
+  .workspace-content .crm-header-actions { flex-wrap: wrap; }
+  .workspace-content .crm-automations-grid { grid-template-columns: minmax(0, 1fr); }
+  .workspace-content .crm-auto-stats { flex-wrap: wrap; gap: 8px 16px; }
 }
 
 /* CRM workspace refresh */

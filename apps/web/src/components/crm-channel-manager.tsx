@@ -107,7 +107,7 @@ export function CrmChannelManager() {
       if (!response.ok) throw new Error(payload.message || "Não foi possível ligar as Páginas.");
       setPages(null);
       setAttemptId(null);
-      setNotice("Página Facebook e conta Instagram profissional ligadas com sucesso.");
+      setNotice("Canais autorizados. As novas mensagens aparecem quando a Meta as entregar; confirma as permissões da app para atendimento e comentários.");
       await loadChannels();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Não foi possível ligar as Páginas.");
@@ -162,7 +162,7 @@ export function CrmChannelManager() {
         <div>
           <p className="crm-channel-kicker">Canais da loja</p>
           <h2 id="crm-channel-manager-title">Canais de atendimento</h2>
-          <p>{loading ? "A verificar ligações…" : `${channels.filter((channel) => channel.status === "connected").length} canais ligados · Facebook, Instagram e WhatsApp no mesmo inbox.`}</p>
+          <p>{loading ? "A verificar ligações…" : `${channels.filter((channel) => channel.status === "connected").length} canais autorizados para receber eventos.`}</p>
         </div>
         <div className="crm-channel-manager-actions">
           <button type="button" className="button button-secondary" aria-expanded={expanded} aria-controls="crm-channel-details" onClick={() => setExpanded((open) => !open)}>{expanded ? "Fechar canais" : "Gerir canais"}</button>
@@ -173,6 +173,7 @@ export function CrmChannelManager() {
       {notice && <p className="crm-channel-feedback success" role="status">{notice}</p>}
 
       <div id="crm-channel-details" hidden={!expanded && !pages && !showWhatsApp}>
+      <p className="crm-channel-help">A ligação guarda o acesso da loja e recebe mensagens novas pelo webhook. O histórico anterior e os comentários ainda não são importados. Para responder no Facebook e Instagram, a app Meta precisa das permissões de mensagens e das permissões de comentários aprovadas para os clientes.</p>
       <div className="crm-channel-manager-actions crm-channel-connect-actions">
         <button type="button" className="button button-secondary" onClick={() => void startMetaConnection()} disabled={working}>Ligar Facebook e Instagram</button>
         <button type="button" className="button button-primary" onClick={() => setShowWhatsApp((shown) => !shown)} disabled={working}>Ligar WhatsApp</button>
@@ -186,7 +187,7 @@ export function CrmChannelManager() {
               <input type="checkbox" checked={selectedPages.includes(page.id)} onChange={(event) => setSelectedPages((current) => event.target.checked ? [...current, page.id] : current.filter((id) => id !== page.id))} />
               <span><strong>{page.name}</strong><small>{page.instagram ? `Instagram: ${page.instagram.username ? `@${page.instagram.username}` : page.instagram.name}` : "Sem Instagram profissional associado"}</small></span>
             </label>
-          )) : <p className="crm-channel-empty">A Meta não devolveu Páginas elegíveis para esta conta.</p>}
+          )) : <p className="crm-channel-empty" role="alert">A Meta não devolveu Páginas. Confirma que esta conta administra uma Página e que a configuração de Login da app PUVO concede pages_show_list, pages_manage_metadata e pages_messaging.</p>}
           <button type="button" className="button button-primary" onClick={() => void completeMetaConnection()} disabled={working || !pages.length || !selectedPages.length}>{working ? "A ligar…" : "Confirmar ligações"}</button>
         </div>
       )}
@@ -204,7 +205,7 @@ export function CrmChannelManager() {
       <div className="crm-channel-list" aria-busy={loading}>
         {loading ? <p className="crm-channel-empty">A carregar canais…</p> : channels.length ? channels.map((channel) => (
           <article className="crm-channel-row" key={channel.id}>
-            <div><strong>{channelLabels[channel.channel_type]}</strong><span>{channel.account_name}</span><small>Última ligação: {channel.last_sync_at ? new Date(channel.last_sync_at).toLocaleString("pt-AO") : "ainda não sincronizado"}</small></div>
+            <div><strong>{channelLabels[channel.channel_type]}</strong><span>{channel.account_name}</span><small>Última mensagem recebida: {channel.last_sync_at ? new Date(channel.last_sync_at).toLocaleString("pt-AO") : "nenhuma mensagem recebida"}</small></div>
             <div className="crm-channel-row-actions"><span className={`crm-channel-status ${channel.status}`}>{channel.status === "connected" ? "Ligado" : channel.status === "expired" ? "Expirado" : "Desligado"}</span><button type="button" className="button button-secondary" onClick={() => void disconnect(channel)} disabled={working || channel.status === "disconnected"}>Desligar</button></div>
           </article>
         )) : <p className="crm-channel-empty">Ainda não tens canais ligados. Liga uma Página, Instagram ou WhatsApp para começar.</p>}

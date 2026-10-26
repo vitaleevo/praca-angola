@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import "../app/crm.css";
 
 interface AutomationRule {
   id: string;
@@ -30,21 +31,21 @@ interface AutomationLog {
 }
 
 const TRIGGER_LABELS: Record<string, string> = {
-  new_lead: "📥 Novo Lead",
-  new_message_inbound: "💬 Nova Mensagem Recebida",
-  deal_stage_changed: "🔄 Deal Muda de Etapa",
-  contact_idle_days: "⏰ Contacto Inativo",
-  new_deal: "🤝 Novo Negócio",
+  new_lead: "Novo lead",
+  new_message_inbound: "Nova mensagem recebida",
+  deal_stage_changed: "Negócio muda de etapa",
+  contact_idle_days: "Contacto inativo",
+  new_deal: "Novo negócio",
 };
 
 const ACTION_LABELS: Record<string, string> = {
-  auto_reply_text: "📝 Resposta Automática (Texto)",
-  auto_reply_ai: "🤖 Resposta Automática (IA)",
-  move_deal_stage: "📊 Mover Deal para Etapa",
-  assign_to_user: "👤 Atribuir a Utilizador",
-  add_tag: "🏷️ Adicionar Tag",
-  create_deal: "🤝 Criar Negócio",
-  send_notification: "🔔 Enviar Notificação",
+  auto_reply_text: "Resposta automática por texto",
+  auto_reply_ai: "Resposta automática por IA",
+  move_deal_stage: "Mover negócio de etapa",
+  assign_to_user: "Atribuir a utilizador",
+  add_tag: "Adicionar etiqueta",
+  create_deal: "Criar negócio",
+  send_notification: "Enviar notificação",
 };
 
 export default function CrmAutomations() {
@@ -53,6 +54,16 @@ export default function CrmAutomations() {
   const [activeTab, setActiveTab] = useState<"rules" | "logs">("rules");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  async function request(path: string, init?: RequestInit) {
+    const res = await fetch(`/api/v1/crm/automations/${path}`, { credentials: "include", ...init });
+    if (!res.ok) {
+      const payload = await res.json().catch(() => ({}));
+      throw new Error(payload.message || "Não foi possível atualizar as automações.");
+    }
+    return res.json();
+  }
 
   // New rule form state
   const [newRule, setNewRule] = useState<{
@@ -73,22 +84,17 @@ export default function CrmAutomations() {
 
   const fetchRules = useCallback(async () => {
     try {
-      const res = await fetch("/api/crm/automations/rules", { credentials: "include" });
-      if (res.ok) {
-        const data = await res.json();
-        setRules(data.rules || []);
-      }
-    } catch {}
+      const data = await request("rules");
+      setRules(data.rules || []);
+      setError("");
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Não foi possível carregar as regras."); }
   }, []);
 
   const fetchLogs = useCallback(async () => {
     try {
-      const res = await fetch("/api/crm/automations/logs", { credentials: "include" });
-      if (res.ok) {
-        const data = await res.json();
-        setLogs(data.logs || []);
-      }
-    } catch {}
+      const data = await request("logs");
+      setLogs(data.logs || []);
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Não foi possível carregar o historial."); }
   }, []);
 
   useEffect(() => {
@@ -98,37 +104,36 @@ export default function CrmAutomations() {
 
   const toggleRule = async (ruleId: string, currentActive: boolean) => {
     try {
-      await fetch(`/api/crm/automations/rules/${ruleId}`, {
+      await request(`rules/${ruleId}`, {
         method: "PATCH",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isActive: !currentActive }),
       });
-      fetchRules();
-    } catch {}
+      await fetchRules();
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Não foi possível alterar a regra."); }
   };
 
   const deleteRule = async (ruleId: string) => {
     if (!confirm("Tens a certeza que queres apagar esta automação?")) return;
     try {
-      await fetch(`/api/crm/automations/rules/${ruleId}`, {
+      await request(`rules/${ruleId}`, {
         method: "DELETE",
         credentials: "include",
       });
-      fetchRules();
-    } catch {}
+      await fetchRules();
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Não foi possível apagar a regra."); }
   };
 
   const createRule = async () => {
     if (!newRule.name.trim() || !newRule.actions.length) return;
     try {
-      const res = await fetch("/api/crm/automations/rules", {
+      await request("rules", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newRule),
       });
-      if (res.ok) {
         setShowCreateModal(false);
         setNewRule({
           name: "",
@@ -138,19 +143,18 @@ export default function CrmAutomations() {
           conditions: [],
           priority: 100,
         });
-        fetchRules();
-      }
-    } catch {}
+        await fetchRules();
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Não foi possível criar a regra."); }
   };
 
   const seedDefaults = async () => {
     try {
-      const res = await fetch("/api/crm/automations/seed-defaults", {
+      await request("seed-defaults", {
         method: "POST",
         credentials: "include",
       });
-      if (res.ok) fetchRules();
-    } catch {}
+      await fetchRules();
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Não foi possível carregar os modelos."); }
   };
 
   return (
@@ -158,17 +162,17 @@ export default function CrmAutomations() {
       {/* Header */}
       <div className="crm-automations-header">
         <div>
-          <h2>⚡ Motor de Automações</h2>
+          <h2>Regras de automação</h2>
           <p className="crm-subtitle">
             Automatiza tarefas repetitivas: respostas, atribuições, tags e muito mais.
           </p>
         </div>
         <div className="crm-header-actions">
           <button className="crm-btn-secondary" onClick={seedDefaults}>
-            🌱 Carregar Modelos
+            Carregar modelos
           </button>
           <button className="crm-btn-primary" onClick={() => setShowCreateModal(true)}>
-            + Nova Automação
+            Nova automação
           </button>
         </div>
       </div>
@@ -179,31 +183,34 @@ export default function CrmAutomations() {
           className={`crm-tab ${activeTab === "rules" ? "active" : ""}`}
           onClick={() => setActiveTab("rules")}
         >
-          📋 Regras ({rules.length})
+          Regras ({rules.length})
         </button>
         <button
           className={`crm-tab ${activeTab === "logs" ? "active" : ""}`}
           onClick={() => { setActiveTab("logs"); fetchLogs(); }}
         >
-          📊 Historial de Execuções
+          Historial de execuções
         </button>
       </div>
 
+      {error && <p className="crm-channel-feedback error" role="alert">{error}</p>}
       {loading ? (
         <div className="crm-loading">
           <div className="crm-spinner" />
           <span>A carregar automações...</span>
         </div>
+      ) : error && !rules.length && activeTab === "rules" ? (
+        <div className="crm-empty-state"><h3>Regras indisponíveis</h3><p>Verifica a ligação e tenta novamente.</p><button className="crm-btn-secondary" onClick={() => void fetchRules()}>Tentar novamente</button></div>
       ) : activeTab === "rules" ? (
         /* Rules List */
         <div className="crm-automations-grid">
           {!rules.length ? (
             <div className="crm-empty-state">
-              <span className="crm-empty-icon">⚡</span>
+              <span className="crm-empty-icon" aria-hidden="true">○</span>
               <h3>Sem automações configuradas</h3>
               <p>Cria a tua primeira automação ou carrega os modelos pré-definidos.</p>
               <button className="crm-btn-primary" onClick={seedDefaults}>
-                🌱 Carregar Modelos Pré-definidos
+                Carregar modelos predefinidos
               </button>
             </div>
           ) : (
@@ -222,10 +229,10 @@ export default function CrmAutomations() {
                       onClick={() => toggleRule(rule.id, rule.is_active)}
                       title={rule.is_active ? "Pausar" : "Ativar"}
                     >
-                      {rule.is_active ? "⏸️" : "▶️"}
+                      {rule.is_active ? "Pausar" : "Ativar"}
                     </button>
                     <button className="crm-btn-icon danger" onClick={() => deleteRule(rule.id)} title="Apagar">
-                      🗑️
+                      Apagar
                     </button>
                   </div>
                 </div>
@@ -249,10 +256,10 @@ export default function CrmAutomations() {
                   </div>
                 </div>
                 <div className="crm-auto-stats">
-                  <span>🔁 {rule.execution_count} execuções</span>
-                  <span>📅 Prioridade: {rule.priority}</span>
+                  <span>{rule.execution_count} execuções</span>
+                  <span>Prioridade: {rule.priority}</span>
                   {rule.last_triggered_at && (
-                    <span>⏰ Último: {new Date(rule.last_triggered_at).toLocaleDateString("pt-AO")}</span>
+                    <span>Último: {new Date(rule.last_triggered_at).toLocaleDateString("pt-AO")}</span>
                   )}
                 </div>
               </div>
@@ -264,7 +271,7 @@ export default function CrmAutomations() {
         <div className="crm-logs-table-wrapper">
           {!logs.length ? (
             <div className="crm-empty-state">
-              <span className="crm-empty-icon">📊</span>
+              <span className="crm-empty-icon" aria-hidden="true">○</span>
               <h3>Sem execuções registadas</h3>
               <p>As automações vão registar aqui cada execução automaticamente.</p>
             </div>
@@ -292,7 +299,7 @@ export default function CrmAutomations() {
                     </td>
                     <td>
                       <span className={`crm-badge ${log.status === "success" ? "badge-success" : log.status === "error" ? "badge-danger" : "badge-warning"}`}>
-                        {log.status === "success" ? "✅ Sucesso" : log.status === "error" ? "❌ Erro" : "⚠️ Parcial"}
+                        {log.status === "success" ? "Sucesso" : log.status === "error" ? "Erro" : "Parcial"}
                       </span>
                     </td>
                     <td>{log.duration_ms}ms</td>
@@ -310,7 +317,7 @@ export default function CrmAutomations() {
         <div className="crm-modal-overlay" onClick={() => setShowCreateModal(false)}>
           <div className="crm-modal crm-modal-lg" onClick={(e) => e.stopPropagation()}>
             <div className="crm-modal-header">
-              <h3>⚡ Nova Automação</h3>
+              <h3>Nova automação</h3>
               <button className="crm-btn-icon" onClick={() => setShowCreateModal(false)}>✕</button>
             </div>
             <div className="crm-modal-body">
@@ -411,7 +418,7 @@ export default function CrmAutomations() {
             <div className="crm-modal-footer">
               <button className="crm-btn-secondary" onClick={() => setShowCreateModal(false)}>Cancelar</button>
               <button className="crm-btn-primary" onClick={createRule} disabled={!newRule.name.trim()}>
-                ⚡ Criar Automação
+                Criar automação
               </button>
             </div>
           </div>

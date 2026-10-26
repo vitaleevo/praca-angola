@@ -508,10 +508,10 @@ export class CrmService {
   ) {
     const encrypted = encryptPrivateValue(credentials);
     const result = await this.database.query(
-      `INSERT INTO crm_channel_connections (workspace_id, channel_type, account_name, external_account_id, credentials_ciphertext, status, last_sync_at)
-       VALUES ($1, $2, $3, $4, $5, 'connected', now())
+      `INSERT INTO crm_channel_connections (workspace_id, channel_type, account_name, external_account_id, credentials_ciphertext, status)
+       VALUES ($1, $2, $3, $4, $5, 'connected')
        ON CONFLICT (workspace_id, channel_type, external_account_id)
-       DO UPDATE SET credentials_ciphertext = $5, status = 'connected', last_sync_at = now(), updated_at = now()
+       DO UPDATE SET credentials_ciphertext = $5, status = 'connected', updated_at = now()
        RETURNING id, channel_type, account_name, status`,
       [workspaceId, channelType, accountName, externalAccountId, encrypted],
     );
@@ -573,22 +573,22 @@ export class CrmService {
         await this.metaGraph.subscribeAccount("facebook_page", page.id, page.pageAccessToken);
         const credentials = encryptPrivateValue(JSON.stringify({ accessToken: page.pageAccessToken }));
         await client.query(
-          `INSERT INTO crm_channel_connections (workspace_id, channel_type, account_name, external_account_id, credentials_ciphertext, status, last_sync_at)
-           VALUES ($1, 'facebook_page', $2, $3, $4, 'connected', now())
+          `INSERT INTO crm_channel_connections (workspace_id, channel_type, account_name, external_account_id, credentials_ciphertext, status)
+           VALUES ($1, 'facebook_page', $2, $3, $4, 'connected')
            ON CONFLICT (workspace_id, channel_type, external_account_id)
            DO UPDATE SET account_name = EXCLUDED.account_name, credentials_ciphertext = EXCLUDED.credentials_ciphertext,
-                         status = 'connected', last_sync_at = now(), updated_at = now()`,
+                         status = 'connected', updated_at = now()`,
           [workspaceId, page.name, page.id, credentials],
         );
         result.push({ channelType: "facebook_page", accountName: page.name });
         if (page.instagram) {
           await this.metaGraph.subscribeAccount("instagram_direct", page.instagram.id, page.pageAccessToken);
           await client.query(
-            `INSERT INTO crm_channel_connections (workspace_id, channel_type, account_name, external_account_id, credentials_ciphertext, status, last_sync_at)
-             VALUES ($1, 'instagram_direct', $2, $3, $4, 'connected', now())
+            `INSERT INTO crm_channel_connections (workspace_id, channel_type, account_name, external_account_id, credentials_ciphertext, status)
+             VALUES ($1, 'instagram_direct', $2, $3, $4, 'connected')
              ON CONFLICT (workspace_id, channel_type, external_account_id)
              DO UPDATE SET account_name = EXCLUDED.account_name, credentials_ciphertext = EXCLUDED.credentials_ciphertext,
-                           status = 'connected', last_sync_at = now(), updated_at = now()`,
+                           status = 'connected', updated_at = now()`,
             [workspaceId, page.instagram.name, page.instagram.id, credentials],
           );
           result.push({ channelType: "instagram_direct", accountName: page.instagram.name });
@@ -673,6 +673,7 @@ export class CrmService {
          RETURNING id, conversation_id, workspace_id, direction, message_type, content, status, created_at`,
         [conversation.rows[0].id, linked.workspace_id, content, JSON.stringify({ meta_message_id: input.messageId, sender_id: input.senderId })],
       );
+      await client.query(`UPDATE crm_channel_connections SET last_sync_at = now() WHERE id = $1 AND workspace_id = $2`, [linked.id, linked.workspace_id]);
       return { workspaceId: linked.workspace_id, contactId: identity.rows[0].contact_id, conversationId: conversation.rows[0].id, message: message.rows[0], channel: input.channel };
     });
     if (result) {

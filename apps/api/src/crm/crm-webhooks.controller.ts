@@ -203,6 +203,7 @@ export class CrmWebhooksController {
          RETURNING id, conversation_id, workspace_id, direction, message_type, content, status, created_at`,
         [conversation.rows[0].id, workspaceId, textBody, JSON.stringify({ meta_message_id: message.id })],
       );
+      await client.query(`UPDATE crm_channel_connections SET last_sync_at = now() WHERE id = $1 AND workspace_id = $2`, [connection.rows[0].id, workspaceId]);
       return { contactId: contact.rows[0].id, conversationId: conversation.rows[0].id, message: stored.rows[0] };
     });
     if (!result) return false;

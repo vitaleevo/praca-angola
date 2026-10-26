@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import "../app/crm.css";
 
 interface PipelineStage {
   id: string;
@@ -113,13 +114,13 @@ export default function CrmAiAnalytics() {
       {/* ──── Header ──── */}
       <div className="crm-analytics-header">
         <div>
-          <h1 className="crm-analytics-title">📊 Analytics & Inteligência de Negócio</h1>
+          <h2 className="crm-analytics-title">Indicadores da loja</h2>
           <p className="crm-analytics-subtitle">
             Visão consolidada de performance de vendas, conversão do chatbot e métricas de proteção por IA.
           </p>
         </div>
         <button onClick={fetchAnalytics} className="crm-btn crm-btn-outline" title="Atualizar dados">
-          🔄 Atualizar
+          Atualizar
         </button>
       </div>
 
@@ -158,7 +159,7 @@ export default function CrmAiAnalytics() {
         <div className="crm-kpi-card">
           <span className="crm-kpi-label">Intervenções Guardrails</span>
           <span className="crm-kpi-value crm-text-shield">
-            🛡️ {chatbot.guardrailInterventions}
+            {chatbot.guardrailInterventions}
           </span>
           <span className="crm-kpi-sub">
             Defesas activadas contra burlas e jailbreaks
@@ -169,17 +170,13 @@ export default function CrmAiAnalytics() {
       {/* ──── AI Strategic Insights ──── */}
       <div className="crm-insights-box">
         <div className="crm-insights-title">
-          <span>🧠 Recomendações Estratégicas de IA</span>
-          <span className="crm-badge-ai">Em tempo real</span>
+          <span>Recomendações comerciais</span>
+          <span className="crm-badge-ai">Dados atuais</span>
         </div>
         <div className="crm-insights-list">
           {insights.map((insight, idx) => (
             <div key={idx} className={`crm-insight-item crm-insight-${insight.type}`}>
-              <span className="crm-insight-icon">
-                {insight.type === "success" && "✅"}
-                {insight.type === "alert" && "🛡️"}
-                {insight.type === "opportunity" && "💡"}
-              </span>
+              <span className="crm-insight-icon" aria-hidden="true">●</span>
               <span className="crm-insight-text">{insight.message}</span>
             </div>
           ))}
@@ -189,7 +186,7 @@ export default function CrmAiAnalytics() {
       {/* ──── Pipeline & Stages Breakdown ──── */}
       <div className="crm-analytics-grid">
         <div className="crm-analytics-panel">
-          <h2 className="crm-panel-heading">📈 Distribuição por Estágio do Funil</h2>
+          <h2 className="crm-panel-heading">Distribuição por etapa do funil</h2>
           <div className="crm-stages-progress-list">
             {pipeline.stages.map((stage) => {
               const maxVal = Math.max(...pipeline.stages.map((s) => s.totalValue), 1);
@@ -227,7 +224,7 @@ export default function CrmAiAnalytics() {
 
         {/* ──── Lead Channels ──── */}
         <div className="crm-analytics-panel">
-          <h2 className="crm-panel-heading">🌐 Origem dos Contactos (Omnichannel)</h2>
+          <h2 className="crm-panel-heading">Origem dos contactos</h2>
           <div className="crm-channels-list">
             {contacts.byChannel.map((ch) => {
               const pct = contacts.totalContacts > 0 ? Math.round((ch.count / contacts.totalContacts) * 100) : 0;
@@ -253,14 +250,14 @@ export default function CrmAiAnalytics() {
 
       {/* ──── Guardrails & Chatbot Telemetry ──── */}
       <div className="crm-analytics-panel crm-mt-6">
-        <h2 className="crm-panel-heading">🛡️ Telemetria de Segurança & Guardrails do Chatbot</h2>
+        <h2 className="crm-panel-heading">Proteção do assistente</h2>
         <p className="crm-panel-desc">
           O assistente de vendas opera com filtros ativos para proteger a loja contra injeção de prompts maliciosos, vazamento de bilhetes de identidade (BI), IBAN e promessas de descontos ilegítimos.
         </p>
 
         {Object.keys(chatbot.violationsByCategory).length === 0 ? (
           <div className="crm-guardrails-empty">
-            <span>🛡️</span>
+            <span aria-hidden="true">●</span>
             <p>Nenhuma violação ou anomalia registada nas últimas conversas. As interações dos visitantes com o chatbot mantêm-se dentro dos parâmetros de segurança normais.</p>
           </div>
         ) : (
