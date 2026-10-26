@@ -1,3 +1,12 @@
+# Integração local e publicação PUVO — 26/10/2026
+
+- Branch `codex/integrate-local-online`, PR #12: reúne o CRM Meta, a administração separada, a navegação operacional, a identidade PUVO e os mercados locais de Empresas, Imóveis e Automóveis. A branch está publicada no GitHub; integrar em `main` após os últimos gates. PR #11 ficou incluída no conteúdo desta integração.
+- API Railway `e02df63a-c241-4713-a8dd-aae9a11054f6` **SUCCESS**; web Vercel `dpl_Cf8QuajJrcukVMvaZeqStx1VyX76` **READY** em `puvo.vitaleevo.ao`; admin Vercel `dpl_AfhCxg3Xu3gKWgWb6c3rNSC5W4Cs` **READY** em `gestao.puvo.vitaleevo.ao`. Migração 024 aplicada: os três novos mercados estão ativos, cada um com seis categorias. Smoke público: raiz, marketplaces, os três mercados, conta e CRM responderam 200. A CI da PR passou em quality, migrations e E2E.
+- Validação local antes da publicação: 76 testes de API, typecheck, lint e build de API, web e admin; migrações 001–024 numa base PostgreSQL isolada; filtros e páginas de detalhe dos novos mercados; navegação desktop e móvel no Playwright. Fixtures locais não foram para produção.
+- A PR #12 tem um check vermelho no projeto Vercel `api`, que está inativo (`live: false`) e procura uma entrada de aplicação Node na raiz. A API real é servida pelo Railway e foi publicada com sucesso. Resolver/desligar esse check antes de exigir gates verdes em GitHub. Os pontos Meta e operacionais ainda pendentes encontram-se abaixo; a publicação dos mercados não os conclui.
+
+---
+
 # Integração Meta PUVO — 26/10/2026
 
 ## Última etapa: comentários Facebook/Instagram em produção
