@@ -58,6 +58,7 @@ export class MetaGraphService {
     url.searchParams.set("state", state);
     url.searchParams.set("response_type", "code");
     if (businessLoginConfigId) {
+      // Use a Pages/Instagram configuration here; a WhatsApp-only config cannot list seller Pages.
       // Facebook Login for Business owns the permission set. Meta rejects scopes on this flow.
       url.searchParams.set("config_id", businessLoginConfigId);
       url.searchParams.set("override_default_response_type", "true");
