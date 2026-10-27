@@ -113,6 +113,51 @@ export class MetaGraphService {
     return url.toString();
   }
 
+  embeddedSignupConfig() {
+    const { appId } = this.oauthConfig();
+    const configId = process.env.META_WHATSAPP_LOGIN_CONFIG_ID?.trim();
+    if (!configId || !/^\d{8,32}$/.test(configId)) {
+      throw new ServiceUnavailableException("A ligação WhatsApp por QR ainda não está configurada");
+    }
+    return { appId, configId, graphVersion: this.graphVersion() };
+  }
+
+  async exchangeEmbeddedSignupCode(code: string): Promise<string> {
+    const { appId, appSecret } = this.oauthConfig();
+    const result = await this.graphGet<{ access_token?: string }>("oauth/access_token", {
+      client_id: appId, client_secret: appSecret, code,
+    });
+    if (!result.access_token) throw new BadGatewayException("A Meta não devolveu o acesso WhatsApp");
+    return result.access_token;
+  }
+
+  async getWhatsAppPhoneNumbers(wabaId: string, accessToken: string) {
+    return this.graphGetWithToken<{ data?: Array<{ id?: string; display_phone_number?: string; verified_name?: string }> }>(
+      `${wabaId}/phone_numbers`,
+      { fields: "id,display_phone_number,verified_name", limit: "100" }, accessToken,
+    );
+  }
+
+  async inspectCoexistencePhone(phoneNumberId: string, accessToken: string) {
+    return this.graphGetWithToken<{ id?: string; is_on_biz_app?: boolean; platform_type?: string }>(
+      phoneNumberId, { fields: "id,is_on_biz_app,platform_type" }, accessToken,
+    );
+  }
+
+  async inspectWhatsAppPhone(phoneNumberId: string, accessToken: string) {
+    return this.graphGetWithToken<{ id?: string; display_phone_number?: string; verified_name?: string }>(
+      phoneNumberId, { fields: "id,display_phone_number,verified_name" }, accessToken,
+    );
+  }
+
+  async subscribeWhatsAppWaba(wabaId: string, accessToken: string): Promise<void> {
+    await this.graphPost(`${wabaId}/subscribed_apps`, accessToken, {});
+  }
+
+  async requestWhatsAppBusinessAppSync(phoneNumberId: string, accessToken: string, syncType: "smb_app_state_sync" | "history"): Promise<void> {
+    await this.graphPost(`${phoneNumberId}/smb_app_data`, accessToken, { messaging_product: "whatsapp", sync_type: syncType });
+  }
+
   async exchangeCodeForPages(code: string): Promise<MetaPageCandidate[]> {
     const { appId, appSecret, redirectUri } = this.oauthConfig();
     const codeToken = await this.graphGet<{ access_token?: string }>("oauth/access_token", {
@@ -313,12 +358,17 @@ export class MetaGraphService {
     return this.request<T>(url, { method: "GET" });
   }
 
+  private async graphGetWithToken<T>(path: string, params: Record<string, string>, accessToken: string): Promise<T> {
+    const url = new URL(`https://graph.facebook.com/${this.graphVersion()}/${path}`);
+    for (const [key, value] of Object.entries(params)) url.searchParams.set(key, value);
+    return this.request<T>(url, { method: "GET", headers: { Authorization: `Bearer ${accessToken}` } });
+  }
+
   private async graphPost<T>(path: string, accessToken: string, payload: unknown): Promise<T> {
     const url = new URL(`https://graph.facebook.com/${this.graphVersion()}/${path}`);
-    url.searchParams.set("access_token", accessToken);
     return this.request<T>(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
       body: JSON.stringify(payload),
     });
   }

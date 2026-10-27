@@ -71,7 +71,7 @@ jobs:
       - run: |
           ready=0
           for i in $(seq 1 90); do
-            if curl -fsS http://localhost:3100/_ingress-health; then ready=1; break; fi
+            if curl -fsS http://localhost:3100/_ingress-health >/dev/null && curl -fsS http://localhost:3100/api/v1/health/ready >/dev/null; then ready=1; break; fi
             sleep 2
           done
           test "$ready" = "1"

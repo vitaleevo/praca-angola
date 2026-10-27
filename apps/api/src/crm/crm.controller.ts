@@ -59,6 +59,15 @@ class ConnectWhatsAppCloudDto {
   @IsString() @Length(20, 4096) accessToken!: string;
 }
 
+class FinishWhatsAppEmbeddedSignupDto {
+  @IsUUID() attemptId!: string;
+  @IsString() @Length(10, 2048) code!: string;
+  @IsString() @Length(5, 32) wabaId!: string;
+  @IsOptional() @IsString() @Length(5, 32) phoneNumberId?: string;
+  @IsIn(["FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING"])
+  event!: "FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING";
+}
+
 class ImportHistoryDto {
   @IsOptional() @IsString() @MaxLength(2048) after?: string;
 }
@@ -303,6 +312,36 @@ export class CrmController {
     const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
     const channel = await this.crmService.connectWhatsAppCloud(workspace.id, body.accountName, body.phoneNumberId, body.accessToken);
     return { channel };
+  }
+
+  @Get("whatsapp/embedded-signup/config")
+  async getWhatsAppEmbeddedSignupConfig(@CurrentUser() user: AuthenticatedUser) {
+    await this.crmService.resolveWorkspaceForUser(user.id);
+    return this.crmService.getWhatsAppEmbeddedSignupConfig();
+  }
+
+  @Post("whatsapp/embedded-signup/start")
+  @RateLimit({ scope: "crm-whatsapp-signup", limit: 5, windowSeconds: 600 })
+  @UseGuards(RateLimitGuard)
+  async startWhatsAppEmbeddedSignup(@CurrentUser() user: AuthenticatedUser) {
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
+    return this.crmService.startWhatsAppEmbeddedSignup(user.id, workspace.id);
+  }
+
+  @Post("whatsapp/embedded-signup/finish")
+  @RateLimit({ scope: "crm-whatsapp-signup-finish", limit: 5, windowSeconds: 600 })
+  @UseGuards(RateLimitGuard)
+  async finishWhatsAppEmbeddedSignup(@Body() body: FinishWhatsAppEmbeddedSignupDto, @CurrentUser() user: AuthenticatedUser) {
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
+    return this.crmService.finishWhatsAppEmbeddedSignup(user.id, workspace.id, body);
+  }
+
+  @Post("channels/:id/whatsapp-sync/retry")
+  @RateLimit({ scope: "crm-whatsapp-sync", limit: 3, windowSeconds: 600 })
+  @UseGuards(RateLimitGuard)
+  async retryWhatsAppSync(@Param("id", ParseUUIDPipe) id: string, @CurrentUser() user: AuthenticatedUser) {
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
+    return this.crmService.retryWhatsAppSync(workspace.id, id);
   }
 
   @Delete("channels/:id")
