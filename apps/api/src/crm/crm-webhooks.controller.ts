@@ -244,9 +244,10 @@ export class CrmWebhooksController {
          RETURNING id`,
         [linked.workspace_id, contact.rows[0].id, linked.id, phone, content.slice(0, 100), timestamp],
       );
-      const saved = await client.query<{ id: string; workspace_id: string; conversation_id: string }>(
+      const saved = await client.query<{ id: string; workspace_id: string; conversation_id: string; direction: string; message_type: string; content: string; metadata: Record<string, unknown>; status: string; created_at: string }>(
         `INSERT INTO crm_messages (conversation_id, workspace_id, direction, message_type, content, status, metadata, created_at)
-         VALUES ($1, $2, $3, $4, $5, 'delivered', $6::jsonb, $7) RETURNING id, workspace_id, conversation_id`,
+         VALUES ($1, $2, $3, $4, $5, 'delivered', $6::jsonb, $7)
+         RETURNING id, workspace_id, conversation_id, direction, message_type, content, metadata, status, created_at`,
         [conversation.rows[0].id, linked.workspace_id, outbound ? "outbound" : "inbound", mediaId ? "image" : "text", content,
           JSON.stringify({ meta_message_id: message.id, ...(mediaId ? { media_id: mediaId } : {}), source: echo ? "whatsapp_business_app" : "whatsapp_history" }), timestamp],
       );
