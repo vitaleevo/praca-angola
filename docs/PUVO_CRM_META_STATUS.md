@@ -1,4 +1,11 @@
-# PUVO CRM / Meta — estado em 26-10-2026
+# PUVO CRM / Meta — estado em 27-10-2026
+
+## Validação de 27-10-2026
+
+- A PR #19 foi integrada em `main`; qualidade, migrações e E2E passaram na execução `40428504545`. A API Railway `017c8b79-7577-428c-aba6-c6c0d3bd84b3` ficou **SUCCESS** e o healthcheck respondeu 200.
+- A migração 026 removeu as cópias históricas de respostas já enviadas pelo CRM. A consulta de produção encontrou zero duplicados pelos critérios da migração. Numa sessão autenticada, a resposta repetida deixou de aparecer; repetir a importação do Instagram @bajajangola devolveu **0 mensagens novas** de uma conversa.
+- O campo `attachments{image_data}` da Conversations API foi aceite com HTTP 200 nos quatro canais da loja. As primeiras conversas examinadas não continham anexos, portanto a importação de imagens históricas ainda não foi verificada com uma mensagem real com imagem. Imagens de publicações e carrosséis já tinham sido confirmadas no CRM.
+- O App Review da Meta ainda consta como `UNSUBMITTED`. O conector devolve um motivo de bloqueio contraditório (submissão anterior em revisão sem histórico de submissões); validar esse estado no painel antes de submeter. O WhatsApp Cloud real continua sem número ligado à loja.
 
 ## Estado mais recente (26-10-2026, após reautorização)
 
