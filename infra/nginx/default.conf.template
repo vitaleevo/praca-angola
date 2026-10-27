@@ -73,6 +73,12 @@ server {
         include /etc/nginx/proxy-common.conf;
     }
 
+    location = /api/v1/crm/realtime/stream {
+        proxy_pass http://api_upstream;
+        include /etc/nginx/proxy-common.conf;
+        proxy_buffering off;
+    }
+
     location ~* ^/api/v1/(conversations|reports|reviews|services|orders|media)(/|$) {
         limit_req zone=write_api burst=60 nodelay;
         limit_req_status 429;

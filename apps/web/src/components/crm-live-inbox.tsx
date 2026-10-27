@@ -12,11 +12,25 @@ interface Conversation {
   contact_id: string;
   contact_name: string;
   contact_phone: string | null;
+  meta_ad_ref?: string | null;
+  meta_ad_name?: string | null;
   channel: "whatsapp" | "instagram_dm" | "facebook_messenger" | "puvo_chat";
   last_message_preview: string | null;
   last_message_at: string;
   unread_count: number;
+  is_replied?: boolean;
+  last_message_direction?: "inbound" | "outbound";
 }
+
+type InboxStatus = "all" | "unread" | "pending" | "replied" | "read";
+type InboxChannel = "all" | Conversation["channel"];
+type InboxCounts = Record<InboxStatus, number>;
+const emptyCounts: InboxCounts = { all: 0, unread: 0, pending: 0, replied: 0, read: 0 };
+const statusOptions: { value: InboxStatus; label: string }[] = [
+  { value: "all", label: "Todas" }, { value: "unread", label: "Não lidas" },
+  { value: "pending", label: "Por responder" }, { value: "replied", label: "Respondidas" },
+  { value: "read", label: "Lidas" },
+];
 
 interface Message {
   id: string;
@@ -72,6 +86,13 @@ function MessageImages({ message, conversationId }: { message: Message; conversa
 export function CrmLiveInbox() {
   const [workspaceState, setWorkspaceState] = useState<"loading" | "ready" | "needs-store" | "error">("loading");
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [statusFilter, setStatusFilter] = useState<InboxStatus>("all");
+  const [channelFilter, setChannelFilter] = useState<InboxChannel>("all");
+  const [searchInput, setSearchInput] = useState("");
+  const [searchFilter, setSearchFilter] = useState("");
+  const [counts, setCounts] = useState<InboxCounts>(emptyCounts);
+  const [inboxError, setInboxError] = useState<string | null>(null);
+  const [updatingConversation, setUpdatingConversation] = useState(false);
   const [selectedConvo, setSelectedConvo] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState("");
@@ -81,6 +102,11 @@ export function CrmLiveInbox() {
   const [products, setProducts] = useState<SellerProduct[]>([]);
   const [showProductModal, setShowProductModal] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const conversationRequestRef = useRef(0);
+  const messageRequestRef = useRef(0);
+  const selectedConversationIdRef = useRef<string | null>(null);
+  const refreshConversationsRef = useRef<() => Promise<void>>(async () => {});
+  useEffect(() => { selectedConversationIdRef.current = selectedConvo?.id ?? null; }, [selectedConvo?.id]);
 
   useEffect(() => {
     let cancelled = false;
@@ -97,28 +123,64 @@ export function CrmLiveInbox() {
   }, []);
 
   async function loadConversations() {
+    const request = ++conversationRequestRef.current;
     try {
-      const res = await fetch("/api/v1/crm/conversations", { credentials: "include" });
+      const query = new URLSearchParams({ status: statusFilter, channel: channelFilter });
+      if (searchFilter) query.set("search", searchFilter);
+      const res = await fetch(`/api/v1/crm/conversations?${query}`, { credentials: "include" });
       if (res.ok) {
-        const json = await res.json();
+        const json = await res.json() as { conversations: Conversation[]; counts?: InboxCounts };
+        if (request !== conversationRequestRef.current) return;
         setConversations(json.conversations);
-        if (json.conversations.length > 0 && !selectedConvo) {
-          setSelectedConvo(json.conversations[0]);
-        }
+        setCounts(json.counts ?? emptyCounts);
+        setSelectedConvo((current) => json.conversations.some((item) => item.id === current?.id) ? current : null);
+        setInboxError(null);
+      } else {
+        if (request === conversationRequestRef.current) setInboxError("Não foi possível atualizar as conversas. Tenta novamente.");
       }
     } catch (e) {
       console.error(e);
+      if (request === conversationRequestRef.current) setInboxError("Sem ligação ao Live Inbox. Tenta novamente.");
     } finally {
-      setLoading(false);
+      if (request === conversationRequestRef.current) setLoading(false);
+    }
+  }
+  useEffect(() => { refreshConversationsRef.current = loadConversations; });
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setSearchFilter(searchInput.trim()), 250);
+    return () => window.clearTimeout(timer);
+  }, [searchInput]);
+
+  async function updateConversation(kind: "read" | "replied", value: boolean) {
+    if (!selectedConvo || updatingConversation) return;
+    setUpdatingConversation(true);
+    try {
+      const response = await fetch(`/api/v1/crm/conversations/${selectedConvo.id}/${kind === "read" ? "read-status" : "reply-status"}`, {
+        method: "PATCH", credentials: "include", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(kind === "read" ? { read: value } : { replied: value }),
+      });
+      if (!response.ok) throw new Error("Falha ao alterar estado da conversa");
+      const { conversation } = await response.json() as { conversation: Conversation };
+      setSelectedConvo((current) => current?.id === conversation.id ? { ...current, ...conversation } : current);
+      await loadConversations();
+    } catch {
+      setInboxError("Não foi possível alterar o estado da conversa.");
+    } finally {
+      setUpdatingConversation(false);
     }
   }
 
   async function loadMessages(convoId: string) {
+    const request = ++messageRequestRef.current;
     try {
       const res = await fetch(`/api/v1/crm/conversations/${convoId}/messages`, { credentials: "include" });
       if (res.ok) {
         const json = await res.json();
+        if (request !== messageRequestRef.current) return;
         setMessages(json.messages);
+        setSelectedConvo((current) => current?.id === convoId && current.unread_count > 0 ? { ...current, unread_count: 0 } : current);
+        void loadConversations();
       }
     } catch (e) {
       console.error(e);
@@ -156,15 +218,15 @@ export function CrmLiveInbox() {
             const convoId = data.payload?.conversationId;
             if (msg) {
               setMessages((prev) => {
-                if (selectedConvo?.id === convoId && !prev.some((m) => m.id === msg.id)) {
+                if (selectedConversationIdRef.current === convoId && !prev.some((m) => m.id === msg.id)) {
                   return [...prev, msg];
                 }
                 return prev;
               });
-              void loadConversations();
+              void refreshConversationsRef.current();
             }
-          } else if (data.eventType === "deal_stage_changed" || data.eventType === "new_contact") {
-            void loadConversations();
+          } else if (data.eventType === "conversation_updated" || data.eventType === "deal_stage_changed" || data.eventType === "new_contact") {
+            void refreshConversationsRef.current();
           }
         } catch (err) {
           console.error("Erro ao processar evento de tempo real CRM", err);
@@ -177,15 +239,18 @@ export function CrmLiveInbox() {
     return () => {
       es?.close();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedConvo?.id, workspaceState]);
+  }, [workspaceState]);
+
+  useEffect(() => {
+    if (workspaceState !== "ready") return;
+    void loadProducts();
+  }, [workspaceState]);
 
   useEffect(() => {
     if (workspaceState !== "ready") return;
     void loadConversations();
-    void loadProducts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [workspaceState]);
+  }, [workspaceState, statusFilter, channelFilter, searchFilter]);
 
   useEffect(() => {
     if (workspaceState !== "ready") return;
@@ -199,6 +264,7 @@ export function CrmLiveInbox() {
     if (selectedConvo) {
       void loadMessages(selectedConvo.id);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedConvo]);
 
   useEffect(() => {
@@ -360,6 +426,21 @@ export function CrmLiveInbox() {
       </div>
       <CrmChannelManager />
 
+      <div className="crm-inbox-filters" aria-label="Filtrar conversas">
+        <div className="crm-inbox-status-tabs" role="group" aria-label="Estado das conversas">
+          {statusOptions.map(({ value, label }) => <button key={value} type="button" className={statusFilter === value ? "is-active" : ""} aria-pressed={statusFilter === value} onClick={() => setStatusFilter(value)}>{label} <span>{counts[value]}</span></button>)}
+        </div>
+        <label className="crm-inbox-channel-filter">Canal
+          <select value={channelFilter} onChange={(event) => setChannelFilter(event.target.value as InboxChannel)}>
+            <option value="all">Todos os canais</option><option value="whatsapp">WhatsApp</option><option value="instagram_dm">Instagram Direct</option><option value="facebook_messenger">Facebook Messenger</option><option value="puvo_chat">Chat PUVO</option>
+          </select>
+        </label>
+        <label className="crm-inbox-search">Pesquisar
+          <input type="search" value={searchInput} onChange={(event) => setSearchInput(event.target.value)} placeholder="Nome, telefone ou mensagem" />
+        </label>
+      </div>
+      {inboxError && <p className="crm-inbox-error" role="alert">{inboxError} <button type="button" onClick={() => void loadConversations()}>Repetir</button></p>}
+
       <div className="crm-inbox-grid">
         {/* Left Column: Thread List */}
         <div className="crm-inbox-threads">
@@ -402,6 +483,7 @@ export function CrmLiveInbox() {
                       {convo.unread_count}
                     </span>
                   )}
+                  {convo.is_replied === false && <span className="crm-thread-pending">Por responder</span>}
                 </div>
                 <div className="crm-thread-preview">{convo.last_message_preview || "Sem mensagens recentes"}</div>
               </div>
@@ -410,7 +492,7 @@ export function CrmLiveInbox() {
 
           {conversations.length === 0 && (
             <div style={{ padding: "32px 16px", textAlign: "center", color: "#7c86a2", fontSize: "13px" }}>
-              Nenhuma conversa aberta no momento. Os leads recebidos aparecerão aqui instantaneamente.
+              {statusFilter !== "all" || channelFilter !== "all" || searchFilter ? "Nenhuma conversa corresponde aos filtros." : "Nenhuma conversa aberta no momento. Os leads recebidos aparecerão aqui instantaneamente."}
             </div>
           )}
         </div>
@@ -425,6 +507,11 @@ export function CrmLiveInbox() {
                   <small style={{ color: "#5c6884" }}>
                     {selectedConvo.contact_phone || "Sem telefone associado"} · {channelLabel(selectedConvo.channel)}
                   </small>
+                  {selectedConvo.meta_ad_ref && <span className="crm-ad-referral-badge">Origem: anúncio Meta{selectedConvo.meta_ad_name ? ` · ${selectedConvo.meta_ad_name}` : ""}</span>}
+                </div>
+                <div className="crm-chat-state-actions">
+                  <button type="button" disabled={updatingConversation} onClick={() => void updateConversation("read", selectedConvo.unread_count > 0)}>{selectedConvo.unread_count > 0 ? "Marcar como lida" : "Marcar como não lida"}</button>
+                  <button type="button" disabled={updatingConversation} onClick={() => void updateConversation("replied", !selectedConvo.is_replied)}>{selectedConvo.is_replied ? "Marcar por responder" : "Marcar respondida"}</button>
                 </div>
               </div>
 
@@ -521,6 +608,7 @@ export function CrmLiveInbox() {
               <small style={{ color: "#5c6884", display: "block" }}>Canal de Entrada</small>
               <span style={{ textTransform: "capitalize", fontWeight: 600 }}>{selectedConvo.channel}</span>
             </div>
+            {selectedConvo.meta_ad_ref && <div><small>Campanha de origem</small><strong>{selectedConvo.meta_ad_name || `Anúncio ${selectedConvo.meta_ad_ref}`}</strong></div>}
 
             <div style={{ marginTop: "16px", paddingTop: "12px", borderTop: "1px solid #eff2f8", display: "flex", flexDirection: "column", gap: "8px" }}>
               <Link href="/vendedor/crm" className="button button-secondary" style={{ width: "100%", textAlign: "center" }}>

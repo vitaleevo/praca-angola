@@ -9,11 +9,20 @@ import { CrmSocialService } from "./crm-social.service";
 import { CrmHistoryService } from "./crm-history.service";
 import { RateLimit } from "../rate-limit/rate-limit.decorator";
 import { RateLimitGuard } from "../rate-limit/rate-limit.guard";
-import { ArrayMaxSize, IsArray, IsIn, IsNumber, IsOptional, IsString, IsUUID, Length, Max, MaxLength, Min } from "class-validator";
+import { ArrayMaxSize, IsArray, IsBoolean, IsIn, IsNumber, IsOptional, IsString, IsUUID, Length, Max, MaxLength, Min } from "class-validator";
 
 class MoveDealStageDto {
   @IsString() newStageId!: string;
 }
+
+class SetConversationReadStatusDto {
+  @IsBoolean() read!: boolean;
+}
+
+class SetConversationReplyStatusDto {
+  @IsBoolean() replied!: boolean;
+}
+
 
 class CreateContactBodyDto {
   @IsString() @Length(2, 100) fullName!: string;
@@ -75,6 +84,12 @@ class ImportHistoryDto {
 class ReplyToSocialCommentDto {
   @IsString() @Length(1, 1200) commentRef!: string;
   @IsString() @Length(1, 1000) message!: string;
+}
+
+class SocialCommentStatusDto {
+  @IsString() @Length(1, 1200) commentRef!: string;
+  @IsOptional() @IsBoolean() isRead?: boolean;
+  @IsOptional() @IsBoolean() isReplied?: boolean;
 }
 
 class SaveStoreAiConfigBodyDto {
@@ -168,10 +183,40 @@ export class CrmController {
   }
 
   @Get("conversations")
-  async getConversations(@CurrentUser() user: AuthenticatedUser) {
+  async getConversations(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query("status") status?: "all" | "unread" | "pending" | "replied" | "read",
+    @Query("channel") channel?: string,
+    @Query("search") search?: string,
+  ) {
     const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
-    return this.crmService.getConversations(workspace.id);
+    return this.crmService.getConversations(workspace.id, { status, channel, search });
   }
+
+  @Patch("conversations/:id/read-status")
+  async setConversationReadStatus(
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body() body: SetConversationReadStatusDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
+    const updated = await this.crmService.setConversationReadStatus(workspace.id, id, body.read);
+    this.realtimeService.emitWorkspaceEvent(workspace.id, "conversation_updated", updated);
+    return { conversation: updated };
+  }
+
+  @Patch("conversations/:id/reply-status")
+  async setConversationReplyStatus(
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body() body: SetConversationReplyStatusDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
+    const updated = await this.crmService.setConversationReplyStatus(workspace.id, id, body.replied);
+    this.realtimeService.emitWorkspaceEvent(workspace.id, "conversation_updated", updated);
+    return { conversation: updated };
+  }
+
 
   @Get("conversations/:id/messages")
   async getMessages(@Param("id") id: string, @CurrentUser() user: AuthenticatedUser) {
@@ -238,6 +283,12 @@ export class CrmController {
     return this.socialService.listChannels(workspace.id);
   }
 
+  @Get("social/publishing-capabilities")
+  async getPublishingCapabilities(@CurrentUser() user: AuthenticatedUser) {
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
+    return this.socialService.publishingCapabilities(workspace.id);
+  }
+
   @Get("social/channels/:id/media")
   async getSocialMedia(@Param("id", ParseUUIDPipe) id: string, @Query("after") after: string | undefined, @CurrentUser() user: AuthenticatedUser) {
     const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
@@ -260,6 +311,12 @@ export class CrmController {
   async replyToSocialComment(@Param("id", ParseUUIDPipe) id: string, @Body() body: ReplyToSocialCommentDto, @CurrentUser() user: AuthenticatedUser) {
     const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
     return this.socialService.reply(workspace.id, id, body.commentRef, body.message);
+  }
+
+  @Patch("social/channels/:id/comments/status")
+  async setSocialCommentStatus(@Param("id", ParseUUIDPipe) id: string, @Body() body: SocialCommentStatusDto, @CurrentUser() user: AuthenticatedUser) {
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
+    return this.socialService.setCommentStatus(workspace.id, id, body.commentRef, { isRead: body.isRead, isReplied: body.isReplied });
   }
 
   @Get("channels/:id/diagnostics")

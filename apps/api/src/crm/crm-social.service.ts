@@ -29,6 +29,27 @@ export class CrmSocialService {
     return { channels: result.rows };
   }
 
+  async publishingCapabilities(workspaceId: string) {
+    const result = await this.database.query<ChannelRow>(
+      `SELECT id, channel_type, account_name, external_account_id, credentials_ciphertext
+       FROM crm_channel_connections WHERE workspace_id = $1 AND status = 'connected'
+       AND channel_type IN ('facebook_page', 'instagram_direct') ORDER BY account_name, channel_type`, [workspaceId],
+    );
+    const channels = await Promise.all(result.rows.map(async (channel) => {
+      const permission = channel.channel_type === "facebook_page" ? "pages_manage_posts" : "instagram_content_publish";
+      try {
+        const diagnostics = await this.meta.inspectAccessToken(this.token(channel));
+        const available = diagnostics.valid && diagnostics.appMatches && diagnostics.grantedScopes.includes(permission);
+        return { id: channel.id, available, requiredPermission: permission,
+          reason: available ? null : `A ligação precisa de ${permission}. Autoriza novamente este canal na Meta.` };
+      } catch {
+        return { id: channel.id, available: false, requiredPermission: permission,
+          reason: "Não foi possível confirmar o acesso de publicação na Meta. Tenta novamente mais tarde." };
+      }
+    }));
+    return { channels };
+  }
+
   async listMedia(workspaceId: string, channelId: string, after?: string) {
     const channel = await this.channel(workspaceId, channelId);
     const result = await this.meta.listSocialMedia(channel.channel_type, channel.external_account_id, this.token(channel), this.cursor(after));
@@ -66,12 +87,22 @@ export class CrmSocialService {
     const channel = await this.channel(workspaceId, channelId);
     const mediaId = this.readReference(mediaRef, workspaceId, channelId, "media");
     const result = await this.meta.listSocialComments(channel.channel_type, mediaId, this.token(channel), this.cursor(after));
+    const ids = (result.data ?? []).map((item) => item.id).filter(Boolean);
+    const states = ids.length ? await this.database.query<{ comment_external_id: string; is_read: boolean; is_replied: boolean }>(
+      `SELECT comment_external_id, is_read, is_replied FROM crm_social_comment_interactions
+       WHERE workspace_id = $1 AND channel_id = $2 AND comment_external_id = ANY($3::text[])`,
+      [workspaceId, channelId, ids],
+    ) : { rows: [] };
+    const byId = new Map(states.rows.map((state) => [state.comment_external_id, state]));
     return {
       items: (result.data ?? []).filter((item) => item.id).map((item: MetaSocialItem) => ({
         ref: this.reference(workspaceId, channelId, "comment", item.id),
         text: item.message ?? item.text ?? "",
         author: item.from?.name ?? item.username ?? "Utilizador",
         createdAt: item.created_time ?? item.timestamp ?? null,
+        imageUrls: (item.attachments?.data ?? []).map((attachment) => publicMetaImageUrl(attachment.image_data?.url ?? attachment.image_data?.preview_url)).filter((url): url is string => Boolean(url)).slice(0, 5),
+        isRead: byId.get(item.id)?.is_read ?? false,
+        isReplied: byId.get(item.id)?.is_replied ?? false,
       })),
       next: this.cursor(result.paging?.cursors?.after),
     };
@@ -81,7 +112,62 @@ export class CrmSocialService {
     const channel = await this.channel(workspaceId, channelId);
     const commentId = this.readReference(commentRef, workspaceId, channelId, "comment");
     const result = await this.meta.replyToSocialComment(channel.channel_type, commentId, this.token(channel), message.trim());
+    if (result.id) await this.saveCommentStatus(workspaceId, channelId, commentId, { isRead: true, isReplied: true });
     return { sent: Boolean(result.id), id: result.id ?? null };
+  }
+
+  async setCommentStatus(workspaceId: string, channelId: string, commentRef: string, status: { isRead?: boolean; isReplied?: boolean }) {
+    await this.channel(workspaceId, channelId);
+    const commentId = this.readReference(commentRef, workspaceId, channelId, "comment");
+    return this.saveCommentStatus(workspaceId, channelId, commentId, status);
+  }
+
+  async validatePublishingChannels(workspaceId: string, channelIds: string[]) {
+    const result = await this.database.query<{ id: string; channel_type: SocialChannel }>(
+      `SELECT id, channel_type FROM crm_channel_connections WHERE workspace_id = $1 AND id = ANY($2::uuid[])
+       AND status = 'connected' AND channel_type IN ('facebook_page', 'instagram_direct')`, [workspaceId, channelIds],
+    );
+    if (result.rows.length !== channelIds.length) throw new BadRequestException("Um dos canais não pertence à loja ou precisa de nova ligação.");
+    return result.rows;
+  }
+
+  async assertPublishingAccess(workspaceId: string, channelIds: string[], imageUrls: string[]) {
+    await this.validatePublishingChannels(workspaceId, channelIds);
+    for (const channelId of channelIds) {
+      const channel = await this.channel(workspaceId, channelId);
+      if (channel.channel_type === "instagram_direct" && !imageUrls.length)
+        throw new BadRequestException("Seleciona pelo menos uma fotografia JPEG para Instagram.");
+      const diagnostics = await this.meta.inspectAccessToken(this.token(channel));
+      const permission = channel.channel_type === "facebook_page" ? "pages_manage_posts" : "instagram_content_publish";
+      if (!diagnostics.valid || !diagnostics.appMatches || !diagnostics.grantedScopes.includes(permission))
+        throw new BadRequestException(`A ligação ${channel.account_name} não tem a permissão ${permission}. Volta a autorizar na Meta.`);
+    }
+  }
+
+  async publishToChannel(workspaceId: string, channelId: string, content: string, imageUrls: string[]): Promise<string> {
+    const channel = await this.channel(workspaceId, channelId);
+    const token = this.token(channel);
+    return channel.channel_type === "facebook_page"
+      ? this.meta.publishPagePost(channel.external_account_id, token, content, imageUrls)
+      : this.meta.publishInstagramPost(channel.external_account_id, token, content, imageUrls);
+  }
+
+  private async saveCommentStatus(workspaceId: string, channelId: string, commentId: string, status: { isRead?: boolean; isReplied?: boolean }) {
+    const result = await this.database.query<{ is_read: boolean; is_replied: boolean }>(
+      `INSERT INTO crm_social_comment_interactions
+         (workspace_id, channel_id, comment_external_id, is_read, is_replied, replied_at)
+       VALUES ($1, $2, $3, COALESCE($4, false), COALESCE($5, false), CASE WHEN $5 = true THEN now() END)
+       ON CONFLICT (workspace_id, comment_external_id) DO UPDATE SET
+         is_read = COALESCE($4, crm_social_comment_interactions.is_read),
+         is_replied = COALESCE($5, crm_social_comment_interactions.is_replied),
+         replied_at = CASE WHEN $5 = true THEN now() WHEN $5 = false THEN NULL ELSE crm_social_comment_interactions.replied_at END,
+         updated_at = now()
+       WHERE crm_social_comment_interactions.channel_id = EXCLUDED.channel_id
+       RETURNING is_read, is_replied`,
+      [workspaceId, channelId, commentId, status.isRead ?? null, status.isReplied ?? null],
+    );
+    if (!result.rows[0]) throw new NotFoundException("Comentário não encontrado neste canal.");
+    return { isRead: result.rows[0].is_read, isReplied: result.rows[0].is_replied };
   }
 
   private async channel(workspaceId: string, channelId: string): Promise<ChannelRow> {

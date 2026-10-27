@@ -1,10 +1,10 @@
 import { Injectable, Logger } from "@nestjs/common";
-import { Subject, Observable } from "rxjs";
+import { Subject, Observable, interval, merge } from "rxjs";
 import { filter, map } from "rxjs/operators";
 
 export interface RealtimeWorkspaceEvent {
   workspaceId: string;
-  eventType: "new_message" | "deal_stage_changed" | "new_contact" | "automation_executed";
+  eventType: "new_message" | "conversation_updated" | "deal_stage_changed" | "new_contact" | "automation_executed" | "heartbeat";
   payload: any;
   timestamp: string;
 }
@@ -60,9 +60,11 @@ export class CrmRealtimeService {
    * Subscribe to real-time events for a specific seller workspace (SSE format)
    */
   subscribeWorkspace(workspaceId: string): Observable<{ data: RealtimeWorkspaceEvent }> {
-    return this.workspaceEvent$.pipe(
-      filter((evt) => evt.workspaceId === workspaceId),
-      map((evt) => ({ data: evt })),
+    return merge(
+      this.workspaceEvent$.pipe(filter((evt) => evt.workspaceId === workspaceId), map((evt) => ({ data: evt }))),
+      interval(20_000).pipe(map(() => ({ data: {
+        workspaceId, eventType: "heartbeat" as const, payload: null, timestamp: new Date().toISOString(),
+      } }))),
     );
   }
 

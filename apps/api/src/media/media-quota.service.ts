@@ -4,7 +4,7 @@ import { DatabaseService } from "../database/database.service";
 export type MediaAssetInput = {
   id: string;
   storageKey: string;
-  mimeType: "image/webp";
+  mimeType: "image/webp" | "image/jpeg";
   sizeBytes: number;
 };
 

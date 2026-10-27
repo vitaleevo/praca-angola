@@ -38,6 +38,7 @@ export interface MetaSocialItem {
   comments_count?: number;
   from?: { name?: string };
   username?: string;
+  attachments?: { data?: Array<{ image_data?: { url?: string; preview_url?: string } }> };
 }
 
 export interface MetaSocialPage { data?: MetaSocialItem[]; paging?: { cursors?: { after?: string } } }
@@ -158,7 +159,7 @@ export class MetaGraphService {
     await this.graphPost(`${phoneNumberId}/smb_app_data`, accessToken, { messaging_product: "whatsapp", sync_type: syncType });
   }
 
-  async exchangeCodeForPages(code: string): Promise<MetaPageCandidate[]> {
+  async exchangeCodeForPages(code: string): Promise<{ pages: MetaPageCandidate[]; userToken: string }> {
     const { appId, appSecret, redirectUri } = this.oauthConfig();
     const codeToken = await this.graphGet<{ access_token?: string }>("oauth/access_token", {
       client_id: appId,
@@ -192,13 +193,43 @@ export class MetaGraphService {
       access_token: userToken,
     });
 
-    return (accounts.data ?? []).flatMap((page) => {
+    const pages = (accounts.data ?? []).flatMap((page) => {
       if (!page.id || !page.name || !page.access_token) return [];
       const instagram = page.instagram_business_account?.id
         ? { id: page.instagram_business_account.id, name: page.instagram_business_account.name || page.instagram_business_account.username || "Instagram profissional", username: page.instagram_business_account.username }
         : undefined;
       return [{ id: page.id, name: page.name, pageAccessToken: page.access_token, instagram }];
     });
+    return { pages, userToken };
+  }
+
+  async listAdAccounts(accessToken: string): Promise<Array<{ id: string; name: string; currency: string; accountStatus: number }>> {
+    const accounts: Array<{ id: string; name: string; currency: string; accountStatus: number }> = [];
+    let after: string | undefined;
+    for (let page = 0; page < 5; page++) {
+      const response = await this.graphGetWithToken<{
+        data?: Array<{ id?: string; name?: string; currency?: string; account_status?: number }>;
+        paging?: { cursors?: { after?: string }; next?: string };
+      }>("me/adaccounts", { fields: "id,name,currency,account_status", limit: "100", ...(after ? { after } : {}) }, accessToken);
+      accounts.push(...(response.data ?? []).flatMap((item) =>
+        item.id && /^act_\d{5,30}$/.test(item.id) && item.currency
+          ? [{ id: item.id, name: item.name || item.id, currency: item.currency, accountStatus: item.account_status ?? 0 }]
+          : []));
+      const next = response.paging?.next ? response.paging.cursors?.after : undefined;
+      if (!next || next === after) break;
+      after = next;
+    }
+    return accounts;
+  }
+
+  async getAdAccountInsights(adAccountId: string, accessToken: string): Promise<{ spend: string; impressions: string; reach: string; clicks: string; dateStart: string; dateStop: string }> {
+    if (!/^act_\d{5,30}$/.test(adAccountId)) throw new BadRequestException("Conta publicitária inválida");
+    const response = await this.graphGetWithToken<{ data?: Array<{
+      spend?: string; impressions?: string; reach?: string; clicks?: string; date_start?: string; date_stop?: string;
+    }> }>(`${adAccountId}/insights`, { date_preset: "last_30d", fields: "spend,impressions,reach,clicks,date_start,date_stop", limit: "1" }, accessToken);
+    const row = response.data?.[0];
+    return { spend: row?.spend ?? "0", impressions: row?.impressions ?? "0", reach: row?.reach ?? "0", clicks: row?.clicks ?? "0",
+      dateStart: row?.date_start ?? "", dateStop: row?.date_stop ?? "" };
   }
 
   async sendText(channel: MetaChannelType, accountId: string, recipientId: string, accessToken: string, text: string): Promise<string | undefined> {
@@ -342,7 +373,7 @@ export class MetaGraphService {
   }
 
   async listSocialComments(channel: "facebook_page" | "instagram_direct", mediaId: string, accessToken: string, after?: string): Promise<MetaSocialPage> {
-    const fields = channel === "facebook_page" ? "id,message,created_time,from" : "id,text,timestamp,username";
+    const fields = channel === "facebook_page" ? "id,message,created_time,from,attachments{image_data}" : "id,text,timestamp,username";
     return this.graphGet<MetaSocialPage>(`${mediaId}/comments`, {
       fields, limit: "25", access_token: accessToken, ...(after ? { after } : {}),
     });
@@ -350,6 +381,60 @@ export class MetaGraphService {
 
   async replyToSocialComment(channel: "facebook_page" | "instagram_direct", commentId: string, accessToken: string, message: string): Promise<{ id?: string }> {
     return this.graphPost<{ id?: string }>(`${commentId}/${channel === "facebook_page" ? "comments" : "replies"}`, accessToken, { message });
+  }
+
+  async publishPagePost(pageId: string, accessToken: string, message: string, imageUrls: string[]): Promise<string> {
+    if (!imageUrls.length) {
+      const result = await this.graphPost<{ id?: string }>(`${pageId}/feed`, accessToken, { message });
+      if (!result.id) throw new BadGatewayException("A Meta não confirmou a publicação na Página.");
+      return result.id;
+    }
+    if (imageUrls.length === 1) {
+      const result = await this.graphPostForm<{ post_id?: string; id?: string }>(`${pageId}/photos`, accessToken, { url: imageUrls[0], caption: message });
+      if (!result.post_id && !result.id) throw new BadGatewayException("A Meta não confirmou a fotografia publicada.");
+      return result.post_id ?? result.id!;
+    }
+    const attached: Array<{ media_fbid: string }> = [];
+    for (const url of imageUrls) {
+      const photo = await this.graphPostForm<{ id?: string }>(`${pageId}/photos`, accessToken, { url, published: "false" });
+      if (!photo.id) throw new BadGatewayException("A Meta não confirmou uma fotografia do carrossel.");
+      attached.push({ media_fbid: photo.id });
+    }
+    const fields: Record<string, string> = { message };
+    attached.forEach((item, index) => { fields[`attached_media[${index}]`] = JSON.stringify(item); });
+    const result = await this.graphPostForm<{ id?: string }>(`${pageId}/feed`, accessToken, fields);
+    if (!result.id) throw new BadGatewayException("A Meta não confirmou a publicação na Página.");
+    return result.id;
+  }
+
+  async publishInstagramPost(accountId: string, accessToken: string, caption: string, imageUrls: string[]): Promise<string> {
+    if (!imageUrls.length) throw new BadRequestException("O Instagram exige pelo menos uma fotografia JPEG.");
+    const childIds: string[] = [];
+    for (const imageUrl of imageUrls) {
+      const child = await this.graphPost<{ id?: string }>(`${accountId}/media`, accessToken, {
+        image_url: imageUrl, ...(imageUrls.length > 1 ? { is_carousel_item: true } : { caption }),
+      });
+      if (!child.id) throw new BadGatewayException("A Meta não confirmou o contentor Instagram.");
+      childIds.push(child.id);
+    }
+    let containerId = childIds[0];
+    if (childIds.length > 1) {
+      const parent = await this.graphPost<{ id?: string }>(`${accountId}/media`, accessToken, {
+        media_type: "CAROUSEL", children: childIds.join(","), caption,
+      });
+      if (!parent.id) throw new BadGatewayException("A Meta não confirmou o carrossel Instagram.");
+      containerId = parent.id;
+    }
+    for (let attempt = 0; attempt < 6; attempt++) {
+      const status = await this.graphGetWithToken<{ status_code?: string }>(containerId, { fields: "status_code" }, accessToken);
+      if (status.status_code === "FINISHED") break;
+      if (status.status_code === "ERROR" || status.status_code === "EXPIRED") throw new BadGatewayException("A Meta recusou o conteúdo Instagram.");
+      if (attempt === 5) throw new BadGatewayException("O conteúdo Instagram ainda está a processar. Confirma na Meta antes de repetir.");
+      await new Promise((resolve) => setTimeout(resolve, 2_000));
+    }
+    const published = await this.graphPost<{ id?: string }>(`${accountId}/media_publish`, accessToken, { creation_id: containerId });
+    if (!published.id) throw new BadGatewayException("A Meta não confirmou a publicação Instagram.");
+    return published.id;
   }
 
   private async graphGet<T>(path: string, params: Record<string, string>): Promise<T> {
@@ -370,6 +455,15 @@ export class MetaGraphService {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
       body: JSON.stringify(payload),
+    });
+  }
+
+  private async graphPostForm<T>(path: string, accessToken: string, fields: Record<string, string>): Promise<T> {
+    const url = new URL(`https://graph.facebook.com/${this.graphVersion()}/${path}`);
+    return this.request<T>(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded", Authorization: `Bearer ${accessToken}` },
+      body: new URLSearchParams(fields).toString(),
     });
   }
 

@@ -1,0 +1,42 @@
+# PUVO Meta Suite — estado de implementação (27/10/2026)
+
+## Entregue localmente
+
+- Live Inbox: filtros por estado, canal e pesquisa, contadores, marcação manual de leitura/resposta e atualização via SSE.
+- A migração `028_crm_inbox_reply_status.sql` deriva a resposta inicial da última mensagem real, em vez de inferir resposta a partir da leitura.
+- Comentários: estado local por loja e canal, filtro de leitura/resposta, atualização automática após resposta confirmada pela Meta, anexos de imagem do Facebook e visor ampliado com teclado e zoom.
+- Migrações `028` a `031` aplicadas com sucesso numa base PostgreSQL 16 isolada; nenhuma migração foi aplicada à base de produção nesta sessão.
+- API: 109 testes passaram em 24 ficheiros; `typecheck` da API e da web, lint web e build web passaram novamente após a página de eliminação e a política de privacidade.
+- Em 27/10, a stack Compose de desenvolvimento subiu com PostgreSQL e Redis em portas locais alternativas (55433/56379), porque 5432/6379 pertencem a outro projeto. O healthcheck local respondeu 200 com `db:ok` e `media:ok`.
+- No Playwright local, a conta demo acedeu ao CRM. Três conversas de teste verificaram filtros de estado/canal, pesquisa, contadores e marcação de leitura/resposta. Em 390 px, não houve transbordamento horizontal.
+- A ligação SSE era interrompida pelo proxy Next em desenvolvimento. O NGINX local passa agora a rota do stream diretamente à API e a API envia um heartbeat. Após a correção, o stream ficou ativo ao mudar filtros, sem erros de consola no ensaio.
+- A interface de comentários e o lightbox foram verificados no browser com respostas de API simuladas: marcação de leitura/resposta, ampliação, zoom e fecho por Escape.
+- Estúdio social local: rascunhos, importação de produtos e fotografias da loja, conversão JPEG, prévias, publicação imediata, agendamento e processador de fila. As permissões são verificadas antes de publicar e a API restringe canais, produtos e imagens à loja.
+- Anúncios Meta locais: rascunhos de campanhas e prévia, página com indicadores que deixam claro quando não existem dados Meta. O webhook guarda referências de anúncios e associa leads ao funil apenas quando o ID corresponde a uma campanha da loja.
+- No browser local autenticado com a conta de demonstração, importei um produto e guardei um rascunho social; no painel de anúncios, guardei um rascunho de campanha. Ambos apareceram nas respetivas listas. Removi os dois registos de teste da base local após a verificação.
+- O estúdio verifica antecipadamente a permissão de publicação de cada canal e desativa agendamento/publicação quando o acesso falta. O rascunho continua disponível.
+- O rascunho de anúncios permite importar um produto, definir faixa etária, público e duração. A API gera o destino do produto a partir de um anúncio pertencente à loja, sem confiar num link montado no browser.
+- A atribuição usa primeiro contacto conhecido: um novo referral não muda a campanha de um contacto já atribuído. O webhook aceita a referência tanto no evento como na mensagem, sem falhar a receção se a atribuição não puder ser concluída.
+- O Facebook recebe fotografias múltiplas por campos `attached_media[n]` codificados como formulário, conforme a documentação Graph API; um teste valida o formato sem chamar a Meta.
+- Meta Ads de leitura: o OAuth guarda o token de utilizador cifrado apenas quando `ads_read` consta das permissões concedidas. Depois da escolha da Página, o token é transferido para a ligação da loja e removido da tentativa OAuth. A loja pode listar as contas publicitárias autorizadas, selecionar uma e ver gasto, impressões, alcance e cliques dos últimos 30 dias com a moeda da própria conta. Nenhuma campanha é criada ou ativada pela consulta. A migração local `031` cria a tabela da ligação; as rotas têm sessão, isolamento por loja, validação da conta selecionada e limites de pedidos.
+- No browser local autenticado, a página de Anúncios Meta mostra a ausência de `ads_read` para a conta demo sem erro 500 nem indicadores fictícios. O teste real da Meta requer nova autorização após aprovação da permissão. A API passou 109 testes e os builds de API/web e verificações de tipo e lint passaram nesta etapa.
+- Em 27/10, `/eliminar-dados` foi publicada pela PR [#22](https://github.com/vitaleevo/praca-angola/pull/22), commit `72a39b4`, deployment Vercel `dpl_6ZGTgJU6rYHb9iWawjuBwe45EECG`. O domínio público respondeu **200** com o título esperado. O CI da PR passou qualidade, migrações e E2E; a preview Vercel foi conferida antes da publicação.
+- O rascunho App Review da app PUVO foi reduzido: dez pedidos sem uso atual foram retirados. Os casos de uso e declarações de Páginas, Messenger, Instagram, WhatsApp e `ads_read` foram guardados e aparecem concluídos no conector; Bajaj Angola foi selecionada como Página de teste do Messenger. O roteiro de demonstração, estado por permissão e requisitos restantes estão em `docs/puvo-meta-app-review.md`.
+- Após a publicação da página de eliminação, a suite E2E completa passou localmente: **22/22 testes** numa stack Compose com PostgreSQL isolado na porta `55433`. O CI da PR web também passou os seus E2E e migrações numa stack própria.
+- Na produção, a conta do titular mostrou quatro canais Facebook/Instagram autorizados. **Verificar acesso** indicou permissões de mensagens e comentários presentes nos quatro tokens e webhook de mensagens inscrito nas duas Páginas Facebook. **Redes sociais** carregou publicações com imagens e dois comentários reais de uma publicação Vitaleevo; a captura e o roteiro estão em `docs/puvo-meta-app-review.md`. Isto é prova parcial da leitura de dados, ainda sem nova autorização, resposta a comentário ou gravação completa para a Meta.
+
+## Por concluir
+
+1. Teste ponta a ponta com conta de loja e publicações reais, incluindo permissões Meta e estados de comentários. O teste de browser local usou dados artificiais; não confirma entrega Meta real.
+2. Estúdio de publicação: validar ponta a ponta com token Meta que tenha `pages_manage_posts` e `instagram_content_publish`; sem essas permissões não é possível confirmar publicação real. Falta ensaio visual autenticado da nova página.
+3. Meta Ads: a ligação e as métricas de leitura estão implementadas localmente, mas não foram testadas com uma conta Meta real porque `ads_read` não está aprovado. Faltam ativação/pausa de anúncios, importação/mapeamento de IDs de anúncios reais, ROAS por campanha e atribuição a vendas da plataforma. Os rascunhos não criam anúncios externos. A ligação com o funil cobre apenas `referral` de mensagens com anúncio já conhecido.
+4. App Review: o conector Meta reportou `UNSUBMITTED` em 27/10/2026; `ads_read`, `ads_management` e Marketing API Access Tier não estão live e aparecem rejeitados no relatório de privilégios. `pages_manage_posts` e `instagram_content_publish` não constaram desse relatório. É necessária aprovação e nova autorização antes de disponibilizar publicação/anúncios a lojistas.
+   A consulta repetida nesta etapa mostrou uma inconsistência no próprio conector: o estado da submissão é `UNSUBMITTED`, enquanto os requisitos dizem que não se pode submeter porque existe uma submissão anterior em análise. Conferir o painel Meta antes de alterar o rascunho ou iniciar nova autorização.
+   O painel visível confirmou **Not submitted** e o histórico do conector veio vazio. Ainda faltam gravações reais, parte das chamadas de teste, questionário de tratamento de dados e instruções aos revisores. O controlo do Chrome foi desativado nesta sessão do Work antes de concluir o formulário. A remoção de pedidos sem uso foi efetuada no rascunho; não houve submissão.
+5. As alterações locais restantes do CRM e migrações `028` a `031` não foram publicadas. Uma tentativa de stack Docker de produção isolada parou por falha do daemon e, na repetição, por DNS do Docker Hub; não atribuir estas falhas ao código. A PR web isolada passou CI completo e foi publicada. Validar o CRM mais amplo e as migrações num ambiente isolado antes do seu deploy.
+
+## Cuidados para a próxima etapa
+
+- Preservar alterações locais existentes antes de iniciar esta sessão, incluindo as migrações `028` a `030`; havia alterações não commitadas.
+- O plano mestre está no anexo fornecido pelo utilizador nesta conversa. Executar as fases 3 e 4 como funcionalidades reais, sem mostrar botões de publicação/anúncio que falhem por falta de permissões.
+- Seguir a documentação oficial atual da Meta para formatos de imagem, permissões e limites de publicação.

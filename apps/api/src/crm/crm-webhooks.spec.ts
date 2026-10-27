@@ -10,7 +10,7 @@ afterEach(() => {
 });
 
 describe("Meta webhook authentication", () => {
-  const controller = new CrmWebhooksController({} as never, {} as never, { emitWorkspaceEvent: vi.fn() } as never, {} as never);
+  const controller = new CrmWebhooksController({} as never, {} as never, { emitWorkspaceEvent: vi.fn() } as never, {} as never, { attributeReferral: vi.fn().mockResolvedValue(undefined) } as never);
   const rawBody = Buffer.from('{"entry":[]}');
 
   it("fails closed when the app secret is not configured", async () => {
@@ -81,7 +81,7 @@ describe("Meta webhook delivery", () => {
       transaction: vi.fn(async (work: (connection: typeof client) => Promise<unknown>) => work(client)),
     };
     const automations = { fireTrigger: vi.fn().mockResolvedValue(undefined) };
-    const controller = new CrmWebhooksController(database as never, automations as never, { emitWorkspaceEvent: vi.fn() } as never, {} as never);
+    const controller = new CrmWebhooksController(database as never, automations as never, { emitWorkspaceEvent: vi.fn() } as never, {} as never, { attributeReferral: vi.fn().mockResolvedValue(undefined) } as never);
 
     expect(await controller.handleMetaWebhook(payload, signedRequest(payload))).toEqual({ status: "received" });
     expect(await controller.handleMetaWebhook(payload, signedRequest(payload))).toEqual({ status: "ignored" });
@@ -93,7 +93,7 @@ describe("Meta webhook delivery", () => {
   it("returns an error when persistence fails so Meta can retry", async () => {
     process.env.META_APP_SECRET = "test-app-secret";
     const database = { query: vi.fn().mockRejectedValue(new Error("database unavailable")) };
-    const controller = new CrmWebhooksController(database as never, {} as never, { emitWorkspaceEvent: vi.fn() } as never, {} as never);
+    const controller = new CrmWebhooksController(database as never, {} as never, { emitWorkspaceEvent: vi.fn() } as never, {} as never, { attributeReferral: vi.fn().mockResolvedValue(undefined) } as never);
     await expect(controller.handleMetaWebhook(payload, signedRequest(payload)))
       .rejects.toThrow("database unavailable");
   });
@@ -104,14 +104,16 @@ describe("Meta webhook delivery", () => {
     const crmService = {
       ingestExternalMessage: vi.fn().mockResolvedValue({
         workspaceId: "workspace-1",
+        contactId: "contact-1",
         conversationId: "conversation-1",
         message: { id: "message-1", content: "Olá" },
       }),
     };
-    const controller = new CrmWebhooksController({} as never, {} as never, realtime as never, crmService as never);
+    const ads = { attributeReferral: vi.fn().mockResolvedValue(undefined) };
+    const controller = new CrmWebhooksController({} as never, {} as never, realtime as never, crmService as never, ads as never);
     const messenger = {
       object: "page",
-      entry: [{ id: "page-1", messaging: [{ sender: { id: "sender-1" }, message: { mid: "mid-1", text: "Olá" } }] }],
+      entry: [{ id: "page-1", messaging: [{ sender: { id: "sender-1" }, message: { mid: "mid-1", text: "Olá", referral: { source_type: "ad", source_id: "123456789" } } }] }],
     };
     const instagram = {
       object: "instagram",
@@ -121,6 +123,7 @@ describe("Meta webhook delivery", () => {
     expect(await controller.handleMetaWebhook(messenger, signedRequest(messenger))).toEqual({ status: "received" });
     expect(await controller.handleMetaWebhook(instagram, signedRequest(instagram))).toEqual({ status: "received" });
     expect(crmService.ingestExternalMessage).toHaveBeenNthCalledWith(1, expect.objectContaining({ channel: "facebook_messenger", accountId: "page-1" }));
+    expect(ads.attributeReferral).toHaveBeenCalledWith("workspace-1", "contact-1", { source_type: "ad", source_id: "123456789" });
     expect(crmService.ingestExternalMessage).toHaveBeenNthCalledWith(2, expect.objectContaining({ channel: "instagram_dm", accountId: "ig-1" }));
     expect(realtime.emitWorkspaceEvent).toHaveBeenCalledTimes(2);
   });
@@ -128,7 +131,7 @@ describe("Meta webhook delivery", () => {
   it("passes only Meta-hosted image attachments into the CRM", async () => {
     process.env.META_APP_SECRET = "test-app-secret";
     const crmService = { ingestExternalMessage: vi.fn().mockResolvedValue(null) };
-    const controller = new CrmWebhooksController({} as never, {} as never, {} as never, crmService as never);
+    const controller = new CrmWebhooksController({} as never, {} as never, {} as never, crmService as never, { attributeReferral: vi.fn().mockResolvedValue(undefined) } as never);
     const body = { object: "page", entry: [{ id: "page-1", messaging: [{ sender: { id: "sender-1" }, message: {
       mid: "mid-image", attachments: [
         { type: "image", payload: { url: "https://scontent.xx.fbcdn.net/photo.jpg" } },
@@ -153,7 +156,7 @@ describe("Meta webhook delivery", () => {
       query: vi.fn().mockResolvedValue({ rows: [{ id: "connection-1", workspace_id: "workspace-1" }] }),
       transaction: vi.fn(async (work: (connection: typeof client) => Promise<unknown>) => work(client)),
     };
-    const controller = new CrmWebhooksController(database as never, { fireTrigger: vi.fn().mockResolvedValue(null) } as never, { emitWorkspaceEvent: vi.fn() } as never, {} as never);
+    const controller = new CrmWebhooksController(database as never, { fireTrigger: vi.fn().mockResolvedValue(null) } as never, { emitWorkspaceEvent: vi.fn() } as never, {} as never, { attributeReferral: vi.fn().mockResolvedValue(undefined) } as never);
     const body = { object: "whatsapp_business_account", entry: [{ changes: [{ field: "messages", value: {
       metadata: { phone_number_id: "1234567890" }, messages: [{ id: "wamid-photo", from: "244900000001", image: { id: "123456789012", caption: "Produto" } }],
     } }] }] };
@@ -182,7 +185,7 @@ describe("Meta webhook delivery", () => {
       query: vi.fn().mockResolvedValue({ rows: [{ id: "channel-1", workspace_id: "workspace-1" }] }),
       transaction: vi.fn(async (work: (tx: typeof client) => Promise<unknown>) => work(client)),
     };
-    const controller = new CrmWebhooksController(database as never, {} as never, { emitWorkspaceEvent: vi.fn() } as never, {} as never);
+    const controller = new CrmWebhooksController(database as never, {} as never, { emitWorkspaceEvent: vi.fn() } as never, {} as never, { attributeReferral: vi.fn().mockResolvedValue(undefined) } as never);
     const body = { object: "whatsapp_business_account", entry: [{ changes: [
       { field: "history", value: { metadata: { phone_number_id: "1234567890", display_phone_number: "244900000000" }, history: [{ threads: [{ id: "244900000001", messages: [
         { id: "wamid-history-1", from: "244900000001", timestamp: "1739230955", type: "text", text: { body: "Olá" } },
@@ -202,7 +205,7 @@ describe("Meta webhook delivery", () => {
   it("marks only the matching WABA channel expired when Meta disconnects it", async () => {
     process.env.META_APP_SECRET = "test-app-secret";
     const database = { query: vi.fn().mockResolvedValue({ rowCount: 1, rows: [{ id: "channel-1" }] }) };
-    const controller = new CrmWebhooksController(database as never, {} as never, {} as never, {} as never);
+    const controller = new CrmWebhooksController(database as never, {} as never, {} as never, {} as never, { attributeReferral: vi.fn().mockResolvedValue(undefined) } as never);
     const body = { object: "whatsapp_business_account", entry: [{ id: "other-id", changes: [{ field: "account_update", value: {
       event: "PARTNER_REMOVED", waba_info: { waba_id: "123456789012" },
     } }] }] };
