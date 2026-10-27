@@ -16,7 +16,7 @@ export default function DeleteDataPage() {
         <header className="page-heading"><div><p className="eyebrow eyebrow-dark">Os teus dados</p><h1>Pedir eliminação de dados</h1><p>Instruções para contas PUVO e canais Facebook, Instagram ou WhatsApp ligados à tua loja.</p></div></header>
         <section className="panel">
           <h2>Como fazer o pedido</h2>
-          <p>Envia um email para <a href="mailto:alemacosso@gmail.com?subject=Pedido%20de%20elimina%C3%A7%C3%A3o%20de%20dados%20PUVO">alemacosso@gmail.com</a> com o assunto «Pedido de eliminação de dados PUVO». Escreve a partir do endereço associado à tua conta, se ainda tiveres acesso, e indica se pretendes eliminar a conta, os dados de uma loja ou os dados de um canal Meta ligado. Não envies palavras-passe, códigos de acesso nem tokens.</p>
+          <p>Envia um email para <a href="mailto:info@vitaleevo.ao?subject=Pedido%20de%20elimina%C3%A7%C3%A3o%20de%20dados%20PUVO">info@vitaleevo.ao</a> com o assunto «Pedido de eliminação de dados PUVO». Escreve a partir do endereço associado à tua conta, se ainda tiveres acesso, e indica se pretendes eliminar a conta, os dados de uma loja ou os dados de um canal Meta ligado. Não envies palavras-passe, códigos de acesso nem tokens.</p>
           <p>Se já removeste a app PUVO em «Apps e sites» do Facebook, podes fazer o mesmo pedido por email e identificar o nome da tua loja ou o endereço da conta PUVO. Podemos pedir uma confirmação de identidade antes de alterar ou revelar dados.</p>
         </section>
         <section className="panel">
