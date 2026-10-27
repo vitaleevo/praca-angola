@@ -36,6 +36,11 @@ export default function PrivacyPage() {
           <p>As imagens enviadas são processadas e guardadas para aparecerem nos anúncios ou perfis autorizados. A plataforma conserva mensagens, avaliações, denúncias e notificações necessárias ao funcionamento desses recursos. Envia emails de confirmação e recuperação da conta; avisos de serviços por email dependem da preferência da conta.</p>
         </section>
         <section className="panel">
+          <h2>Canais Facebook, Instagram e WhatsApp ligados à loja</h2>
+          <p>Quando o responsável de uma loja autoriza um canal Meta, a PUVO usa o acesso concedido para mostrar a conta escolhida e as conversas, publicações, comentários ou contactos que a função do CRM precisa de tratar. A loja escolhe as Páginas e contas que pretende ligar. As mensagens e os dados de clientes recebidos por esses canais ficam associados à loja para permitir atendimento e acompanhamento comercial pelos seus utilizadores autorizados.</p>
+          <p>O acesso técnico concedido à PUVO é guardado de forma cifrada no servidor. Podes desligar um canal no CRM ou pedir a eliminação dos dados já guardados seguindo as <Link href="/eliminar-dados">instruções de eliminação de dados</Link>. A remoção de uma ligação não apaga automaticamente o histórico anteriormente recebido.</p>
+        </section>
+        <section className="panel">
           <h2>Com quem partilhamos e durante quanto tempo</h2>
           <p>Compradores, vendedores e profissionais recebem os dados necessários para a encomenda ou pedido em que participam. Prestadores técnicos de alojamento, armazenamento e envio de email tratam os dados necessários para manter a plataforma em funcionamento.</p>
           <p>Os dados da conta, encomendas, mensagens e eventos de segurança são conservados enquanto forem necessários para operar os serviços e cumprir obrigações aplicáveis. Ainda não existe um prazo único de eliminação automática para todos esses registos; podes pedir informação ou eliminação através do contacto acima.</p>
