@@ -1,85 +1,11 @@
-/* One visual system for every seller CRM route. */
+/* CRM content shares the seller workspace shell and navigation. */
 .crm-workspace {
   --crm-blue: #1747c7;
   --crm-blue-hover: #1039a9;
   --crm-ink: #0b1b4a;
   --crm-line: #dce5f5;
-  background: #f4f7fd;
+  background: #fff;
 }
-
-.crm-workspace .workspace-layout {
-  width: min(100%, 1500px);
-  grid-template-columns: 264px minmax(0, 1fr);
-  gap: 28px;
-  padding-top: 32px;
-}
-
-.crm-workspace .workspace-sidebar {
-  gap: 18px;
-  padding: 20px 14px;
-  border: 1px solid #102c78;
-  border-radius: 18px;
-  background: linear-gradient(165deg, #071b52 0%, #0b2872 62%, #103997 100%);
-  box-shadow: 0 18px 40px rgba(9, 32, 89, .14);
-}
-
-.crm-workspace .workspace-sidebar-heading { border-color: rgba(255,255,255,.17); }
-.crm-workspace .workspace-sidebar-heading small { color: #99bafa; }
-.crm-workspace .workspace-sidebar-heading strong { color: #fff; }
-.crm-workspace .workspace-nav-group {
-  border-color: rgba(255,255,255,.13);
-  background: rgba(255,255,255,.045);
-}
-.crm-workspace .workspace-nav-group-toggle { color: #f2f6ff; }
-.crm-workspace .workspace-nav-group-toggle:hover,
-.crm-workspace .workspace-nav-group-toggle:focus-visible { background: rgba(255,255,255,.11); }
-.crm-workspace .workspace-nav-module { border-color: rgba(255,255,255,.15); }
-.crm-workspace .workspace-nav-module-toggle,
-.crm-workspace .workspace-nav-module-toggle.active { color: #a9caff; }
-.crm-workspace .workspace-nav-module-toggle:hover { color: #fff; }
-.crm-workspace .workspace-nav-module-content { border-color: rgba(255,255,255,.18); }
-.crm-workspace .workspace-nav-link { color: #d6e2ff; }
-.crm-workspace .workspace-nav-link:hover { color: #fff; background: rgba(255,255,255,.12); }
-.crm-workspace .workspace-nav-link.active {
-  color: #fff;
-  background: #2457d6;
-  box-shadow: inset 3px 0 0 #68ceff;
-}
-.crm-workspace .workspace-sidebar-help {
-  border-color: rgba(255,255,255,.17);
-  color: #b9dbff;
-}
-.crm-workspace .workspace-sidebar-help:hover { color: #fff; }
-.crm-workspace .workspace-sidebar :is(button, a):focus-visible { outline: 3px solid #7cd5ff; outline-offset: 2px; }
-
-.crm-workspace .workspace-content .breadcrumbs { margin-bottom: 18px; color: #526789; }
-.crm-workspace .workspace-content .breadcrumbs a:hover { color: var(--crm-blue); }
-.crm-workspace .workspace-content .page-heading {
-  position: relative;
-  overflow: hidden;
-  margin-bottom: 24px;
-  padding: 28px 32px;
-  border: 1px solid #153d9b;
-  border-radius: 18px;
-  background: linear-gradient(115deg, #0a205f 0%, #11399e 70%, #1d59cf 100%);
-  box-shadow: 0 14px 30px rgba(13, 49, 131, .13);
-}
-.crm-workspace .workspace-content .page-heading::after {
-  content: "";
-  position: absolute;
-  right: -52px;
-  top: -108px;
-  width: 280px;
-  height: 280px;
-  border: 1px solid rgba(255,255,255,.18);
-  border-radius: 50%;
-  pointer-events: none;
-}
-.crm-workspace .workspace-content .page-heading > * { position: relative; z-index: 1; }
-.crm-workspace .workspace-content .page-heading h1 { color: #fff; letter-spacing: -.035em; }
-.crm-workspace .workspace-content .page-heading p { color: #d8e5ff; }
-.crm-workspace .workspace-content .page-heading .eyebrow { color: #a8dfff; letter-spacing: .11em; }
-.crm-workspace .workspace-content .page-heading .eyebrow-line { background: #ffb13b; }
 
 .crm-workspace :is(.crm-stat-card, .crm-deal-card, .crm-automation-card, .crm-kpi-card, .crm-analytics-panel, .crm-channel-manager, .crm-inbox-grid) {
   border-color: var(--crm-line);
@@ -190,10 +116,6 @@
   .crm-workspace .crm-social-comments .crm-social-list { max-height: 62vh; }
 }
 @media (max-width: 767px) {
-  .crm-workspace .workspace-layout { display: flex; flex-direction: column; padding: 18px 16px 48px; }
-  .crm-workspace .workspace-sidebar { width: 100%; gap: 10px; padding: 14px; }
-  .crm-workspace .workspace-menu-toggle { color: #fff; background: rgba(255,255,255,.13); }
-  .crm-workspace .workspace-content .page-heading { padding: 24px 22px; }
   .crm-workspace .crm-social-toolbar { padding: 16px; }
   .crm-workspace .crm-social-toolbar label { width: 100%; }
   .crm-workspace .crm-social-toolbar button { width: 100%; }
