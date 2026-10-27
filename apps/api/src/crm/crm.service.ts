@@ -790,6 +790,7 @@ export class CrmService {
     );
     const job = result.rows[0];
     if (!job) throw new NotFoundException({ code: "WHATSAPP_SYNC_NOT_FOUND", message: "Sincronização WhatsApp não encontrada para esta loja." });
+    if (job.contacts_requested_at && job.history_requested_at) return { syncRequested: true, syncErrors: [] as string[] };
     if (Date.now() - new Date(job.started_at).getTime() > 24 * 60 * 60_000) {
       throw new BadRequestException({ code: "WHATSAPP_SYNC_EXPIRED", message: "A janela de 24 horas para sincronizar o WhatsApp expirou. É necessário repetir a ligação na Meta." });
     }

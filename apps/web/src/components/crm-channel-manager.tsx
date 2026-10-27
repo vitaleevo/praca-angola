@@ -47,7 +47,8 @@ function openWhatsAppSignup(config: EmbeddedSignupConfig): Promise<EmbeddedSignu
     const timer = window.setTimeout(() => { cleanup(); reject(new Error("A autorização WhatsApp expirou. Tenta novamente.")); }, 30 * 60_000);
     window.addEventListener("message", onMessage);
     try {
-      window.FB?.login((response) => {
+      if (!window.FB) throw new Error("Meta SDK unavailable");
+      window.FB.login((response) => {
         if (!response.authResponse?.code) { cleanup(); reject(new Error("A ligação WhatsApp foi cancelada na Meta.")); return; }
         code = response.authResponse.code;
         finish();
@@ -137,7 +138,7 @@ export function CrmChannelManager() {
     void fetch("/api/v1/crm/whatsapp/embedded-signup/config", { credentials: "include" })
       .then(async (response) => { if (!response.ok) throw new Error("WhatsApp indisponível"); return response.json() as Promise<EmbeddedSignupConfig>; })
       .then(async (config) => { await loadFacebookSdk(config); if (active) { setWhatsAppConfig(config); setWhatsAppReady(true); setWhatsAppSetupError(false); } })
-      .catch(() => { if (active) setWhatsAppSetupError(true); });
+      .catch(() => { if (active) { setWhatsAppSetupError(true); setError("A ligação WhatsApp por QR não está disponível neste momento. Tenta preparar novamente."); } });
     return () => { active = false; };
   }, [expanded, whatsAppReady, whatsAppPrepareCount]);
 
