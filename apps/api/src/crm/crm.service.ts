@@ -5,6 +5,7 @@ import { AiClientService } from "../ai/ai-client.service";
 import { CrmAutomationsService } from "./crm-automations.service";
 import {
   CrmConversation,
+  CrmConversationFilterCounts,
   CrmDeal,
   CrmMessage,
   CrmPipelineStage,
@@ -18,6 +19,7 @@ import {
 } from "./crm.types";
 import { decryptPrivateValue, encryptPrivateValue } from "../auth/auth.crypto";
 import { MetaGraphService, type MetaPageSubscriptionDiagnostics } from "./meta-graph.service";
+import type { MetaAdReferral } from "./crm-meta-ads.service";
 
 const DEFAULT_STAGES = [
   { name: "Novo Lead", slug: "new", color: "#004bfc", sort_order: 1 },
@@ -281,19 +283,132 @@ export class CrmService {
     return result;
   }
 
-  async getConversations(workspaceId: string) {
+  async getConversations(
+    workspaceId: string,
+    filters?: {
+      status?: "all" | "unread" | "pending" | "replied" | "read";
+      channel?: string;
+      search?: string;
+    },
+  ) {
+    const status = filters?.status || "all";
+    const channel = filters?.channel || "all";
+    if (!["all", "unread", "pending", "replied", "read"].includes(status)) throw new BadRequestException("Filtro de estado inválido.");
+    if (!["all", "whatsapp", "instagram_dm", "facebook_messenger", "puvo_chat"].includes(channel)) throw new BadRequestException("Canal inválido.");
+    if (filters?.search && (typeof filters.search !== "string" || filters.search.length > 100)) throw new BadRequestException("Pesquisa demasiado longa.");
+    const search = filters?.search?.trim();
+
+    const conditions: string[] = ["cv.workspace_id = $1"];
+    const params: unknown[] = [workspaceId];
+    let paramIndex = 2;
+
+    if (channel && channel !== "all") {
+      conditions.push(`cv.channel = $${paramIndex++}`);
+      params.push(channel);
+    }
+
+    if (status === "unread") {
+      conditions.push(`cv.unread_count > 0`);
+    } else if (status === "read") {
+      conditions.push(`cv.unread_count = 0`);
+    } else if (status === "pending") {
+      conditions.push(`cv.is_replied IS FALSE`);
+    } else if (status === "replied") {
+      conditions.push(`cv.is_replied IS TRUE`);
+    }
+
+    if (search) {
+      conditions.push(`(c.full_name ILIKE $${paramIndex} ESCAPE '\\' OR c.phone ILIKE $${paramIndex} ESCAPE '\\' OR cv.last_message_preview ILIKE $${paramIndex} ESCAPE '\\')`);
+      params.push(`%${search.replace(/[\\%_]/g, "\\$&")}%`);
+      paramIndex++;
+    }
+
+    const whereClause = conditions.join(" AND ");
+
     const result = await this.database.query<CrmConversation>(
       `SELECT cv.id, cv.workspace_id, cv.contact_id, c.full_name AS contact_name, c.phone AS contact_phone,
-              cv.channel, cv.last_message_preview, cv.last_message_at, cv.unread_count
+              c.meta_ad_ref, ad.name AS meta_ad_name,
+              cv.channel, cv.last_message_preview, cv.last_message_at, cv.unread_count,
+              COALESCE(cv.last_message_direction, 'inbound') AS last_message_direction,
+              COALESCE(cv.is_replied, false) AS is_replied,
+              cv.last_inbound_at, cv.last_outbound_at
        FROM crm_conversations cv
        JOIN crm_contacts c ON c.id = cv.contact_id
-       WHERE cv.workspace_id = $1
-       ORDER BY cv.last_message_at DESC LIMIT 50`,
-      [workspaceId],
+       LEFT JOIN crm_meta_ad_campaigns ad ON ad.id = c.meta_campaign_id AND ad.workspace_id = cv.workspace_id
+       WHERE ${whereClause}
+       ORDER BY cv.last_message_at DESC LIMIT 100`,
+      params,
     );
 
-    return { conversations: result.rows };
+    const countConditions: string[] = ["workspace_id = $1"];
+    const countParams: unknown[] = [workspaceId];
+    if (channel && channel !== "all") {
+      countConditions.push("channel = $2");
+      countParams.push(channel);
+    }
+    const countWhere = countConditions.join(" AND ");
+
+    const countsRes = await this.database.query<{
+      total_count: string;
+      unread_count: string;
+      pending_count: string;
+      replied_count: string;
+      read_count: string;
+    }>(
+      `SELECT
+         COUNT(*)::text AS total_count,
+         COUNT(*) FILTER (WHERE unread_count > 0)::text AS unread_count,
+         COUNT(*) FILTER (WHERE is_replied IS FALSE)::text AS pending_count,
+         COUNT(*) FILTER (WHERE is_replied IS TRUE)::text AS replied_count,
+         COUNT(*) FILTER (WHERE unread_count = 0)::text AS read_count
+       FROM crm_conversations
+       WHERE ${countWhere}`,
+      countParams,
+    );
+
+    const countsRow = countsRes.rows[0];
+    const counts: CrmConversationFilterCounts = {
+      all: Number(countsRow?.total_count || 0),
+      unread: Number(countsRow?.unread_count || 0),
+      pending: Number(countsRow?.pending_count || 0),
+      replied: Number(countsRow?.replied_count || 0),
+      read: Number(countsRow?.read_count || 0),
+    };
+
+    return { conversations: result.rows, counts };
   }
+
+  async setConversationReadStatus(workspaceId: string, conversationId: string, read: boolean) {
+    const result = await this.database.query<CrmConversation>(
+      `UPDATE crm_conversations
+       SET unread_count = $3
+       WHERE id = $1 AND workspace_id = $2
+       RETURNING id, workspace_id, contact_id, channel, last_message_preview, last_message_at, unread_count,
+                 COALESCE(last_message_direction, 'inbound') AS last_message_direction,
+                 COALESCE(is_replied, false) AS is_replied,
+                 last_inbound_at, last_outbound_at`,
+      [conversationId, workspaceId, read ? 0 : 1],
+    );
+    if (!result.rows[0]) throw new NotFoundException({ code: "CONVERSATION_NOT_FOUND", message: "Conversa não encontrada." });
+    return result.rows[0];
+  }
+
+  async setConversationReplyStatus(workspaceId: string, conversationId: string, replied: boolean) {
+    const result = await this.database.query<CrmConversation>(
+      `UPDATE crm_conversations
+       SET is_replied = $3,
+           last_outbound_at = CASE WHEN $3 = true THEN COALESCE(last_outbound_at, now()) ELSE last_outbound_at END
+       WHERE id = $1 AND workspace_id = $2
+       RETURNING id, workspace_id, contact_id, channel, last_message_preview, last_message_at, unread_count,
+                 COALESCE(last_message_direction, 'inbound') AS last_message_direction,
+                 COALESCE(is_replied, false) AS is_replied,
+                 last_inbound_at, last_outbound_at`,
+      [conversationId, workspaceId, replied],
+    );
+    if (!result.rows[0]) throw new NotFoundException({ code: "CONVERSATION_NOT_FOUND", message: "Conversa não encontrada." });
+    return result.rows[0];
+  }
+
 
   async getMessages(workspaceId: string, conversationId: string) {
     const convoCheck = await this.database.query<{ id: string; contact_id: string; channel: string }>(
@@ -419,7 +534,8 @@ export class CrmService {
 
       await client.query(
         `UPDATE crm_conversations
-         SET last_message_preview = $2, last_message_at = now()
+         SET last_message_preview = $2, last_message_at = now(),
+             last_message_direction = 'outbound', is_replied = true, last_outbound_at = now()
          WHERE id = $1`,
         [conversationId, dto.content.trim().slice(0, 100)],
       );
@@ -625,12 +741,22 @@ export class CrmService {
       [stateHash],
     );
     if (!attempt.rows.length) throw new UnauthorizedException({ code: "META_OAUTH_STATE_INVALID", message: "A ligação Meta expirou. Inicia novamente no CRM." });
-    const pages = await this.metaGraph.exchangeCodeForPages(code);
+    const { pages, userToken } = await this.metaGraph.exchangeCodeForPages(code);
+    let adsCredential: string | null = null;
+    try {
+      const token = await this.metaGraph.inspectAccessToken(userToken);
+      if (token.valid && token.appMatches && token.grantedScopes.includes("ads_read")) {
+        adsCredential = encryptPrivateValue(JSON.stringify({ accessToken: userToken, expiresAt: token.expiresAt }));
+      }
+    } catch {
+      // A temporary Meta diagnostics failure must not invalidate the Pages authorization.
+    }
     await this.database.query(
       `UPDATE crm_meta_oauth_attempts
-       SET accounts_ciphertext = $2, authorized_at = now(), expires_at = now() + interval '10 minutes'
+       SET accounts_ciphertext = $2, access_token_ciphertext = $3,
+           authorized_at = now(), expires_at = now() + interval '10 minutes'
        WHERE id = $1`,
-      [attempt.rows[0].id, encryptPrivateValue(JSON.stringify(pages))],
+      [attempt.rows[0].id, encryptPrivateValue(JSON.stringify(pages)), adsCredential],
     );
     return { attemptId: attempt.rows[0].id, userId: attempt.rows[0].user_id };
   }
@@ -680,7 +806,18 @@ export class CrmService {
           result.push({ channelType: "instagram_direct", accountName: page.instagram.name });
         }
       }
-      await client.query(`UPDATE crm_meta_oauth_attempts SET completed_at = now(), accounts_ciphertext = NULL WHERE id = $1`, [attemptId]);
+      if (attempt.access_token_ciphertext) {
+        const credential = JSON.parse(decryptPrivateValue(attempt.access_token_ciphertext)) as { accessToken: string; expiresAt: number | null };
+        await client.query(
+          `INSERT INTO crm_meta_ad_connections (workspace_id, authorized_by_user_id, access_token_ciphertext, token_expires_at)
+           VALUES ($1,$2,$3,$4)
+           ON CONFLICT (workspace_id) DO UPDATE SET authorized_by_user_id=EXCLUDED.authorized_by_user_id,
+             access_token_ciphertext=EXCLUDED.access_token_ciphertext, token_expires_at=EXCLUDED.token_expires_at,
+             selected_ad_account_id=NULL, selected_ad_account_name=NULL, selected_currency=NULL, updated_at=now()`,
+          [workspaceId, userId, encryptPrivateValue(credential.accessToken), credential.expiresAt ? new Date(credential.expiresAt * 1000) : null],
+        );
+      }
+      await client.query(`UPDATE crm_meta_oauth_attempts SET completed_at = now(), accounts_ciphertext = NULL, access_token_ciphertext = NULL WHERE id = $1`, [attemptId]);
       return result;
     });
     return { channels: connected };
@@ -858,6 +995,7 @@ export class CrmService {
     text?: string;
     senderName?: string;
     imageUrls?: string[];
+    referral?: MetaAdReferral;
   }) {
     const channelType = input.channel === "facebook_messenger" ? "facebook_page" : "instagram_direct";
     const connection = await this.database.query<{ id: string; workspace_id: string }>(
@@ -897,7 +1035,8 @@ export class CrmService {
          VALUES ($1, $2, $3, $4, $5, $6, now(), 1)
          ON CONFLICT (workspace_id, contact_id, channel)
          DO UPDATE SET channel_connection_id = EXCLUDED.channel_connection_id, external_thread_id = EXCLUDED.external_thread_id,
-                       last_message_preview = EXCLUDED.last_message_preview, last_message_at = now(), unread_count = crm_conversations.unread_count + 1
+                       last_message_preview = EXCLUDED.last_message_preview, last_message_at = now(), unread_count = crm_conversations.unread_count + 1,
+                       last_message_direction = 'inbound', is_replied = false, last_inbound_at = now()
          RETURNING id`,
         [linked.workspace_id, identity.rows[0].contact_id, input.channel, linked.id, input.senderId, content.slice(0, 100)],
       );
@@ -905,7 +1044,7 @@ export class CrmService {
         `INSERT INTO crm_messages (conversation_id, workspace_id, direction, message_type, content, media_url, status, metadata)
          VALUES ($1, $2, 'inbound', $3, $4, $5, 'delivered', $6::jsonb)
          RETURNING id, conversation_id, workspace_id, direction, message_type, content, media_url, metadata, status, created_at`,
-        [conversation.rows[0].id, linked.workspace_id, input.imageUrls?.length ? "image" : "text", content, input.imageUrls?.[0] ?? null, JSON.stringify({ meta_message_id: input.messageId, sender_id: input.senderId, image_urls: input.imageUrls ?? [] })],
+        [conversation.rows[0].id, linked.workspace_id, input.imageUrls?.length ? "image" : "text", content, input.imageUrls?.[0] ?? null, JSON.stringify({ meta_message_id: input.messageId, sender_id: input.senderId, image_urls: input.imageUrls ?? [], ...(input.referral?.source_type === "ad" ? { referral: { source_type: "ad", source_id: input.referral.source_id } } : {}) })],
       );
       await client.query(`UPDATE crm_channel_connections SET last_sync_at = now() WHERE id = $1 AND workspace_id = $2`, [linked.id, linked.workspace_id]);
       return { workspaceId: linked.workspace_id, contactId: identity.rows[0].contact_id, conversationId: conversation.rows[0].id, message: message.rows[0], channel: input.channel };
@@ -924,8 +1063,8 @@ export class CrmService {
   }
 
   private async loadMetaAttempt(userId: string, workspaceId: string, attemptId: string) {
-    const result = await this.database.query<{ accounts_ciphertext: string | null }>(
-      `SELECT accounts_ciphertext FROM crm_meta_oauth_attempts
+    const result = await this.database.query<{ accounts_ciphertext: string | null; access_token_ciphertext: string | null }>(
+      `SELECT accounts_ciphertext, access_token_ciphertext FROM crm_meta_oauth_attempts
        WHERE id = $1 AND user_id = $2 AND workspace_id = $3 AND expires_at > now()
          AND authorized_at IS NOT NULL AND completed_at IS NULL LIMIT 1`,
       [attemptId, userId, workspaceId],
@@ -933,7 +1072,7 @@ export class CrmService {
     if (!result.rows.length || !result.rows[0].accounts_ciphertext) {
       throw new NotFoundException({ code: "META_AUTHORIZATION_NOT_FOUND", message: "A autorização Meta expirou. Liga a conta novamente." });
     }
-    return { accounts_ciphertext: result.rows[0].accounts_ciphertext };
+    return result.rows[0] as { accounts_ciphertext: string; access_token_ciphertext: string | null };
   }
 
   private decryptMetaPages(ciphertext: string) {

@@ -1,4 +1,4 @@
-import { BadRequestException, Controller, Get, NotFoundException, Post, Req, Res, UseGuards } from "@nestjs/common";
+import { BadRequestException, Controller, Get, NotFoundException, Post, Query, Req, Res, UseGuards } from "@nestjs/common";
 import { randomUUID } from "node:crypto";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
@@ -32,7 +32,8 @@ export class MediaController {
   @Post()
   @RateLimit({ scope: "media-upload", limit: 10, windowSeconds: 60 })
   @UseGuards(SessionGuard, RateLimitGuard)
-  async upload(@Req() request: Readable & { headers: Record<string, string | string[] | undefined>; resume(): void }, @CurrentUser() user: AuthenticatedUser) {
+  async upload(@Req() request: Readable & { headers: Record<string, string | string[] | undefined>; resume(): void }, @CurrentUser() user: AuthenticatedUser, @Query("format") format?: string) {
+    if (format && format !== "jpeg") throw new BadRequestException("Formato de imagem inválido.");
     const declaredLength = Number(request.headers["content-length"] ?? 0);
     if (declaredLength > MAX_IMAGE_BYTES) throw new BadRequestException({ code: "IMAGE_TOO_LARGE", message: "Cada imagem pode ter no máximo 5 MB." });
     const chunks: Buffer[] = [];
@@ -55,12 +56,16 @@ export class MediaController {
       const meta=await decoder.metadata();
       if(meta.format!==image.extension && !(meta.format==='jpeg'&&image.extension==='jpg'))throw new Error('Formato divergente.');
       if(!meta.width||!meta.height||meta.width<1||meta.height<1||meta.width*meta.height>20_000_000||(meta.pages??1)>1)throw new Error('Dimensões inválidas.');
-      normalized=await decoder.rotate().resize({width:2560,height:2560,fit:'inside',withoutEnlargement:true}).webp({quality:82}).toBuffer();
+      const resized=decoder.rotate().resize({width:2560,height:2560,fit:'inside',withoutEnlargement:true});
+      normalized=format==='jpeg'
+        ? await resized.flatten({background:'#ffffff'}).jpeg({quality:85}).toBuffer()
+        : await resized.webp({quality:82}).toBuffer();
       if(normalized.length>MAX_IMAGE_BYTES)throw new Error('Imagem convertida demasiado grande.');
     } catch {throw new BadRequestException({code:'INVALID_IMAGE',message:'A imagem está danificada ou excede 20 milhões de píxeis.'});}
     const id = randomUUID();
-    const storageKey = `${id}.webp`;
-    await this.quota.reserve(user.id, { id, storageKey, mimeType: "image/webp", sizeBytes: normalized.length });
+    const mimeType = format === 'jpeg' ? 'image/jpeg' : 'image/webp';
+    const storageKey = `${id}.${format === 'jpeg' ? 'jpg' : 'webp'}`;
+    await this.quota.reserve(user.id, { id, storageKey, mimeType, sizeBytes: normalized.length });
     const filePath = join(mediaDirectory(), storageKey);
     try {
       await mkdir(mediaDirectory(), { recursive: true });
@@ -70,7 +75,7 @@ export class MediaController {
       await this.quota.release(id);
       throw error;
     }
-    return { id, url: `/api/v1/media/${id}`, mimeType: 'image/webp', sizeBytes: normalized.length };
+    return { id, url: `/api/v1/media/${id}`, mimeType, sizeBytes: normalized.length };
   }
 
   @Get(":id")

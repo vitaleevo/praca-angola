@@ -7,7 +7,8 @@ import "../app/crm.css";
 
 type Channel = { id: string; channel_type: "facebook_page" | "instagram_direct"; account_name: string };
 type Media = { ref: string; text: string; createdAt: string | null; permalink: string | null; mediaType: string | null; imageUrls?: string[]; commentsCount: number | null };
-type Comment = { ref: string; text: string; author: string; createdAt: string | null };
+type Comment = { ref: string; text: string; author: string; createdAt: string | null; imageUrls?: string[]; isRead: boolean; isReplied: boolean };
+type CommentFilter = "all" | "unread" | "pending" | "replied";
 type Page<T> = { items: T[]; next?: string };
 type Profile = { name: string; username: string | null; description: string | null; followers: number | null; mediaCount: number | null; website: string | null };
 
@@ -40,12 +41,30 @@ export function CrmSocial() {
   const [selected, setSelected] = useState<Media | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [commentsNext, setCommentsNext] = useState<string | undefined>();
+  const [commentFilter, setCommentFilter] = useState<CommentFilter>("all");
+  const [lightbox, setLightbox] = useState<{ item: Media; index: number } | null>(null);
+  const [zoomed, setZoomed] = useState(false);
   const [reply, setReply] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [brokenImages, setBrokenImages] = useState<string[]>([]);
   const commentsPanelRef = useRef<HTMLDivElement>(null);
+  const visibleComments = comments.filter((comment) => commentFilter === "all" ||
+    (commentFilter === "unread" && !comment.isRead) ||
+    (commentFilter === "pending" && !comment.isReplied) ||
+    (commentFilter === "replied" && comment.isReplied));
+
+  useEffect(() => {
+    if (!lightbox) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setLightbox(null);
+      if (event.key === "ArrowLeft") setLightbox((current) => current ? { ...current, index: (current.index - 1 + (current.item.imageUrls?.length ?? 1)) % (current.item.imageUrls?.length ?? 1) } : null);
+      if (event.key === "ArrowRight") setLightbox((current) => current ? { ...current, index: (current.index + 1) % (current.item.imageUrls?.length ?? 1) } : null);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [lightbox]);
 
   useEffect(() => {
     let active = true;
@@ -123,6 +142,18 @@ export function CrmSocial() {
     finally { setBusy(false); }
   }
 
+  async function updateComment(comment: Comment, status: { isRead?: boolean; isReplied?: boolean }) {
+    if (!channelId) return;
+    setBusy(true); setError("");
+    try {
+      const result = await api<{ isRead: boolean; isReplied: boolean }>(`/channels/${channelId}/comments/status`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ commentRef: comment.ref, ...status }),
+      });
+      setComments((current) => current.map((item) => item.ref === comment.ref ? { ...item, ...result } : item));
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Não foi possível atualizar o comentário."); }
+    finally { setBusy(false); }
+  }
+
   return <section className="crm-social" aria-label="Gestão de redes sociais">
     <div className="crm-social-toolbar">
       <label>Canal da loja
@@ -148,7 +179,7 @@ export function CrmSocial() {
           <div className="crm-social-card-meta"><span>{mediaLabel(item.mediaType)}</span><small>{date(item.createdAt)}</small></div>
           {!!item.imageUrls?.length && <div className="crm-social-images">
             {(selected?.ref === item.ref ? item.imageUrls : item.imageUrls.slice(0, 1)).filter((url) => !brokenImages.includes(url)).map((url, index) =>
-              <Image key={url} src={url} alt={`Imagem ${index + 1} da publicação`} width={640} height={480} unoptimized onError={() => setBrokenImages((current) => [...current, url])} />)}
+              <button key={url} type="button" className="crm-social-image-button" onClick={() => { setZoomed(false); setLightbox({ item, index }); }} aria-label={`Ampliar imagem ${index + 1} da publicação`}><Image src={url} alt={`Imagem ${index + 1} da publicação`} width={640} height={480} unoptimized onError={() => setBrokenImages((current) => [...current, url])} /></button>)}
             {selected?.ref !== item.ref && item.imageUrls.length > 1 && <span className="crm-social-image-count">+{item.imageUrls.length - 1} imagens</span>}
           </div>}
           <p className="crm-social-excerpt">{item.text || (item.mediaType ? `Publicação ${item.mediaType.toLowerCase()}` : "Publicação sem texto")}</p>
@@ -159,16 +190,19 @@ export function CrmSocial() {
         {mediaNext && <button className="crm-social-more" type="button" onClick={() => void loadMedia(channelId, mediaNext)} disabled={busy}>Carregar mais publicações</button>}
       </div>
       <div className="crm-social-panel crm-social-comments" ref={commentsPanelRef}>
-        <div className="crm-social-panel-header"><h2>Comentários</h2><p>{selected ? `${comments.length} comentários carregados para esta publicação` : "Responde aos clientes sem sair da PUVO"}</p></div>
+        <div className="crm-social-panel-header"><h2>Comentários</h2><p>{selected ? `${comments.length} carregados · ${comments.filter((comment) => !comment.isReplied).length} por responder` : "Responde aos clientes sem sair da PUVO"}</p></div>
+        {selected && <div className="crm-social-filters" aria-label="Filtrar comentários">{([ ["all", "Todos"], ["unread", "Não lidos"], ["pending", "Por responder"], ["replied", "Respondidos"] ] as const).map(([value, label]) => <button key={value} type="button" className={commentFilter === value ? "is-active" : ""} onClick={() => setCommentFilter(value)}>{label}</button>)}</div>}
         <div className="crm-social-list">
         {!selected ? <p className="crm-social-empty">Escolhe uma publicação para ver e responder aos comentários.</p> : <>
           <div className="crm-social-context">
-            {!!selected.imageUrls?.[0] && !brokenImages.includes(selected.imageUrls[0]) && <Image src={selected.imageUrls[0]} alt="Imagem da publicação selecionada" width={96} height={96} unoptimized onError={() => setBrokenImages((current) => [...current, selected.imageUrls![0]])} />}
+            {!!selected.imageUrls?.[0] && !brokenImages.includes(selected.imageUrls[0]) && <button type="button" className="crm-social-image-button" onClick={() => { setZoomed(false); setLightbox({ item: selected, index: 0 }); }} aria-label="Ampliar imagem da publicação"><Image src={selected.imageUrls[0]} alt="Imagem da publicação selecionada" width={96} height={96} unoptimized onError={() => setBrokenImages((current) => [...current, selected.imageUrls![0]])} /></button>}
             <p>{selected.text || mediaLabel(selected.mediaType)}</p>
           </div>
           {!busy && !comments.length && <p className="crm-social-empty">Esta publicação não tem comentários disponíveis.</p>}
-          {comments.map((comment) => <article key={comment.ref} className="crm-social-card">
-            <div className="crm-social-comment-heading"><span className="crm-social-avatar" aria-hidden="true">{comment.author.slice(0, 1).toUpperCase()}</span><span><strong>{comment.author}</strong><small>{date(comment.createdAt)}</small></span></div><p>{comment.text}</p>
+          {visibleComments.map((comment) => <article key={comment.ref} className="crm-social-card">
+            <div className="crm-social-comment-heading"><span className="crm-social-avatar" aria-hidden="true">{comment.author.slice(0, 1).toUpperCase()}</span><span><strong>{comment.author}</strong><small>{date(comment.createdAt)}</small></span><span className={comment.isReplied ? "crm-social-status is-replied" : "crm-social-status"}>{comment.isReplied ? "Respondido" : "Por responder"}</span>{!comment.isRead && <span className="crm-social-unread" aria-label="Não lido" />}</div><p>{comment.text}</p>
+            {!!comment.imageUrls?.length && <div className="crm-social-images">{comment.imageUrls.filter((url) => !brokenImages.includes(url)).map((url, index) => <button key={url} type="button" className="crm-social-image-button" onClick={() => { setZoomed(false); setLightbox({ item: { ...selected, text: comment.text, imageUrls: comment.imageUrls }, index }); }} aria-label={`Ampliar anexo ${index + 1} do comentário`}><Image src={url} alt={`Anexo ${index + 1} do comentário`} width={320} height={240} unoptimized onError={() => setBrokenImages((current) => [...current, url])} /></button>)}</div>}
+            <div className="crm-social-actions"><button type="button" onClick={() => void updateComment(comment, { isRead: !comment.isRead })} disabled={busy}>{comment.isRead ? "Marcar não lido" : "Marcar lido"}</button><button type="button" onClick={() => void updateComment(comment, { isReplied: !comment.isReplied })} disabled={busy}>{comment.isReplied ? "Marcar por responder" : "Marcar respondido"}</button></div>
             <label>Responder a {comment.author}<textarea rows={2} maxLength={1000} value={reply[comment.ref] ?? ""} onChange={(event) => setReply((previous) => ({ ...previous, [comment.ref]: event.target.value }))} /></label>
             <button type="button" onClick={() => void sendReply(comment)} disabled={busy || !reply[comment.ref]?.trim()}>Publicar resposta</button>
           </article>)}
@@ -177,5 +211,16 @@ export function CrmSocial() {
         </div>
       </div>
     </div>
+    {lightbox && lightbox.item.imageUrls?.[lightbox.index] && <div className="crm-social-lightbox" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setLightbox(null); }}>
+      <div className="crm-social-lightbox-dialog" role="dialog" aria-modal="true" aria-label="Imagem da publicação ampliada">
+        <button type="button" className="crm-social-lightbox-close" onClick={() => setLightbox(null)} aria-label="Fechar imagem">×</button>
+        <div className={zoomed ? "crm-social-lightbox-image is-zoomed" : "crm-social-lightbox-image"}><Image src={lightbox.item.imageUrls[lightbox.index]} alt={`Imagem ${lightbox.index + 1} da publicação`} width={1600} height={1200} unoptimized /></div>
+        <div className="crm-social-lightbox-footer">
+          <button type="button" onClick={() => setZoomed((value) => !value)}>{zoomed ? "Ajustar ao ecrã" : "Tamanho original"}</button>
+          {lightbox.item.imageUrls.length > 1 && <><button type="button" onClick={() => setLightbox((current) => current ? { ...current, index: (current.index - 1 + current.item.imageUrls!.length) % current.item.imageUrls!.length } : null)}>Anterior</button><span>{lightbox.index + 1} / {lightbox.item.imageUrls.length}</span><button type="button" onClick={() => setLightbox((current) => current ? { ...current, index: (current.index + 1) % current.item.imageUrls!.length } : null)}>Seguinte</button></>}
+          <p>{lightbox.item.text}</p>{lightbox.item.permalink && <a href={lightbox.item.permalink} target="_blank" rel="noopener noreferrer">Ver publicação original</a>}
+        </div>
+      </div>
+    </div>}
   </section>;
 }

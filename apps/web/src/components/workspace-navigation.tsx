@@ -25,6 +25,8 @@ const userNavigation: NavigationGroup[] = [
     { href: "/vendedor/crm", label: "Funil de vendas" },
     { href: "/vendedor/crm/conversas", label: "Live Inbox" },
     { href: "/vendedor/crm/redes-sociais", label: "Redes sociais" },
+    { href: "/vendedor/crm/estudio", label: "Estúdio de publicações" },
+    { href: "/vendedor/crm/anuncios-meta", label: "Anúncios Meta" },
     { href: "/vendedor/crm/contactos", label: "Base de leads" },
     { href: "/vendedor/crm/automacoes", label: "Automações" },
     { href: "/vendedor/crm/analytics", label: "Analytics" },

@@ -1,10 +1,11 @@
-import { Body, Controller, ForbiddenException, Get, HttpCode, Post, Query, Req, Res, ServiceUnavailableException } from "@nestjs/common";
+import { Body, Controller, ForbiddenException, Get, HttpCode, Logger, Post, Query, Req, Res, ServiceUnavailableException } from "@nestjs/common";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import type { Request, Response } from "express";
 import { DatabaseService } from "../database/database.service";
 import { CrmAutomationsService } from "./crm-automations.service";
 import { CrmRealtimeService } from "./crm-realtime.service";
 import { CrmService } from "./crm.service";
+import { CrmMetaAdsService, type MetaAdReferral } from "./crm-meta-ads.service";
 import { publicMetaImageUrl } from "./meta-media";
 
 interface MetaMessage {
@@ -15,6 +16,7 @@ interface MetaMessage {
   type?: string;
   text?: { body?: string };
   image?: { id?: string; caption?: string; mime_type?: string };
+  referral?: MetaAdReferral;
 }
 
 interface MetaSyncContact { type?: string; action?: string; contact?: { full_name?: string; first_name?: string; phone_number?: string } }
@@ -39,17 +41,20 @@ interface MetaEntry {
   changes?: MetaChange[];
   messaging?: Array<{
     sender?: { id?: string };
-    message?: { mid?: string; text?: string; is_echo?: boolean; attachments?: Array<{ type?: string; payload?: { url?: string } }> };
+    message?: { mid?: string; text?: string; is_echo?: boolean; referral?: MetaAdReferral; attachments?: Array<{ type?: string; payload?: { url?: string } }> };
+    referral?: MetaAdReferral;
   }>;
 }
 
 @Controller("crm/webhooks")
 export class CrmWebhooksController {
+  private readonly logger = new Logger(CrmWebhooksController.name);
   constructor(
     private readonly database: DatabaseService,
     private readonly automations: CrmAutomationsService,
     private readonly realtime: CrmRealtimeService,
     private readonly crmService: CrmService,
+    private readonly ads: CrmMetaAdsService,
   ) {}
 
   @Get("meta")
@@ -117,8 +122,11 @@ export class CrmWebhooksController {
           messageId: event.message.mid,
           text: event.message.text,
           imageUrls,
+          referral: event.referral ?? event.message.referral,
         });
         if (inbound) {
+          try { await this.ads.attributeReferral(inbound.workspaceId, inbound.contactId, event.referral ?? event.message.referral); }
+          catch (error) { this.logger.warn(`Atribuição Meta pendente: ${error instanceof Error ? error.message : "erro desconhecido"}`); }
           processed++;
           this.realtime.emitWorkspaceEvent(inbound.workspaceId, "new_message", { message: inbound.message, conversationId: inbound.conversationId });
         }
@@ -240,9 +248,13 @@ export class CrmWebhooksController {
          ON CONFLICT (workspace_id, contact_id, channel)
          DO UPDATE SET channel_connection_id = EXCLUDED.channel_connection_id,
            last_message_preview = CASE WHEN crm_conversations.last_message_at <= EXCLUDED.last_message_at THEN EXCLUDED.last_message_preview ELSE crm_conversations.last_message_preview END,
-           last_message_at = GREATEST(crm_conversations.last_message_at, EXCLUDED.last_message_at)
+           last_message_at = GREATEST(crm_conversations.last_message_at, EXCLUDED.last_message_at),
+           last_message_direction = CASE WHEN crm_conversations.last_message_at <= EXCLUDED.last_message_at THEN $7 ELSE crm_conversations.last_message_direction END,
+           is_replied = CASE WHEN crm_conversations.last_message_at <= EXCLUDED.last_message_at THEN $7 = 'outbound' ELSE crm_conversations.is_replied END,
+           last_inbound_at = CASE WHEN $7 = 'inbound' THEN GREATEST(crm_conversations.last_inbound_at, EXCLUDED.last_message_at) ELSE crm_conversations.last_inbound_at END,
+           last_outbound_at = CASE WHEN $7 = 'outbound' THEN GREATEST(crm_conversations.last_outbound_at, EXCLUDED.last_message_at) ELSE crm_conversations.last_outbound_at END
          RETURNING id`,
-        [linked.workspace_id, contact.rows[0].id, linked.id, phone, content.slice(0, 100), timestamp],
+        [linked.workspace_id, contact.rows[0].id, linked.id, phone, content.slice(0, 100), timestamp, outbound ? "outbound" : "inbound"],
       );
       const saved = await client.query<{ id: string; workspace_id: string; conversation_id: string; direction: string; message_type: string; content: string; metadata: Record<string, unknown>; status: string; created_at: string }>(
         `INSERT INTO crm_messages (conversation_id, workspace_id, direction, message_type, content, status, metadata, created_at)
@@ -333,7 +345,8 @@ export class CrmWebhooksController {
          VALUES ($1, $2, 'whatsapp', $3, $4, $5, now(), 1)
          ON CONFLICT (workspace_id, contact_id, channel)
          DO UPDATE SET channel_connection_id = EXCLUDED.channel_connection_id, external_thread_id = EXCLUDED.external_thread_id,
-                       last_message_preview = EXCLUDED.last_message_preview, last_message_at = now(), unread_count = crm_conversations.unread_count + 1
+                       last_message_preview = EXCLUDED.last_message_preview, last_message_at = now(), unread_count = crm_conversations.unread_count + 1,
+                       last_message_direction = 'inbound', is_replied = false, last_inbound_at = now()
          RETURNING id`,
         [workspaceId, contact.rows[0].id, connection.rows[0].id, fromPhone, textBody.slice(0, 100)],
       );
@@ -341,12 +354,14 @@ export class CrmWebhooksController {
         `INSERT INTO crm_messages (conversation_id, workspace_id, direction, message_type, content, status, metadata)
          VALUES ($1, $2, 'inbound', $3, $4, 'delivered', $5::jsonb)
          RETURNING id, conversation_id, workspace_id, direction, message_type, content, status, metadata, created_at`,
-        [conversation.rows[0].id, workspaceId, mediaId ? "image" : "text", textBody, JSON.stringify({ meta_message_id: message.id, ...(mediaId ? { media_id: mediaId } : {}) })],
+        [conversation.rows[0].id, workspaceId, mediaId ? "image" : "text", textBody, JSON.stringify({ meta_message_id: message.id, ...(mediaId ? { media_id: mediaId } : {}), ...(message.referral?.source_type === "ad" ? { referral: { source_type: "ad", source_id: message.referral.source_id } } : {}) })],
       );
       await client.query(`UPDATE crm_channel_connections SET last_sync_at = now() WHERE id = $1 AND workspace_id = $2`, [connection.rows[0].id, workspaceId]);
       return { contactId: contact.rows[0].id, conversationId: conversation.rows[0].id, message: stored.rows[0] };
     });
     if (!result) return false;
+    try { await this.ads.attributeReferral(workspaceId, result.contactId, message.referral); }
+    catch (error) { this.logger.warn(`Atribuição Meta pendente: ${error instanceof Error ? error.message : "erro desconhecido"}`); }
     this.realtime.emitWorkspaceEvent(workspaceId, "new_message", { message: result.message, conversationId: result.conversationId });
     void this.automations.fireTrigger({
       workspaceId,

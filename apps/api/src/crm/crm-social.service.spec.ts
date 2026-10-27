@@ -7,7 +7,7 @@ describe("CrmSocialService", () => {
   const workspaceId = "4b6ba98c-0000-4000-8000-000000000001";
   const channelId = "4b6ba98c-0000-4000-8000-000000000002";
   const database = { query: vi.fn() };
-  const meta = { listSocialMedia: vi.fn(), listSocialComments: vi.fn(), replyToSocialComment: vi.fn() };
+  const meta = { listSocialMedia: vi.fn(), listSocialComments: vi.fn(), replyToSocialComment: vi.fn(), inspectAccessToken: vi.fn() };
   let service: CrmSocialService;
 
   beforeEach(() => {
@@ -74,5 +74,36 @@ describe("CrmSocialService", () => {
     expect(result.sent).toBe(true);
     expect(meta.replyToSocialComment).toHaveBeenCalledWith("facebook_page", "98765", "private-test-token", "Obrigado");
     await expect(service.reply(workspaceId, channelId, `${comments.items[0].ref}x`, "Obrigado")).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it("merges saved comment states and records a successful Meta reply", async () => {
+    meta.listSocialMedia.mockResolvedValue({ data: [{ id: "1393752373814265_123" }] });
+    meta.listSocialComments.mockResolvedValue({ data: [{ id: "98765", message: "Preço?" }] });
+    database.query.mockResolvedValueOnce({ rows: [{ id: channelId, channel_type: "facebook_page", external_account_id: "1393752373814265", credentials_ciphertext: encryptPrivateValue(JSON.stringify({ accessToken: "private-test-token" })) }] });
+    const media = await service.listMedia(workspaceId, channelId);
+    database.query.mockResolvedValueOnce({ rows: [{ id: channelId, channel_type: "facebook_page", external_account_id: "1393752373814265", credentials_ciphertext: encryptPrivateValue(JSON.stringify({ accessToken: "private-test-token" })) }] });
+    database.query.mockResolvedValueOnce({ rows: [{ comment_external_id: "98765", is_read: true, is_replied: false }] });
+    const comments = await service.listComments(workspaceId, channelId, media.items[0].ref);
+    expect(comments.items[0]).toMatchObject({ isRead: true, isReplied: false });
+    meta.replyToSocialComment.mockResolvedValue({ id: "98765_1" });
+    database.query.mockResolvedValueOnce({ rows: [{ id: channelId, channel_type: "facebook_page", external_account_id: "1393752373814265", credentials_ciphertext: encryptPrivateValue(JSON.stringify({ accessToken: "private-test-token" })) }] });
+    database.query.mockResolvedValueOnce({ rows: [{ is_read: true, is_replied: true }] });
+    await service.reply(workspaceId, channelId, comments.items[0].ref, "Custa 1000 Kz");
+    expect(database.query).toHaveBeenCalledWith(expect.stringContaining("INSERT INTO crm_social_comment_interactions"), [workspaceId, channelId, "98765", true, true]);
+  });
+
+  it("reports publishing access without returning the channel token", async () => {
+    meta.inspectAccessToken.mockResolvedValue({ valid: true, appMatches: true, grantedScopes: ["pages_manage_posts"] });
+    const result = await service.publishingCapabilities(workspaceId);
+    expect(result.channels).toEqual([{ id: channelId, available: true, requiredPermission: "pages_manage_posts", reason: null }]);
+    expect(meta.inspectAccessToken).toHaveBeenCalledWith("private-test-token");
+    expect(JSON.stringify(result)).not.toContain("private-test-token");
+  });
+
+  it("blocks publishing when the Meta permission is missing", async () => {
+    meta.inspectAccessToken.mockResolvedValue({ valid: true, appMatches: true, grantedScopes: [] });
+    const result = await service.publishingCapabilities(workspaceId);
+    expect(result.channels[0].available).toBe(false);
+    expect(result.channels[0].reason).toContain("pages_manage_posts");
   });
 });

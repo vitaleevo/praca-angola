@@ -37,11 +37,87 @@ export interface CrmConversation {
   contact_id: string;
   contact_name: string;
   contact_phone: string | null;
+  meta_ad_ref?: string | null;
+  meta_ad_name?: string | null;
   channel: "whatsapp" | "instagram_dm" | "facebook_messenger" | "puvo_chat";
   last_message_preview: string | null;
   last_message_at: string;
   unread_count: number;
+  last_message_direction?: "inbound" | "outbound";
+  is_replied?: boolean;
+  last_inbound_at?: string | null;
+  last_outbound_at?: string | null;
 }
+
+export interface CrmConversationFilterCounts {
+  all: number;
+  unread: number;
+  pending: number;
+  replied: number;
+  read: number;
+}
+
+export interface CrmScheduledPost {
+  id: string;
+  workspace_id: string;
+  channel_ids: string[];
+  post_type: "post" | "reel" | "story";
+  content: string;
+  media_urls: string[];
+  listing_id?: string | null;
+  scheduled_for?: string | null;
+  status: "draft" | "scheduled" | "publishing" | "published" | "failed" | "cancelled";
+  published_at?: string | null;
+  meta_post_ids?: Record<string, unknown>;
+  error_message?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CrmMetaAdCampaign {
+  id: string;
+  workspace_id: string;
+  name: string;
+  objective: "whatsapp_messages" | "instagram_direct" | "store_traffic" | "lead_generation";
+  status: "draft" | "active" | "paused" | "completed" | "archived";
+  budget_type: "daily" | "lifetime";
+  budget_amount: number;
+  budget_currency: "AOA" | "USD" | "EUR";
+  starts_at: string;
+  ends_at?: string | null;
+  target_locations: string[];
+  target_interests: string[];
+  target_age_min: number;
+  target_age_max: number;
+  target_gender: "all" | "male" | "female";
+  headline: string;
+  primary_text: string;
+  call_to_action: string;
+  destination_url?: string | null;
+  media_urls: string[];
+  listing_id?: string | null;
+  meta_ad_account_id?: string | null;
+  meta_campaign_id?: string | null;
+  meta_adset_id?: string | null;
+  meta_ad_id?: string | null;
+  created_at: string;
+  updated_at: string;
+  // Computed analytics
+  metrics?: {
+    impressions: number;
+    reach: number;
+    clicks: number;
+    spend_amount: number;
+    conversations_started: number;
+    leads_count: number;
+    deals_won_count: number;
+    revenue_generated_aoa: number;
+    ctr: number;
+    cpc_aoa: number;
+    roas: number;
+  };
+}
+
 
 export interface CrmMessage {
   id: string;

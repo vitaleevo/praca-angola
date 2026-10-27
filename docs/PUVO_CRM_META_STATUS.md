@@ -77,3 +77,10 @@ Os registos abaixo documentam etapas anteriores e podem descrever limitações q
 4. Implementar e testar importação paginada de histórico e gestão de comentários antes de alegar essas capacidades no App Review. Após aprovação, validar `me/accounts`, `subscribed_apps`, webhooks recebidos e envio de resposta com uma loja real.
 
 Nenhum token ou segredo deve ser copiado para este ficheiro ou para os logs.
+
+## Atualização de 27/10/2026 — App Review
+
+- O painel da app PUVO (`2161321067754105`) mostrou **Not submitted**. O conector confirmou `UNSUBMITTED` e histórico vazio, mas o endpoint de requisitos ainda devolveu a mensagem contraditória de submissão anterior em revisão. O estado não foi resolvido nem houve envio para App Review.
+- Foram retirados do rascunho os pedidos sem uso atual; as permissões e pendências que restam estão documentadas em `docs/puvo-meta-app-review.md`. Os casos de uso de `pages_read_user_content`, `pages_show_list`, `pages_manage_metadata`, `pages_manage_engagement`, `ads_read`, `pages_read_engagement` e `leads_retrieval` aparecem preenchidos no conector. `pages_messaging` e outros ainda aparecem incompletos. As gravações reais, várias chamadas de teste, o tratamento de dados e instruções aos revisores continuam em falta.
+- A rota de instruções de eliminação `apps/web/src/app/eliminar-dados/page.tsx` e um complemento à política de privacidade foram implementados e testados apenas localmente. A URL pública configurada na Meta precisa de deploy web bem-sucedido e validação HTTP antes de contar como requisito cumprido.
+- O controlo do Chrome ficou desativado nas definições do Work durante o preenchimento; a autorização do utilizador para as declarações de uso permitido já foi recebida nesta conversa, mas não se deve assumir que todas ficaram guardadas. Confirmar pelo painel ou pelo conector antes de submeter.
