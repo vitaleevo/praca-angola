@@ -51,6 +51,7 @@ export interface MetaHistoryMessage {
   message?: string;
   created_time?: string;
   from?: { id?: string; name?: string };
+  attachments?: { data?: Array<{ image_data?: { url?: string; preview_url?: string } }> };
 }
 
 interface GraphErrorPayload {
@@ -224,7 +225,7 @@ export class MetaGraphService {
   async listConversationMessages(conversationId: string, accessToken: string, after?: string) {
     if (!/^[A-Za-z0-9_]{2,128}$/.test(conversationId)) throw new BadRequestException("Conversa Meta inválida");
     const result = await this.graphGet<{ data?: MetaHistoryMessage[]; paging?: { cursors?: { after?: string }; next?: string } }>(`${conversationId}/messages`, {
-      fields: "id,message,created_time,from", limit: "25", access_token: accessToken, ...(after ? { after } : {}),
+      fields: "id,message,created_time,from,attachments{image_data}", limit: "25", access_token: accessToken, ...(after ? { after } : {}),
     });
     return { messages: result.data ?? [], next: result.paging?.next ? result.paging.cursors?.after : undefined };
   }
