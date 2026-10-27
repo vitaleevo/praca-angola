@@ -508,10 +508,19 @@ export class CrmService {
       status: string;
       last_sync_at: string | null;
       created_at: string;
+      whatsapp_history_progress: number | null;
+      whatsapp_history_declined: boolean | null;
+      whatsapp_history_requested_at: string | null;
     }>(
-      `SELECT id, channel_type, account_name, status, last_sync_at, created_at
-       FROM crm_channel_connections
-       WHERE workspace_id = $1`,
+      `SELECT cc.id, cc.channel_type, cc.account_name,
+              CASE WHEN cc.token_expires_at IS NOT NULL AND cc.token_expires_at <= now() THEN 'expired' ELSE cc.status END AS status,
+              cc.last_sync_at, cc.created_at,
+              sr.history_progress AS whatsapp_history_progress,
+              sr.history_declined AS whatsapp_history_declined,
+              sr.history_requested_at AS whatsapp_history_requested_at
+       FROM crm_channel_connections cc
+       LEFT JOIN crm_whatsapp_sync_requests sr ON sr.channel_connection_id = cc.id
+       WHERE cc.workspace_id = $1`,
       [workspaceId],
     );
 
@@ -679,6 +688,125 @@ export class CrmService {
       throw new BadRequestException({ code: "WHATSAPP_CREDENTIALS_INVALID", message: "O ID do número ou token WhatsApp é inválido." });
     }
     return this.connectChannel(workspaceId, "whatsapp_cloud", accountName.trim().slice(0, 120), phoneNumberId, JSON.stringify({ accessToken }));
+  }
+
+  async startWhatsAppEmbeddedSignup(userId: string, workspaceId: string) {
+    const config = this.metaGraph.embeddedSignupConfig();
+    const attempt = await this.database.query<{ id: string }>(
+      `INSERT INTO crm_whatsapp_signup_attempts (workspace_id, user_id) VALUES ($1, $2) RETURNING id`,
+      [workspaceId, userId],
+    );
+    return { ...config, attemptId: attempt.rows[0].id };
+  }
+
+
+  getWhatsAppEmbeddedSignupConfig() {
+    return this.metaGraph.embeddedSignupConfig();
+  }
+
+  async finishWhatsAppEmbeddedSignup(userId: string, workspaceId: string, input: {
+    attemptId: string; code: string; wabaId: string; phoneNumberId?: string; event: string;
+  }) {
+    if (input.event !== "FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING" || !/^\d{5,32}$/.test(input.wabaId) ||
+      (input.phoneNumberId && !/^\d{5,32}$/.test(input.phoneNumberId))) {
+      throw new BadRequestException({ code: "WHATSAPP_SIGNUP_INVALID", message: "Conclui a ligação do número existente no WhatsApp Business para continuar." });
+    }
+    const claimed = await this.database.query<{ id: string }>(
+      `UPDATE crm_whatsapp_signup_attempts SET completed_at = now()
+       WHERE id = $1 AND user_id = $2 AND workspace_id = $3 AND completed_at IS NULL AND expires_at > now()
+       RETURNING id`,
+      [input.attemptId, userId, workspaceId],
+    );
+    if (!claimed.rowCount) throw new BadRequestException({ code: "WHATSAPP_SIGNUP_EXPIRED", message: "Esta autorização expirou. Inicia a ligação WhatsApp novamente." });
+    const token = await this.metaGraph.exchangeEmbeddedSignupCode(input.code);
+    const tokenInfo = await this.metaGraph.inspectAccessToken(token);
+    if (!tokenInfo.valid || !tokenInfo.appMatches) {
+      throw new BadRequestException({ code: "WHATSAPP_TOKEN_INVALID", message: "A Meta não autorizou a app PUVO para este número." });
+    }
+    const phones = await this.metaGraph.getWhatsAppPhoneNumbers(input.wabaId, token);
+    const candidates = (phones.data ?? []).filter((phone) => phone.id);
+    const phone = input.phoneNumberId
+      ? candidates.find((candidate) => candidate.id === input.phoneNumberId)
+      : candidates.length === 1 ? candidates[0] : undefined;
+    if (!phone?.id) throw new BadRequestException({
+      code: "WHATSAPP_PHONE_AMBIGUOUS",
+      message: candidates.length > 1
+        ? "Esta conta tem vários números. Escolhe um número na Meta e inicia a ligação novamente."
+        : "A Meta ainda não confirmou um número WhatsApp Business apto para coexistência. Tenta novamente.",
+    });
+    const coexistence = await this.metaGraph.inspectCoexistencePhone(phone.id, token);
+    if (coexistence.id !== phone.id || coexistence.is_on_biz_app !== true || coexistence.platform_type !== "CLOUD_API") {
+      throw new BadRequestException({ code: "WHATSAPP_NOT_COEXISTENCE", message: "A Meta ainda não confirmou este número na app WhatsApp Business." });
+    }
+    const linkedElsewhere = await this.database.query<{ workspace_id: string }>(
+      `SELECT workspace_id FROM crm_channel_connections WHERE channel_type = 'whatsapp_cloud' AND external_account_id = $1 AND status = 'connected' LIMIT 1`,
+      [phone.id],
+    );
+    if (linkedElsewhere.rows[0] && linkedElsewhere.rows[0].workspace_id !== workspaceId) {
+      throw new BadRequestException({ code: "WHATSAPP_PHONE_IN_USE", message: "Este número já está ligado a outra loja PUVO." });
+    }
+    await this.metaGraph.subscribeWhatsAppWaba(input.wabaId, token);
+    const encrypted = encryptPrivateValue(JSON.stringify({ accessToken: token, wabaId: input.wabaId, coexistence: true }));
+    const channel = await this.database.transaction(async (client) => {
+      await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [`whatsapp:${phone.id}`]);
+      const owner = await client.query<{ workspace_id: string }>(
+        `SELECT workspace_id FROM crm_channel_connections
+         WHERE channel_type = 'whatsapp_cloud' AND external_account_id = $1 AND status = 'connected' LIMIT 1`,
+        [phone.id],
+      );
+      if (owner.rows[0] && owner.rows[0].workspace_id !== workspaceId) {
+        throw new BadRequestException({ code: "WHATSAPP_PHONE_IN_USE", message: "Este número já está ligado a outra loja PUVO." });
+      }
+      const stored = await client.query<{ id: string; account_name: string }>(
+        `INSERT INTO crm_channel_connections (workspace_id, channel_type, account_name, external_account_id, credentials_ciphertext, meta_waba_id, token_expires_at, status)
+         VALUES ($1, 'whatsapp_cloud', $2, $3, $4, $5, $6, 'connected')
+         ON CONFLICT (workspace_id, channel_type, external_account_id)
+         DO UPDATE SET account_name = EXCLUDED.account_name, credentials_ciphertext = EXCLUDED.credentials_ciphertext,
+                       meta_waba_id = EXCLUDED.meta_waba_id, token_expires_at = EXCLUDED.token_expires_at,
+                       status = 'connected', updated_at = now()
+         RETURNING id, account_name`,
+        [workspaceId, (phone.verified_name || phone.display_phone_number || "WhatsApp Business").slice(0, 120), phone.id, encrypted, input.wabaId,
+          tokenInfo.expiresAt ? new Date(tokenInfo.expiresAt * 1000) : null],
+      );
+      return stored.rows[0];
+    });
+    await this.database.query(
+      `INSERT INTO crm_whatsapp_sync_requests (channel_connection_id) VALUES ($1) ON CONFLICT DO NOTHING`, [channel.id],
+    );
+    const sync = await this.retryWhatsAppSync(workspaceId, channel.id);
+    return { channel, phoneNumber: phone.display_phone_number || null, ...sync };
+  }
+
+  async retryWhatsAppSync(workspaceId: string, channelId: string) {
+    const result = await this.database.query<{
+      external_account_id: string; credentials_ciphertext: string; started_at: Date;
+      contacts_requested_at: Date | null; history_requested_at: Date | null;
+    }>(
+      `SELECT cc.external_account_id, cc.credentials_ciphertext, sr.started_at,
+              sr.contacts_requested_at, sr.history_requested_at
+       FROM crm_whatsapp_sync_requests sr JOIN crm_channel_connections cc ON cc.id = sr.channel_connection_id
+       WHERE cc.id = $1 AND cc.workspace_id = $2 AND cc.channel_type = 'whatsapp_cloud' AND cc.status = 'connected' LIMIT 1`,
+      [channelId, workspaceId],
+    );
+    const job = result.rows[0];
+    if (!job) throw new NotFoundException({ code: "WHATSAPP_SYNC_NOT_FOUND", message: "Sincronização WhatsApp não encontrada para esta loja." });
+    if (Date.now() - new Date(job.started_at).getTime() > 24 * 60 * 60_000) {
+      throw new BadRequestException({ code: "WHATSAPP_SYNC_EXPIRED", message: "A janela de 24 horas para sincronizar o WhatsApp expirou. É necessário repetir a ligação na Meta." });
+    }
+    const credentials = JSON.parse(decryptPrivateValue(job.credentials_ciphertext)) as { accessToken?: string };
+    if (!credentials.accessToken) throw new BadRequestException({ code: "WHATSAPP_TOKEN_MISSING", message: "O acesso WhatsApp não está disponível." });
+    const syncErrors: string[] = [];
+    for (const [syncType, column, alreadyRequested] of [
+      ["smb_app_state_sync", "contacts_requested_at", job.contacts_requested_at],
+      ["history", "history_requested_at", job.history_requested_at],
+    ] as const) {
+      if (alreadyRequested) continue;
+      try {
+        await this.metaGraph.requestWhatsAppBusinessAppSync(job.external_account_id, credentials.accessToken, syncType);
+        await this.database.query(`UPDATE crm_whatsapp_sync_requests SET ${column} = now() WHERE channel_connection_id = $1`, [channelId]);
+      } catch { syncErrors.push(syncType); }
+    }
+    return { syncRequested: syncErrors.length === 0, syncErrors };
   }
 
   async disconnectChannel(workspaceId: string, channelId: string) {

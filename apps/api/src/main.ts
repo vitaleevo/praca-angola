@@ -21,7 +21,8 @@ if (process.env.SENTRY_DSN) {
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { bufferLogs: true, rawBody: true });
   app.useLogger(app.get(Logger));
-  app.useBodyParser("json", { type: ["application/json", "application/csp-report"] });
+  // Coexistence history webhooks can contain several threads in one signed payload.
+  app.useBodyParser("json", { limit: "2mb", type: ["application/json", "application/csp-report"] });
   app.useGlobalFilters(new SentryExceptionFilter(app.get(HttpAdapterHost).httpAdapter));
   app.setGlobalPrefix("api/v1");
   const allowedOrigins = (process.env.WEB_ORIGIN ?? "http://localhost:3100").split(",").map((origin) => origin.trim()).filter(Boolean);

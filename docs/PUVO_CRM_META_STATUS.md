@@ -1,5 +1,12 @@
 # PUVO CRM / Meta — estado em 27-10-2026
 
+## WhatsApp Business por leitura de QR — em implementação
+
+- A configuração Meta **WhatsApp Embedded Signup** `1080299041498250` foi criada para a app PUVO. É separada da configuração antiga `1120855583871113`, que usa Login geral. O domínio JavaScript SDK `https://puvo.vitaleevo.ao/` já estava permitido; a URI `/vendedor/crm/conversas` foi acrescentada e guardada como retorno OAuth permitido.
+- `META_WHATSAPP_LOGIN_CONFIG_ID` foi guardada no serviço Railway `@praca/api` sem disparar um deploy. O código usa Embedded Signup v4 public preview com `whatsapp_business_app_onboarding`, para a Meta apresentar a verificação oficial do número existente na app WhatsApp Business (QR ou código). O token é trocado na API e cifrado; o cliente não o recebe.
+- A alteração de código desta etapa ainda deve ser integrada e publicada. Inclui subscrição da WABA, verificação do número, pedidos de sincronização de contactos e histórico, receção de `history`, `smb_app_state_sync` e `smb_message_echoes`, prevenção de duplicados e opção de repetir pedidos de sincronização dentro de 24 horas. Os campos webhook já constam como subscritos na Meta.
+- O resultado ainda **não foi testado com um número WhatsApp Business real**. A verificação Tech Provider da Agência Holyweb continua **In review**; o App Review da app PUVO consta como `UNSUBMITTED`. Não afirmar que a ligação está operacional para outros lojistas até completar a autorização real, observar webhooks e enviar uma resposta de teste pelo CRM.
+
 ## Validação de 27-10-2026
 
 - A PR #19 foi integrada em `main`; qualidade, migrações e E2E passaram na execução `40428504545`. A API Railway `017c8b79-7577-428c-aba6-c6c0d3bd84b3` ficou **SUCCESS** e o healthcheck respondeu 200.

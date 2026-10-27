@@ -162,4 +162,51 @@ describe("Meta webhook delivery", () => {
     expect(inserted[0][3]).toBe("Produto");
     expect(JSON.parse(String(inserted[0][4]))).toMatchObject({ media_id: "123456789012" });
   });
+
+  it("imports coexistence history and app echoes once into the same WhatsApp conversation", async () => {
+    process.env.META_APP_SECRET = "test-app-secret";
+    const seen = new Set<string>();
+    const messages: unknown[][] = [];
+    const client = { query: vi.fn(async (sql: string, params: unknown[] = []) => {
+      if (sql.includes("INSERT INTO crm_meta_webhook_events")) {
+        const key = String(params[0]);
+        if (seen.has(key)) return { rows: [] };
+        seen.add(key); return { rows: [{ event_key: key }] };
+      }
+      if (sql.includes("SELECT id FROM crm_contacts")) return { rows: [{ id: "contact-1" }] };
+      if (sql.includes("INSERT INTO crm_conversations")) return { rows: [{ id: "conversation-1" }] };
+      if (sql.includes("INSERT INTO crm_messages")) { messages.push(params); return { rows: [{ id: `message-${messages.length}`, workspace_id: "workspace-1", conversation_id: "conversation-1" }] }; }
+      return { rows: [] };
+    }) };
+    const database = {
+      query: vi.fn().mockResolvedValue({ rows: [{ id: "channel-1", workspace_id: "workspace-1" }] }),
+      transaction: vi.fn(async (work: (tx: typeof client) => Promise<unknown>) => work(client)),
+    };
+    const controller = new CrmWebhooksController(database as never, {} as never, { emitWorkspaceEvent: vi.fn() } as never, {} as never);
+    const body = { object: "whatsapp_business_account", entry: [{ changes: [
+      { field: "history", value: { metadata: { phone_number_id: "1234567890", display_phone_number: "244900000000" }, history: [{ threads: [{ id: "244900000001", messages: [
+        { id: "wamid-history-1", from: "244900000001", timestamp: "1739230955", type: "text", text: { body: "Olá" } },
+        { id: "wamid-history-2", from: "244900000000", timestamp: "1739230970", type: "text", text: { body: "Resposta" } },
+      ] }] }] } },
+      { field: "smb_message_echoes", value: { metadata: { phone_number_id: "1234567890" }, message_echoes: [
+        { id: "wamid-echo-1", from: "244900000000", to: "244900000001", timestamp: "1739230980", type: "text", text: { body: "Pelo telemóvel" } },
+      ] } },
+    ] }] };
+    expect(await controller.handleMetaWebhook(body, signedRequest(body))).toEqual({ status: "received" });
+    expect(await controller.handleMetaWebhook(body, signedRequest(body))).toEqual({ status: "ignored" });
+    expect(messages).toHaveLength(3);
+    expect(messages.map((item) => item[2])).toEqual(["inbound", "outbound", "outbound"]);
+    expect(messages.map((item) => item[4])).toEqual(["Olá", "Resposta", "Pelo telemóvel"]);
+  });
+
+  it("marks only the matching WABA channel expired when Meta disconnects it", async () => {
+    process.env.META_APP_SECRET = "test-app-secret";
+    const database = { query: vi.fn().mockResolvedValue({ rowCount: 1, rows: [{ id: "channel-1" }] }) };
+    const controller = new CrmWebhooksController(database as never, {} as never, {} as never, {} as never);
+    const body = { object: "whatsapp_business_account", entry: [{ id: "other-id", changes: [{ field: "account_update", value: {
+      event: "PARTNER_REMOVED", waba_info: { waba_id: "123456789012" },
+    } }] }] };
+    expect(await controller.handleMetaWebhook(body, signedRequest(body))).toEqual({ status: "received" });
+    expect(database.query).toHaveBeenCalledWith(expect.stringContaining("meta_waba_id = $1"), ["123456789012"]);
+  });
 });
