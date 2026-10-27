@@ -80,4 +80,23 @@ describe("WhatsApp Embedded Signup", () => {
     await expect(service.finishWhatsAppEmbeddedSignup("user-a", "workspace-a", request)).rejects.toMatchObject({ status: 400 });
     expect(client.query.mock.calls.some((call) => call[0].includes("INSERT INTO crm_channel_connections"))).toBe(false);
   });
+
+  it("does not allow the generic channel endpoint to claim a WhatsApp number", async () => {
+    const service = new CrmService({} as never, {} as never, {} as never, {} as never);
+    await expect(service.connectChannel("workspace-a", "whatsapp_cloud", "Loja", "5555512345", "arbitrary-token"))
+      .rejects.toMatchObject({ status: 400 });
+  });
+
+  it("validates the app token and phone before a manual WhatsApp connection", async () => {
+    const graph = {
+      inspectAccessToken: vi.fn().mockResolvedValue({ valid: true, appMatches: true, expiresAt: null, grantedScopes: ["whatsapp_business_messaging"] }),
+      inspectWhatsAppPhone: vi.fn().mockResolvedValue({ id: "different-phone" }),
+    };
+    const database = { transaction: vi.fn() };
+    const service = new CrmService(database as never, {} as never, {} as never, graph as never);
+    await expect(service.connectWhatsAppCloud("workspace-a", "Loja", "5555512345", "a-token-long-enough-for-validation"))
+      .rejects.toMatchObject({ status: 400 });
+    expect(graph.inspectWhatsAppPhone).toHaveBeenCalledWith("5555512345", "a-token-long-enough-for-validation");
+    expect(database.transaction).not.toHaveBeenCalled();
+  });
 });

@@ -589,6 +589,9 @@ export class CrmService {
     externalAccountId: string,
     credentials: string,
   ) {
+    if (channelType === "whatsapp_cloud") {
+      throw new BadRequestException({ code: "WHATSAPP_USE_VERIFIED_FLOW", message: "Liga o WhatsApp pelo fluxo oficial da Meta ou pela ligação manual validada." });
+    }
     const encrypted = encryptPrivateValue(credentials);
     const result = await this.database.query(
       `INSERT INTO crm_channel_connections (workspace_id, channel_type, account_name, external_account_id, credentials_ciphertext, status)
@@ -684,10 +687,37 @@ export class CrmService {
   }
 
   async connectWhatsAppCloud(workspaceId: string, accountName: string, phoneNumberId: string, accessToken: string) {
-    if (!/^[A-Za-z0-9_-]{3,128}$/.test(phoneNumberId) || accessToken.length < 20 || accessToken.length > 4096) {
+    if (!/^\d{5,32}$/.test(phoneNumberId) || accessToken.length < 20 || accessToken.length > 4096) {
       throw new BadRequestException({ code: "WHATSAPP_CREDENTIALS_INVALID", message: "O ID do número ou token WhatsApp é inválido." });
     }
-    return this.connectChannel(workspaceId, "whatsapp_cloud", accountName.trim().slice(0, 120), phoneNumberId, JSON.stringify({ accessToken }));
+    const tokenInfo = await this.metaGraph.inspectAccessToken(accessToken);
+    if (!tokenInfo.valid || !tokenInfo.appMatches || !tokenInfo.grantedScopes.includes("whatsapp_business_messaging")) {
+      throw new BadRequestException({ code: "WHATSAPP_TOKEN_INVALID", message: "O token WhatsApp não pertence à app PUVO ou não permite mensagens." });
+    }
+    const phone = await this.metaGraph.inspectWhatsAppPhone(phoneNumberId, accessToken);
+    if (phone.id !== phoneNumberId) throw new BadRequestException({ code: "WHATSAPP_PHONE_INVALID", message: "Este token não autoriza o número indicado." });
+    const encrypted = encryptPrivateValue(JSON.stringify({ accessToken }));
+    return this.database.transaction(async (client) => {
+      await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [`whatsapp:${phoneNumberId}`]);
+      const owner = await client.query<{ workspace_id: string }>(
+        `SELECT workspace_id FROM crm_channel_connections WHERE channel_type = 'whatsapp_cloud' AND external_account_id = $1 AND status = 'connected' LIMIT 1`,
+        [phoneNumberId],
+      );
+      if (owner.rows[0] && owner.rows[0].workspace_id !== workspaceId) {
+        throw new BadRequestException({ code: "WHATSAPP_PHONE_IN_USE", message: "Este número já está ligado a outra loja PUVO." });
+      }
+      const result = await client.query(
+        `INSERT INTO crm_channel_connections (workspace_id, channel_type, account_name, external_account_id, credentials_ciphertext, token_expires_at, status)
+         VALUES ($1, 'whatsapp_cloud', $2, $3, $4, $5, 'connected')
+         ON CONFLICT (workspace_id, channel_type, external_account_id)
+         DO UPDATE SET account_name = EXCLUDED.account_name, credentials_ciphertext = EXCLUDED.credentials_ciphertext,
+                       token_expires_at = EXCLUDED.token_expires_at, status = 'connected', updated_at = now()
+         RETURNING id, channel_type, account_name, status`,
+        [workspaceId, accountName.trim().slice(0, 120), phoneNumberId, encrypted,
+          tokenInfo.expiresAt ? new Date(tokenInfo.expiresAt * 1000) : null],
+      );
+      return result.rows[0];
+    });
   }
 
   async startWhatsAppEmbeddedSignup(userId: string, workspaceId: string) {

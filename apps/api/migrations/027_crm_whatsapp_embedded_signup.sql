@@ -14,6 +14,9 @@ ALTER TABLE crm_channel_connections ADD COLUMN IF NOT EXISTS meta_waba_id TEXT;
 ALTER TABLE crm_channel_connections ADD COLUMN IF NOT EXISTS token_expires_at TIMESTAMPTZ;
 CREATE INDEX IF NOT EXISTS idx_crm_channel_meta_waba_id ON crm_channel_connections (meta_waba_id)
   WHERE channel_type = 'whatsapp_cloud' AND status = 'connected';
+CREATE UNIQUE INDEX IF NOT EXISTS idx_crm_whatsapp_phone_active_owner
+  ON crm_channel_connections (external_account_id)
+  WHERE channel_type = 'whatsapp_cloud' AND status = 'connected';
 
 CREATE TABLE IF NOT EXISTS crm_whatsapp_history_media (
   phone_number_id TEXT NOT NULL,

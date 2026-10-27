@@ -144,6 +144,12 @@ export class MetaGraphService {
     );
   }
 
+  async inspectWhatsAppPhone(phoneNumberId: string, accessToken: string) {
+    return this.graphGetWithToken<{ id?: string; display_phone_number?: string; verified_name?: string }>(
+      phoneNumberId, { fields: "id,display_phone_number,verified_name" }, accessToken,
+    );
+  }
+
   async subscribeWhatsAppWaba(wabaId: string, accessToken: string): Promise<void> {
     await this.graphPost(`${wabaId}/subscribed_apps`, accessToken, {});
   }
