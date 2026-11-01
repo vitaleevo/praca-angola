@@ -8,7 +8,7 @@ const bootstrapScript = fileURLToPath(new URL('../../apps/api/scripts/bootstrap-
 function bootstrap(email, confirm = true) {
   return spawnSync(process.execPath, [bootstrapScript, email, ...(confirm ? ['--confirm-once'] : [])], {
     cwd: process.cwd(),
-    env: { ...process.env, DATABASE_URL: process.env.E2E_DATABASE_URL ?? 'postgresql://praca:praca_local_dev@localhost:5432/praca_angola' },
+    env: { ...process.env, DATABASE_URL: process.env.E2E_DATABASE_URL ?? `postgresql://praca:praca_local_dev@localhost:${process.env.E2E_DATABASE_PORT ?? '5432'}/praca_angola` },
     encoding: 'utf8',
     timeout: 15000,
   });
