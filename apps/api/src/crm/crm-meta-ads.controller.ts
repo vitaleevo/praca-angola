@@ -39,7 +39,7 @@ export class CrmMetaAdsController {
   @RateLimit({ scope: "crm-meta-ad-accounts", limit: 12, windowSeconds: 60 })
   @UseGuards(RateLimitGuard)
   async accounts(@CurrentUser() user: AuthenticatedUser) {
-    const workspace = await this.crm.resolveWorkspaceForUser(user.id);
+    const workspace = await this.crm.resolveWorkspaceForUser(user.id, user.activeStoreId);
     return this.ads.accounts(workspace.id);
   }
 
@@ -47,7 +47,7 @@ export class CrmMetaAdsController {
   @RateLimit({ scope: "crm-meta-ad-select", limit: 10, windowSeconds: 60 })
   @UseGuards(RateLimitGuard)
   async selectAccount(@Body() body: SelectMetaAdAccountDto, @CurrentUser() user: AuthenticatedUser) {
-    const workspace = await this.crm.resolveWorkspaceForUser(user.id);
+    const workspace = await this.crm.resolveWorkspaceForUser(user.id, user.activeStoreId);
     return this.ads.selectAccount(workspace.id, body.accountId);
   }
 
@@ -55,31 +55,31 @@ export class CrmMetaAdsController {
   @RateLimit({ scope: "crm-meta-ad-insights", limit: 12, windowSeconds: 60 })
   @UseGuards(RateLimitGuard)
   async insights(@CurrentUser() user: AuthenticatedUser) {
-    const workspace = await this.crm.resolveWorkspaceForUser(user.id);
+    const workspace = await this.crm.resolveWorkspaceForUser(user.id, user.activeStoreId);
     return this.ads.metaInsights(workspace.id);
   }
 
   @Get("campaigns")
   async list(@CurrentUser() user: AuthenticatedUser) {
-    const workspace = await this.crm.resolveWorkspaceForUser(user.id);
+    const workspace = await this.crm.resolveWorkspaceForUser(user.id, user.activeStoreId);
     return this.ads.list(workspace.id);
   }
 
   @Get("overview")
   async overview(@CurrentUser() user: AuthenticatedUser) {
-    const workspace = await this.crm.resolveWorkspaceForUser(user.id);
+    const workspace = await this.crm.resolveWorkspaceForUser(user.id, user.activeStoreId);
     return this.ads.overview(workspace.id);
   }
 
   @Post("campaigns")
   async create(@Body() body: SaveMetaAdDraftDto, @CurrentUser() user: AuthenticatedUser) {
-    const workspace = await this.crm.resolveWorkspaceForUser(user.id);
+    const workspace = await this.crm.resolveWorkspaceForUser(user.id, user.activeStoreId);
     return this.ads.saveDraft(workspace.id, body);
   }
 
   @Patch("campaigns/:id")
   async update(@Param("id", ParseUUIDPipe) id: string, @Body() body: SaveMetaAdDraftDto, @CurrentUser() user: AuthenticatedUser) {
-    const workspace = await this.crm.resolveWorkspaceForUser(user.id);
+    const workspace = await this.crm.resolveWorkspaceForUser(user.id, user.activeStoreId);
     return this.ads.saveDraft(workspace.id, body, id);
   }
 }

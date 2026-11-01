@@ -26,25 +26,25 @@ export class CrmSocialPublishingController {
 
   @Get("posts")
   async list(@CurrentUser() user: AuthenticatedUser) {
-    const workspace = await this.crm.resolveWorkspaceForUser(user.id);
+    const workspace = await this.crm.resolveWorkspaceForUser(user.id, user.activeStoreId);
     return this.publishing.list(workspace.id);
   }
 
   @Post("posts")
   async create(@Body() body: SaveSocialPostDto, @CurrentUser() user: AuthenticatedUser) {
-    const workspace = await this.crm.resolveWorkspaceForUser(user.id);
+    const workspace = await this.crm.resolveWorkspaceForUser(user.id, user.activeStoreId);
     return this.publishing.saveDraft(workspace.id, body);
   }
 
   @Patch("posts/:id")
   async update(@Param("id", ParseUUIDPipe) id: string, @Body() body: SaveSocialPostDto, @CurrentUser() user: AuthenticatedUser) {
-    const workspace = await this.crm.resolveWorkspaceForUser(user.id);
+    const workspace = await this.crm.resolveWorkspaceForUser(user.id, user.activeStoreId);
     return this.publishing.saveDraft(workspace.id, body, id);
   }
 
   @Post("posts/:id/schedule")
   async schedule(@Param("id", ParseUUIDPipe) id: string, @Body() body: ScheduleSocialPostDto, @CurrentUser() user: AuthenticatedUser) {
-    const workspace = await this.crm.resolveWorkspaceForUser(user.id);
+    const workspace = await this.crm.resolveWorkspaceForUser(user.id, user.activeStoreId);
     return this.publishing.schedule(workspace.id, id, body.scheduledFor);
   }
 
@@ -52,13 +52,13 @@ export class CrmSocialPublishingController {
   @RateLimit({ scope: "crm-social-publish", limit: 5, windowSeconds: 60 })
   @UseGuards(RateLimitGuard)
   async publish(@Param("id", ParseUUIDPipe) id: string, @CurrentUser() user: AuthenticatedUser) {
-    const workspace = await this.crm.resolveWorkspaceForUser(user.id);
+    const workspace = await this.crm.resolveWorkspaceForUser(user.id, user.activeStoreId);
     return this.publishing.publishNow(workspace.id, id);
   }
 
   @Delete("posts/:id")
   async cancel(@Param("id", ParseUUIDPipe) id: string, @CurrentUser() user: AuthenticatedUser) {
-    const workspace = await this.crm.resolveWorkspaceForUser(user.id);
+    const workspace = await this.crm.resolveWorkspaceForUser(user.id, user.activeStoreId);
     return this.publishing.cancel(workspace.id, id);
   }
 }

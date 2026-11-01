@@ -39,14 +39,14 @@ export class CrmAutomationsController {
 
   @Get("rules")
   async getRules(@CurrentUser() user: AuthenticatedUser) {
-    const ws = await this.crmService.resolveWorkspaceForUser(user.id);
+    const ws = await this.crmService.resolveWorkspaceForUser(user.id, user.activeStoreId);
     const rules = await this.automationsService.getRules(ws.id);
     return { rules };
   }
 
   @Post("rules")
   async createRule(@Body() body: CreateAutomationRuleDto, @CurrentUser() user: AuthenticatedUser) {
-    const ws = await this.crmService.resolveWorkspaceForUser(user.id);
+    const ws = await this.crmService.resolveWorkspaceForUser(user.id, user.activeStoreId);
     const rule = await this.automationsService.createRule(ws.id, body);
     return { rule };
   }
@@ -57,27 +57,27 @@ export class CrmAutomationsController {
     @Body() body: UpdateAutomationRuleDto,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    const ws = await this.crmService.resolveWorkspaceForUser(user.id);
+    const ws = await this.crmService.resolveWorkspaceForUser(user.id, user.activeStoreId);
     const rule = await this.automationsService.updateRule(ws.id, id, body);
     return { rule };
   }
 
   @Delete("rules/:id")
   async deleteRule(@Param("id") id: string, @CurrentUser() user: AuthenticatedUser) {
-    const ws = await this.crmService.resolveWorkspaceForUser(user.id);
+    const ws = await this.crmService.resolveWorkspaceForUser(user.id, user.activeStoreId);
     return this.automationsService.deleteRule(ws.id, id);
   }
 
   @Get("logs")
   async getLogs(@CurrentUser() user: AuthenticatedUser) {
-    const ws = await this.crmService.resolveWorkspaceForUser(user.id);
+    const ws = await this.crmService.resolveWorkspaceForUser(user.id, user.activeStoreId);
     const logs = await this.automationsService.getLogs(ws.id);
     return { logs };
   }
 
   @Post("seed-defaults")
   async seedDefaults(@CurrentUser() user: AuthenticatedUser) {
-    const ws = await this.crmService.resolveWorkspaceForUser(user.id);
+    const ws = await this.crmService.resolveWorkspaceForUser(user.id, user.activeStoreId);
     const rules = await this.automationsService.seedDefaultRules(ws.id);
     return { seededRules: rules, count: rules.length };
   }

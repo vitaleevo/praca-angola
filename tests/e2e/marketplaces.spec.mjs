@@ -32,7 +32,9 @@ test('convite exige aceitação, é de uso único e seleção isola lojas',async
   const staffPage=await s.newPage();await staffPage.goto(invitation);await staffPage.getByRole('button',{name:'Aceitar convite'}).click();await expect(staffPage).toHaveURL(/\/vendedor$/);await expect(staffPage.getByLabel('Loja em gestão')).toHaveValue(shop.id);
   expect((await s.request.post('/api/v1/team-invitations/accept',{data:{token}})).status()).toBe(409);
   const activeItems=await json(await s.request.get('/api/v1/seller/listings'));expect(activeItems.items.map(i=>i.id)).toContain(remoteItem.id);expect(activeItems.items.map(i=>i.id)).not.toContain(ownItem.id);
+  const remoteWorkspace=(await json(await s.request.get('/api/v1/crm/workspace'))).workspace;expect(remoteWorkspace.seller_profile_id).toBe(shop.id);expect(remoteWorkspace.owner_user_id).toBe(owner.id);
   await staffPage.getByLabel('Loja em gestão').selectOption(own.id);await expect(staffPage.getByLabel('Nome público')).toHaveValue('Loja própria E2E');
+  const ownWorkspace=(await json(await s.request.get('/api/v1/crm/workspace'))).workspace;expect(ownWorkspace.seller_profile_id).toBe(own.id);expect(ownWorkspace.owner_user_id).toBe(staff.id);
   expect((await s.request.put(`/api/v1/seller/listings/${remoteItem.id}`,{data:listingSettings('Tentativa cruzada E2E')})).status()).toBe(400);
   expect((await w.request.put('/api/v1/seller/active-store',{data:{storeId:shop.id}})).status()).toBe(403);
   await staffPage.getByLabel('Loja em gestão').selectOption(shop.id);await expect(staffPage.getByText('Permissões da loja',{exact:true})).toBeVisible();

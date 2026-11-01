@@ -129,11 +129,15 @@ export class OrdersController {
   private async priceCart(client: PoolClient, items: CheckoutItemDto[], delivery: DeliveryDto) {
     const ids = items.map((item) => item.listingId);
     if (new Set(ids).size !== ids.length) throw new BadRequestException({ code: "DUPLICATE_LISTING", message: "Combina as quantidades de produtos repetidos no carrinho." });
-    const listings = await client.query<{ id: string; seller_profile_id: string; price: string; status: string; seller_status: string; available_quantity: number }>(
-      `SELECT l.id, l.seller_profile_id, l.price::text, l.status, s.status AS seller_status, l.available_quantity
-       FROM listings l JOIN seller_profiles s ON s.id = l.seller_profile_id WHERE l.id = ANY($1::uuid[])`, [ids],
+    const listings = await client.query<{ id: string; seller_profile_id: string; price: string; status: string; seller_status: string; available_quantity: number; marketplace: string }>(
+      `SELECT l.id, l.seller_profile_id, l.price::text, l.status, s.status AS seller_status, l.available_quantity, m.slug AS marketplace
+       FROM listings l
+       JOIN seller_profiles s ON s.id = l.seller_profile_id
+       JOIN categories c ON c.id = l.category_id
+       JOIN marketplaces m ON m.id = c.marketplace_id
+       WHERE l.id = ANY($1::uuid[])`, [ids],
     );
-    if (listings.rowCount !== ids.length || listings.rows.some((row) => row.status !== "published" || row.seller_status !== "active" || row.available_quantity < items.find((item) => item.listingId === row.id)!.quantity)) {
+    if (listings.rowCount !== ids.length || listings.rows.some((row) => row.marketplace !== "produtos" || row.status !== "published" || row.seller_status !== "active" || row.available_quantity < items.find((item) => item.listingId === row.id)!.quantity)) {
       throw new BadRequestException({ code: "LISTING_UNAVAILABLE", message: "Um produto não está disponível na quantidade pedida." });
     }
     const shops = [];
@@ -191,12 +195,17 @@ export class OrdersController {
       status: string;
       seller_status: string;
       available_quantity: number;
+      marketplace: string;
     }>(
-      `SELECT l.id, l.seller_profile_id, s.display_name AS store_name, l.status, s.status AS seller_status, l.available_quantity
-       FROM listings l JOIN seller_profiles s ON s.id = l.seller_profile_id WHERE l.id = ANY($1::uuid[])`,
+      `SELECT l.id, l.seller_profile_id, s.display_name AS store_name, l.status, s.status AS seller_status, l.available_quantity, m.slug AS marketplace
+       FROM listings l
+       JOIN seller_profiles s ON s.id = l.seller_profile_id
+       JOIN categories c ON c.id = l.category_id
+       JOIN marketplaces m ON m.id = c.marketplace_id
+       WHERE l.id = ANY($1::uuid[])`,
       [ids],
     );
-    if (listings.rowCount !== ids.length || listings.rows.some((listing) => listing.status !== "published" || listing.seller_status !== "active")) {
+    if (listings.rowCount !== ids.length || listings.rows.some((listing) => listing.marketplace !== "produtos" || listing.status !== "published" || listing.seller_status !== "active")) {
       throw new BadRequestException({ code: "LISTING_UNAVAILABLE", message: "Um dos produtos já não está disponível." });
     }
     if (listings.rows.some((listing) => listing.available_quantity < body.items.find((item) => item.listingId === listing.id)!.quantity)) {
@@ -234,13 +243,17 @@ export class OrdersController {
     const ids = body.items.map((item) => item.listingId);
     if (new Set(ids).size !== ids.length) throw new BadRequestException({ code: "DUPLICATE_LISTING", message: "Combina as quantidades de produtos repetidos no carrinho." });
     return this.database.transaction(async (client) => {
-      const listingRows: Array<{ id: string; seller_profile_id: string; title: string; price: string; currency: string; available_quantity: number; status: string; seller_status: string }> = [];
+      const listingRows: Array<{ id: string; seller_profile_id: string; title: string; price: string; currency: string; available_quantity: number; status: string; seller_status: string; marketplace: string }> = [];
       for (const listingId of [...ids].sort()) {
-        const result = await client.query<{ id: string; seller_profile_id: string; title: string; price: string; currency: string; available_quantity: number; status: string; seller_status: string }>(
-          `SELECT l.id, l.seller_profile_id, l.title, l.price::text, l.currency, l.available_quantity, l.status, s.status AS seller_status
-           FROM listings l JOIN seller_profiles s ON s.id = l.seller_profile_id WHERE l.id = $1 FOR UPDATE OF l, s`, [listingId],
+        const result = await client.query<{ id: string; seller_profile_id: string; title: string; price: string; currency: string; available_quantity: number; status: string; seller_status: string; marketplace: string }>(
+          `SELECT l.id, l.seller_profile_id, l.title, l.price::text, l.currency, l.available_quantity, l.status, s.status AS seller_status, m.slug AS marketplace
+           FROM listings l
+           JOIN seller_profiles s ON s.id = l.seller_profile_id
+           JOIN categories c ON c.id = l.category_id
+           JOIN marketplaces m ON m.id = c.marketplace_id
+           WHERE l.id = $1 FOR UPDATE OF l, s`, [listingId],
         );
-        if (!result.rowCount || result.rows[0].status !== "published" || result.rows[0].seller_status !== "active") throw new BadRequestException({ code: "LISTING_UNAVAILABLE", message: "Um dos produtos já não está disponível." });
+        if (!result.rowCount || result.rows[0].marketplace !== "produtos" || result.rows[0].status !== "published" || result.rows[0].seller_status !== "active") throw new BadRequestException({ code: "LISTING_UNAVAILABLE", message: "Um dos produtos já não está disponível." });
         listingRows.push(result.rows[0]);
       }
       const sellerIds = [...new Set(listingRows.map((row) => row.seller_profile_id))];
@@ -313,25 +326,27 @@ export class OrdersController {
         await client.query("INSERT INTO audit_events (actor_id, action, entity_type, entity_id) VALUES ($1, 'order.created', 'order', $2)", [user.id, order.rows[0].id]);
 
         // Notify seller via WhatsApp/SMS
-        const storeInfo = await client.query<{ display_name: string; contact_phone: string | null; owner_phone: string | null }>(
-          `SELECT s.display_name, s.contact_phone, u.phone AS owner_phone
+        const storeInfo = await client.query<{ owner_user_id: string; display_name: string; contact_phone: string | null; owner_phone: string | null }>(
+          `SELECT s.owner_user_id, s.display_name, s.contact_phone, u.phone AS owner_phone
            FROM seller_profiles s
            LEFT JOIN users u ON u.id = s.owner_user_id
            WHERE s.id = $1`,
           [sellerId],
         );
-        const sellerPhone = storeInfo.rows[0]?.contact_phone || storeInfo.rows[0]?.owner_phone || "+244923111222";
-        await this.notifications.queueNotification({
-          userId: user.id,
-          recipientPhone: sellerPhone,
-          channel: "whatsapp",
-          templateSlug: "order_created_seller",
-          variables: {
-            store_name: storeInfo.rows[0]?.display_name || "Loja PUVO",
-            order_ref: reference,
-            amount: fromCents(totalCents),
-          },
-        }, client);
+        const sellerPhone = storeInfo.rows[0]?.contact_phone || storeInfo.rows[0]?.owner_phone || null;
+        if (sellerPhone) {
+          await this.notifications.queueNotification({
+            userId: storeInfo.rows[0]?.owner_user_id,
+            recipientPhone: sellerPhone,
+            channel: "whatsapp",
+            templateSlug: "order_created_seller",
+            variables: {
+              store_name: storeInfo.rows[0]?.display_name || "Loja PUVO",
+              order_ref: reference,
+              amount: fromCents(totalCents),
+            },
+          }, client);
+        }
 
         orders.push({ ...order.rows[0], totalAmount: fromCents(totalCents), shippingFee: shopPrice.shippingFee, currency: "AOA", status: "awaiting_payment", paymentDeadlineMinutes: 30, paymentMethod: payment.method });
       }
@@ -417,7 +432,7 @@ export class OrdersController {
         isBuyer,
         paymentMethod: order.payment_method,
         paymentDestination,
-        fraudInspection: fraudInspectionRes.rows[0] ?? null,
+        fraudInspection: isBuyer ? null : (fraudInspectionRes.rows[0] ?? null),
       },
       items: items.rows,
       timeline: [...events.rows, ...payments.rows.map((event) => ({ ...event, event_type: `payment.${event.event_type}` }))].sort((a, b) => new Date(a.created_at as string).getTime() - new Date(b.created_at as string).getTime()),
@@ -444,7 +459,6 @@ export class OrdersController {
         }
       }
 
-      let aiNote = "";
       try {
         const fraudCheck = await this.aiClient.inspectReceipt({
           imageUrl: body.receiptImageUrl,
@@ -467,7 +481,6 @@ export class OrdersController {
             ],
           );
           if (fraudCheck.tamperingSigns || fraudCheck.verdict === "HIGH_RISK" || fraudCheck.verdict === "SUSPICIOUS") {
-            aiNote = ` [Alerta IA: ${fraudCheck.verdict} - ${fraudCheck.details}]`;
             await client.query("INSERT INTO audit_events (actor_id, action, entity_type, entity_id) VALUES ($1, 'fraud.receipt_flagged', 'order', $2)", [user.id, id]);
             this.moderationAlerts.emitAlert({
               type: "fraud_receipt",
@@ -486,11 +499,11 @@ export class OrdersController {
       await client.query("UPDATE orders SET status = 'payment_reported', payment_status = 'buyer_reported', updated_at = now() WHERE id = $1", [id]);
       await client.query(
         "INSERT INTO manual_payment_events (order_id, actor_id, event_type, transfer_reference, note) VALUES ($1, $2, 'buyer_reported_transfer', $3, $4)",
-        [id, user.id, body.transferReference.trim(), ((body.note?.trim() ?? "") + aiNote).trim()],
+        [id, user.id, body.transferReference.trim(), body.note?.trim() ?? ""],
       );
       await client.query(
         "INSERT INTO order_events (order_id, actor_id, event_type, note) VALUES ($1, $2, 'payment.reported', $3)",
-        [id, user.id, `O comprador reportou a transferência.${aiNote ? " ATENÇÃO: Verificar extrato bancário real." : " A loja deve confirmar o crédito no seu extrato."}`],
+        [id, user.id, "O comprador reportou a transferência. A loja deve confirmar o crédito no seu extrato."],
       );
       return { id, status: "payment_reported", message: "A loja foi notificada. O report do comprador não confirma a receção dos fundos." };
     });
@@ -515,18 +528,20 @@ export class OrdersController {
       await client.query("INSERT INTO audit_events (actor_id, action, entity_type, entity_id) VALUES ($1, 'payment.confirmed_manual', 'order', $2)", [user.id, id]);
 
       const row = order.rows[0];
-      const buyerPhone = row.buyer_phone || row.user_phone || "+244923111222";
-      await this.notifications.queueNotification({
-        userId: row.buyer_id,
-        recipientPhone: buyerPhone,
-        channel: "whatsapp",
-        templateSlug: "payment_confirmed_buyer",
-        variables: {
-          customer_name: row.buyer_name || "Cliente PUVO",
-          order_ref: row.reference,
-          store_name: row.store_name,
-        },
-      }, client);
+      const buyerPhone = row.buyer_phone || row.user_phone || null;
+      if (buyerPhone) {
+        await this.notifications.queueNotification({
+          userId: row.buyer_id,
+          recipientPhone: buyerPhone,
+          channel: "whatsapp",
+          templateSlug: "payment_confirmed_buyer",
+          variables: {
+            customer_name: row.buyer_name || "Cliente PUVO",
+            order_ref: row.reference,
+            store_name: row.store_name,
+          },
+        }, client);
+      }
 
       return { id, status: "preparing", paymentStatus: "confirmed_by_seller" };
     });
@@ -605,27 +620,15 @@ export class OrdersController {
          FOR UPDATE OF o`, [id, user.id],
       );
       if (!order.rowCount) throw new BadRequestException({ code: "ORDER_NOT_PREPARING", message: "Só podes combinar a entrega depois de confirmares o pagamento." });
-      if (body.method === "out_for_delivery" || (body.method === "ready_for_pickup" && order.rows[0].delivery_mode !== "pickup")) {
+      if (body.method === "out_for_delivery") {
+        throw new BadRequestException({ code: "COURIER_DISPATCH_REQUIRED", message: "Despacha entregas com estafeta pelo fluxo PUVO para gerar a atribuição e o PIN de segurança." });
+      }
+      if (body.method === "ready_for_pickup" && order.rows[0].delivery_mode !== "pickup") {
         throw new BadRequestException({ code: "DELIVERY_MODE_MISMATCH", message: "Usa o modo de entrega escolhido pelo comprador." });
       }
       await client.query("UPDATE orders SET status = $2, updated_at = now() WHERE id = $1", [id, body.method]);
       const note = body.note?.trim().slice(0, 1000) ?? "";
       await client.query("INSERT INTO order_events (order_id, actor_id, event_type, note) VALUES ($1, $2, $3, $4)", [id, user.id, `fulfillment.${body.method}`, note]);
-
-      if (body.method === "out_for_delivery" && order.rows[0]) {
-        const row = order.rows[0];
-        const buyerPhone = row.buyer_phone || row.user_phone || "+244923111222";
-        await this.notifications.queueNotification({
-          userId: row.buyer_id,
-          recipientPhone: buyerPhone,
-          channel: "whatsapp",
-          templateSlug: "order_shipped_buyer",
-          variables: {
-            order_ref: row.reference,
-            store_name: row.store_name,
-          },
-        }, client);
-      }
 
       return { id, status: body.method };
     });
