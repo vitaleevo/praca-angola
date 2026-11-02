@@ -99,4 +99,41 @@ describe("WhatsApp Embedded Signup", () => {
     expect(graph.inspectWhatsAppPhone).toHaveBeenCalledWith("5555512345", "a-token-long-enough-for-validation");
     expect(database.transaction).not.toHaveBeenCalled();
   });
+
+  it("rejects a WABA that does not own the manually connected phone", async () => {
+    const graph = {
+      inspectAccessToken: vi.fn().mockResolvedValue({ valid: true, appMatches: true, expiresAt: null,
+        grantedScopes: ["whatsapp_business_messaging", "whatsapp_business_management"] }),
+      inspectWhatsAppPhone: vi.fn().mockResolvedValue({ id: "5555512345" }),
+      getWhatsAppPhoneNumbers: vi.fn().mockResolvedValue({ data: [{ id: "other-phone" }] }),
+    };
+    const database = { transaction: vi.fn() };
+    const service = new CrmService(database as never, {} as never, {} as never, graph as never);
+    await expect(service.connectWhatsAppCloud("workspace-a", "Loja", "5555512345", "a-token-long-enough-for-validation", "123456789012"))
+      .rejects.toMatchObject({ status: 400 });
+    expect(graph.getWhatsAppPhoneNumbers).toHaveBeenCalledWith("123456789012", "a-token-long-enough-for-validation");
+    expect(database.transaction).not.toHaveBeenCalled();
+  });
+
+  it("stores a verified WABA for manual template management", async () => {
+    process.env.APP_ENCRYPTION_KEY = "whatsapp-signup-test-key-long-enough";
+    const graph = {
+      inspectAccessToken: vi.fn().mockResolvedValue({ valid: true, appMatches: true, expiresAt: null,
+        grantedScopes: ["whatsapp_business_messaging", "whatsapp_business_management"] }),
+      inspectWhatsAppPhone: vi.fn().mockResolvedValue({ id: "5555512345" }),
+      getWhatsAppPhoneNumbers: vi.fn().mockResolvedValue({ data: [{ id: "5555512345" }] }),
+    };
+    const client = { query: vi.fn(async (sql: string, params?: unknown[]) => {
+      void params;
+      return sql.includes("INSERT INTO crm_channel_connections")
+        ? { rows: [{ id: "channel-a", status: "connected" }] } : { rows: [] };
+    }) };
+    const database = { transaction: vi.fn(async (work: (tx: typeof client) => Promise<unknown>) => work(client)) };
+    const service = new CrmService(database as never, {} as never, {} as never, graph as never);
+    const channel = await service.connectWhatsAppCloud("workspace-a", "Loja", "5555512345", "a-token-long-enough-for-validation", "123456789012");
+    expect(channel).toMatchObject({ id: "channel-a", status: "connected" });
+    const insert = client.query.mock.calls.find((call) => call[0].includes("INSERT INTO crm_channel_connections"));
+    expect(insert?.[0]).toContain("meta_waba_id");
+    expect(insert?.[1]).toEqual(expect.arrayContaining(["123456789012"]));
+  });
 });
