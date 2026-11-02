@@ -94,6 +94,64 @@ const channelLabels: Record<Channel["channel_type"], string> = {
   whatsapp_instance: "WhatsApp externo",
 };
 
+type WhatsAppTemplate = { id: string; name: string; language: string; category: string; status: string };
+
+function WhatsAppTemplatePanel({ channel }: { channel: Channel }) {
+  const [open, setOpen] = useState(false);
+  const [templates, setTemplates] = useState<WhatsAppTemplate[]>([]);
+  const [name, setName] = useState("");
+  const [language, setLanguage] = useState("pt_PT");
+  const [body, setBody] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+
+  async function load() {
+    setBusy(true); setError("");
+    try {
+      const response = await fetch(`/api/v1/crm/channels/${channel.id}/whatsapp-templates`, { credentials: "include" });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.message || "Não foi possível carregar os templates WhatsApp.");
+      setTemplates(payload.templates || []);
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Não foi possível carregar os templates WhatsApp."); }
+    finally { setBusy(false); }
+  }
+
+  async function create(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault(); setBusy(true); setError(""); setNotice("");
+    try {
+      const response = await fetch(`/api/v1/crm/channels/${channel.id}/whatsapp-templates`, {
+        method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, language, body }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.message || "A Meta não aceitou o template.");
+      setTemplates((current) => [payload.template, ...current]);
+      setName(""); setBody("");
+      setNotice(`Template ${payload.template.name} enviado à Meta. Estado: ${payload.template.status}.`);
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Não foi possível criar o template."); }
+    finally { setBusy(false); }
+  }
+
+  return <div className="crm-whatsapp-templates">
+    <button type="button" className="button button-secondary" aria-expanded={open} onClick={() => { setOpen(!open); if (!open) void load(); }}>{open ? "Fechar templates" : "Gerir templates WhatsApp"}</button>
+    {open && <div className="crm-whatsapp-templates-content">
+      <h4>Templates de mensagens</h4>
+      <p>Cria mensagens de serviço para esta conta WhatsApp. A Meta analisa o texto antes de permitir o envio. A categoria e o preço final dependem da decisão da Meta.</p>
+      {error && <p className="crm-channel-feedback error" role="alert">{error}</p>}
+      {notice && <p className="crm-channel-feedback success" role="status">{notice}</p>}
+      <form className="crm-whatsapp-template-form" onSubmit={(event) => void create(event)}>
+        <label>Nome interno<input required maxLength={512} pattern="[a-z0-9_]+" value={name} onChange={(event) => setName(event.target.value)} placeholder="confirmacao_encomenda" /></label>
+        <label>Idioma<select value={language} onChange={(event) => setLanguage(event.target.value)}><option value="pt_PT">Português (Portugal)</option><option value="pt_BR">Português (Brasil)</option><option value="en_US">Inglês (EUA)</option></select></label>
+        <label>Mensagem<textarea required maxLength={1024} rows={3} value={body} onChange={(event) => setBody(event.target.value)} placeholder="A tua encomenda foi confirmada. Obrigado por comprares na nossa loja." /></label>
+        <button type="submit" className="button button-primary" disabled={busy}>{busy ? "A guardar…" : "Criar template na Meta"}</button>
+      </form>
+      <button type="button" className="button button-secondary" onClick={() => void load()} disabled={busy}>Atualizar estado</button>
+      {templates.length ? <ul>{templates.map((template) => <li key={template.id}><strong>{template.name}</strong> · {template.language} · {template.category} · {template.status}</li>)}</ul> : <p>{busy ? "A carregar templates…" : "Nenhum template devolvido para esta conta."}</p>}
+    </div>}
+  </div>;
+}
+
 export function CrmChannelManager() {
   const [channels, setChannels] = useState<Channel[]>([]);
   const [loading, setLoading] = useState(true);
@@ -109,7 +167,7 @@ export function CrmChannelManager() {
   const [whatsAppSetupError, setWhatsAppSetupError] = useState(false);
   const [whatsAppPrepareCount, setWhatsAppPrepareCount] = useState(0);
   const [expanded, setExpanded] = useState(false);
-  const [whatsApp, setWhatsApp] = useState({ accountName: "", phoneNumberId: "", accessToken: "" });
+  const [whatsApp, setWhatsApp] = useState({ accountName: "", phoneNumberId: "", wabaId: "", accessToken: "" });
   const [checkingId, setCheckingId] = useState<string | null>(null);
   const [importingId, setImportingId] = useState<string | null>(null);
   const [syncingWhatsAppId, setSyncingWhatsAppId] = useState<string | null>(null);
@@ -224,7 +282,7 @@ export function CrmChannelManager() {
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.message || "Não foi possível ligar o WhatsApp.");
-      setWhatsApp({ accountName: "", phoneNumberId: "", accessToken: "" });
+      setWhatsApp({ accountName: "", phoneNumberId: "", wabaId: "", accessToken: "" });
       setShowWhatsApp(false);
       setNotice("WhatsApp Cloud ligado. O token foi cifrado e não será apresentado novamente.");
       await loadChannels();
@@ -365,8 +423,9 @@ export function CrmChannelManager() {
         <form className="crm-whatsapp-form" onSubmit={(event) => void saveWhatsApp(event)}>
           <label>Nome da conta<input required maxLength={120} value={whatsApp.accountName} onChange={(event) => setWhatsApp({ ...whatsApp, accountName: event.target.value })} placeholder="PUVO Atendimento" /></label>
           <label>Phone Number ID<input required value={whatsApp.phoneNumberId} onChange={(event) => setWhatsApp({ ...whatsApp, phoneNumberId: event.target.value })} autoComplete="off" /></label>
+          <label>WABA ID (para gerir templates)<input value={whatsApp.wabaId} onChange={(event) => setWhatsApp({ ...whatsApp, wabaId: event.target.value })} inputMode="numeric" pattern="[0-9]{5,32}" autoComplete="off" /></label>
           <label>Token de acesso do System User<input required type="password" minLength={20} value={whatsApp.accessToken} onChange={(event) => setWhatsApp({ ...whatsApp, accessToken: event.target.value })} autoComplete="new-password" /></label>
-          <p>Usa um token de longa duração. Depois de guardado, só poderá ser substituído, nunca revelado.</p>
+          <p>Indica o WABA ID se quiseres gerir templates. A PUVO confirma que este número pertence à conta antes de guardar. Usa um token de longa duração; depois de guardado, só poderá ser substituído.</p>
           <button type="submit" className="button button-primary" disabled={working}>{working ? "A guardar…" : "Guardar ligação WhatsApp"}</button>
         </form>
       )}
@@ -376,6 +435,7 @@ export function CrmChannelManager() {
           <article className="crm-channel-row" key={channel.id}>
             <div><strong>{channelLabels[channel.channel_type]}</strong><span>{channel.account_name}</span><small>Última mensagem recebida: {channel.last_sync_at ? new Date(channel.last_sync_at).toLocaleString("pt-AO") : "nenhuma mensagem recebida"}</small>{channel.channel_type === "whatsapp_cloud" && channel.whatsapp_history_declined && <small>Histórico não partilhado no WhatsApp Business.</small>}{channel.channel_type === "whatsapp_cloud" && !channel.whatsapp_history_declined && channel.whatsapp_history_progress !== null && channel.whatsapp_history_progress !== undefined && <small>Histórico: {channel.whatsapp_history_progress}% recebido da Meta.</small>}{channel.channel_type === "whatsapp_cloud" && !channel.whatsapp_history_declined && channel.whatsapp_history_progress == null && channel.whatsapp_history_requested_at && <small>A aguardar histórico da Meta.</small>}</div>
             <div className="crm-channel-row-actions"><span className={`crm-channel-status ${channel.status}`}>{channel.status === "connected" ? "Autorizado" : channel.status === "expired" ? "Expirado" : "Desligado"}</span>{["facebook_page", "instagram_direct"].includes(channel.channel_type) && <><button type="button" className="button button-secondary" onClick={() => void checkChannel(channel)} disabled={checkingId === channel.id}>{checkingId === channel.id ? "A verificar…" : "Verificar acesso"}</button><button type="button" className="button button-secondary" onClick={() => void importHistory(channel)} disabled={channel.status !== "connected" || importingId !== null}>{importingId === channel.id ? "A importar…" : historyNext[channel.id] ? "Carregar mais histórico" : "Importar histórico"}</button></>}{channel.channel_type === "whatsapp_cloud" && channel.status === "connected" && <button type="button" className="button button-secondary" onClick={() => void retryWhatsAppSync(channel)} disabled={syncingWhatsAppId !== null}>{syncingWhatsAppId === channel.id ? "A sincronizar…" : "Sincronizar histórico"}</button>}<button type="button" className="button button-secondary" onClick={() => void disconnect(channel)} disabled={working || channel.status === "disconnected"}>Desligar</button></div>
+            {channel.channel_type === "whatsapp_cloud" && channel.status === "connected" && <WhatsAppTemplatePanel channel={channel} />}
             {historyResult[channel.id] && <p className="crm-channel-history-result" role="status">{historyResult[channel.id]} {historyNext[channel.id] ? "Há mais conversas disponíveis." : "Podes repetir sem criar duplicados."}</p>}
             {diagnostics[channel.id] && <div className="crm-channel-diagnostics" role="status">
               <strong>{diagnostics[channel.id].tokenValid && diagnostics[channel.id].appMatches ? "Token válido para a app PUVO" : "Token inválido ou de outra app — volta a ligar este canal"}</strong>

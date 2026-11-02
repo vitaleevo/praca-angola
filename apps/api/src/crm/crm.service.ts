@@ -827,8 +827,8 @@ export class CrmService {
     return { channels: connected };
   }
 
-  async connectWhatsAppCloud(workspaceId: string, accountName: string, phoneNumberId: string, accessToken: string) {
-    if (!/^\d{5,32}$/.test(phoneNumberId) || accessToken.length < 20 || accessToken.length > 4096) {
+  async connectWhatsAppCloud(workspaceId: string, accountName: string, phoneNumberId: string, accessToken: string, wabaId?: string) {
+    if (!/^\d{5,32}$/.test(phoneNumberId) || (wabaId && !/^\d{5,32}$/.test(wabaId)) || accessToken.length < 20 || accessToken.length > 4096) {
       throw new BadRequestException({ code: "WHATSAPP_CREDENTIALS_INVALID", message: "O ID do número ou token WhatsApp é inválido." });
     }
     const tokenInfo = await this.metaGraph.inspectAccessToken(accessToken);
@@ -837,6 +837,15 @@ export class CrmService {
     }
     const phone = await this.metaGraph.inspectWhatsAppPhone(phoneNumberId, accessToken);
     if (phone.id !== phoneNumberId) throw new BadRequestException({ code: "WHATSAPP_PHONE_INVALID", message: "Este token não autoriza o número indicado." });
+    if (wabaId) {
+      if (!tokenInfo.grantedScopes.includes("whatsapp_business_management")) {
+        throw new BadRequestException({ code: "WHATSAPP_WABA_TOKEN_INVALID", message: "O token não permite gerir esta conta WhatsApp Business." });
+      }
+      const phones = await this.metaGraph.getWhatsAppPhoneNumbers(wabaId, accessToken);
+      if (!phones.data?.some((candidate) => candidate.id === phoneNumberId)) {
+        throw new BadRequestException({ code: "WHATSAPP_WABA_MISMATCH", message: "Este número não pertence à conta WhatsApp Business indicada." });
+      }
+    }
     const encrypted = encryptPrivateValue(JSON.stringify({ accessToken }));
     return this.database.transaction(async (client) => {
       await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [`whatsapp:${phoneNumberId}`]);
@@ -848,14 +857,15 @@ export class CrmService {
         throw new BadRequestException({ code: "WHATSAPP_PHONE_IN_USE", message: "Este número já está ligado a outra loja PUVO." });
       }
       const result = await client.query(
-        `INSERT INTO crm_channel_connections (workspace_id, channel_type, account_name, external_account_id, credentials_ciphertext, token_expires_at, status)
-         VALUES ($1, 'whatsapp_cloud', $2, $3, $4, $5, 'connected')
+        `INSERT INTO crm_channel_connections (workspace_id, channel_type, account_name, external_account_id, credentials_ciphertext, token_expires_at, status, meta_waba_id)
+         VALUES ($1, 'whatsapp_cloud', $2, $3, $4, $5, 'connected', $6)
          ON CONFLICT (workspace_id, channel_type, external_account_id)
          DO UPDATE SET account_name = EXCLUDED.account_name, credentials_ciphertext = EXCLUDED.credentials_ciphertext,
-                       token_expires_at = EXCLUDED.token_expires_at, status = 'connected', updated_at = now()
+                       token_expires_at = EXCLUDED.token_expires_at, meta_waba_id = COALESCE(EXCLUDED.meta_waba_id, crm_channel_connections.meta_waba_id),
+                       status = 'connected', updated_at = now()
          RETURNING id, channel_type, account_name, status`,
         [workspaceId, accountName.trim().slice(0, 120), phoneNumberId, encrypted,
-          tokenInfo.expiresAt ? new Date(tokenInfo.expiresAt * 1000) : null],
+          tokenInfo.expiresAt ? new Date(tokenInfo.expiresAt * 1000) : null, wabaId ?? null],
       );
       return result.rows[0];
     });
@@ -946,6 +956,38 @@ export class CrmService {
     );
     const sync = await this.retryWhatsAppSync(workspaceId, channel.id);
     return { channel, phoneNumber: phone.display_phone_number || null, ...sync };
+  }
+
+  private async getWhatsAppTemplateConnection(workspaceId: string, channelId: string) {
+    const result = await this.database.query<{ meta_waba_id: string | null; credentials_ciphertext: string }>(
+      `SELECT meta_waba_id, credentials_ciphertext FROM crm_channel_connections
+       WHERE id = $1 AND workspace_id = $2 AND channel_type = 'whatsapp_cloud' AND status = 'connected' LIMIT 1`,
+      [channelId, workspaceId],
+    );
+    const connection = result.rows[0];
+    if (!connection) throw new NotFoundException({ code: "WHATSAPP_CHANNEL_NOT_FOUND", message: "Liga primeiro o WhatsApp desta loja." });
+    if (!connection.meta_waba_id) throw new BadRequestException({ code: "WHATSAPP_WABA_REQUIRED", message: "Esta ligação não tem uma conta WABA associada. Liga o número pela Meta para gerir templates." });
+    const credentials = JSON.parse(decryptPrivateValue(connection.credentials_ciphertext)) as { accessToken?: string };
+    if (!credentials.accessToken) throw new BadRequestException({ code: "WHATSAPP_TOKEN_MISSING", message: "Volta a ligar este número WhatsApp à Meta." });
+    return { wabaId: connection.meta_waba_id, accessToken: credentials.accessToken };
+  }
+
+  async listWhatsAppTemplates(workspaceId: string, channelId: string) {
+    const { wabaId, accessToken } = await this.getWhatsAppTemplateConnection(workspaceId, channelId);
+    const result = await this.metaGraph.listWhatsAppTemplates(wabaId, accessToken);
+    return { templates: result.data ?? [] };
+  }
+
+  async createWhatsAppUtilityTemplate(workspaceId: string, channelId: string, input: { name: string; language: string; body: string }) {
+    const name = input.name.trim();
+    const language = input.language.trim();
+    const body = input.body.trim();
+    if (!/^[a-z0-9_]{1,512}$/.test(name) || !/^[a-z]{2}_[A-Z]{2}$/.test(language) || !body || body.length > 1024 || /{{|}}/.test(body)) {
+      throw new BadRequestException({ code: "WHATSAPP_TEMPLATE_INVALID", message: "Usa um nome em minúsculas, um idioma como pt_PT e texto sem variáveis, até 1024 caracteres." });
+    }
+    const { wabaId, accessToken } = await this.getWhatsAppTemplateConnection(workspaceId, channelId);
+    const result = await this.metaGraph.createWhatsAppUtilityTemplate(wabaId, accessToken, name, language, body);
+    return { template: { id: result.id, name, language, category: result.category ?? "UTILITY", status: result.status ?? "PENDING" } };
   }
 
   async retryWhatsAppSync(workspaceId: string, channelId: string) {

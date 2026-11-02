@@ -66,6 +66,7 @@ class ConnectWhatsAppCloudDto {
   @IsString() @Length(2, 120) accountName!: string;
   @IsString() @Length(3, 128) phoneNumberId!: string;
   @IsString() @Length(20, 4096) accessToken!: string;
+  @IsOptional() @IsString() @Length(5, 32) wabaId?: string;
 }
 
 class FinishWhatsAppEmbeddedSignupDto {
@@ -75,6 +76,12 @@ class FinishWhatsAppEmbeddedSignupDto {
   @IsOptional() @IsString() @Length(5, 32) phoneNumberId?: string;
   @IsIn(["FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING"])
   event!: "FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING";
+}
+
+class CreateWhatsAppTemplateDto {
+  @IsString() @Length(1, 512) name!: string;
+  @IsString() @Length(2, 12) language!: string;
+  @IsString() @Length(1, 1024) body!: string;
 }
 
 class ImportHistoryDto {
@@ -367,7 +374,7 @@ export class CrmController {
   @Post("channels/whatsapp-cloud")
   async connectWhatsAppCloud(@Body() body: ConnectWhatsAppCloudDto, @CurrentUser() user: AuthenticatedUser) {
     const workspace = await this.crmService.resolveWorkspaceForUser(user.id, user.activeStoreId);
-    const channel = await this.crmService.connectWhatsAppCloud(workspace.id, body.accountName, body.phoneNumberId, body.accessToken);
+    const channel = await this.crmService.connectWhatsAppCloud(workspace.id, body.accountName, body.phoneNumberId, body.accessToken, body.wabaId);
     return { channel };
   }
 
@@ -399,6 +406,20 @@ export class CrmController {
   async retryWhatsAppSync(@Param("id", ParseUUIDPipe) id: string, @CurrentUser() user: AuthenticatedUser) {
     const workspace = await this.crmService.resolveWorkspaceForUser(user.id, user.activeStoreId);
     return this.crmService.retryWhatsAppSync(workspace.id, id);
+  }
+
+  @Get("channels/:id/whatsapp-templates")
+  async listWhatsAppTemplates(@Param("id", ParseUUIDPipe) id: string, @CurrentUser() user: AuthenticatedUser) {
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id, user.activeStoreId);
+    return this.crmService.listWhatsAppTemplates(workspace.id, id);
+  }
+
+  @Post("channels/:id/whatsapp-templates")
+  @RateLimit({ scope: "crm-whatsapp-template-create", limit: 5, windowSeconds: 3600 })
+  @UseGuards(RateLimitGuard)
+  async createWhatsAppTemplate(@Param("id", ParseUUIDPipe) id: string, @Body() body: CreateWhatsAppTemplateDto, @CurrentUser() user: AuthenticatedUser) {
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id, user.activeStoreId);
+    return this.crmService.createWhatsAppUtilityTemplate(workspace.id, id, body);
   }
 
   @Delete("channels/:id")

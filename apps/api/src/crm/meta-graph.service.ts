@@ -155,6 +155,21 @@ export class MetaGraphService {
     await this.graphPost(`${wabaId}/subscribed_apps`, accessToken, {});
   }
 
+  async listWhatsAppTemplates(wabaId: string, accessToken: string) {
+    return this.graphGetWithToken<{ data?: Array<{ id: string; name: string; language: string; category: string; status: string }> }>(
+      `${wabaId}/message_templates`, { fields: "id,name,language,category,status", limit: "50" }, accessToken,
+    );
+  }
+
+  async createWhatsAppUtilityTemplate(wabaId: string, accessToken: string, name: string, language: string, body: string) {
+    const result = await this.graphPost<{ id?: string; status?: string; category?: string }>(`${wabaId}/message_templates`, accessToken, {
+      name, language, category: "UTILITY", allow_category_change: false,
+      components: [{ type: "BODY", text: body }],
+    });
+    if (!result.id) throw new BadGatewayException("A Meta não confirmou a criação do template WhatsApp.");
+    return result;
+  }
+
   async requestWhatsAppBusinessAppSync(phoneNumberId: string, accessToken: string, syncType: "smb_app_state_sync" | "history"): Promise<void> {
     await this.graphPost(`${phoneNumberId}/smb_app_data`, accessToken, { messaging_product: "whatsapp", sync_type: syncType });
   }
