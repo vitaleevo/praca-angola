@@ -40,15 +40,18 @@ export class CrmService {
     private readonly metaGraph: MetaGraphService,
   ) {}
 
-  async resolveWorkspaceForUser(userId: string): Promise<CrmWorkspace> {
-    // 1. Check if user is associated with a seller profile
-    const sellerResult = await this.database.query<{ id: string; display_name: string }>(
-      `SELECT sp.id, sp.display_name
+  async resolveWorkspaceForUser(userId: string, activeStoreId?: string | null): Promise<CrmWorkspace> {
+    // 1. Resolve the seller profile from the session's active store context.
+    const sellerResult = await this.database.query<{ id: string; display_name: string; owner_user_id: string }>(
+      `SELECT sp.id, sp.display_name, sp.owner_user_id
        FROM seller_profiles sp
-       LEFT JOIN store_memberships sm ON sm.seller_profile_id = sp.id
-       WHERE sp.owner_user_id = $1 OR sm.user_id = $1
-       ORDER BY sp.created_at ASC LIMIT 1`,
-      [userId],
+       WHERE sp.status = 'active'
+         AND ($2::uuid IS NULL OR sp.id = $2)
+         AND (sp.owner_user_id = $1 OR EXISTS (
+           SELECT 1 FROM store_memberships sm WHERE sm.seller_profile_id = sp.id AND sm.user_id = $1
+         ))
+       ORDER BY (sp.owner_user_id = $1) DESC, sp.created_at ASC, sp.id LIMIT 1`,
+      [userId, activeStoreId ?? null],
     );
 
     const seller = sellerResult.rows[0];
@@ -74,7 +77,7 @@ export class CrmService {
           `INSERT INTO crm_workspaces (owner_user_id, seller_profile_id, name)
            VALUES ($1, $2, $3)
            RETURNING id, owner_user_id, seller_profile_id, professional_profile_id, name, settings, created_at`,
-          [userId, seller.id, `CRM · ${seller.display_name}`],
+          [seller.owner_user_id, seller.id, `CRM · ${seller.display_name}`],
         );
 
         const pipeline = await client.query<{ id: string }>(
@@ -585,8 +588,9 @@ export class CrmService {
       provider_name_ciphertext: string | null;
     }>(
       `SELECT method, recipient_name_ciphertext, recipient_identifier_ciphertext, provider_name_ciphertext
-       FROM seller_payment_destinations
-       WHERE seller_profile_id = $1 AND enabled = true`,
+       FROM seller_payment_methods
+       WHERE seller_profile_id = $1 AND enabled = true
+       ORDER BY method`,
       [sellerId],
     );
 

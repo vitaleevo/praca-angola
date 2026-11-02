@@ -138,25 +138,25 @@ export class CrmController {
 
   @Sse("realtime/stream")
   async streamWorkspaceEvents(@CurrentUser() user: AuthenticatedUser) {
-    const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id, user.activeStoreId);
     return this.realtimeService.subscribeWorkspace(workspace.id);
   }
 
   @Get("workspace")
   async getWorkspace(@CurrentUser() user: AuthenticatedUser) {
-    const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id, user.activeStoreId);
     return { workspace };
   }
 
   @Get("analytics/overview")
   async getAnalytics(@CurrentUser() user: AuthenticatedUser) {
-    const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id, user.activeStoreId);
     return this.crmService.getCrmAnalytics(workspace.id);
   }
 
   @Get("pipeline")
   async getPipeline(@CurrentUser() user: AuthenticatedUser) {
-    const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id, user.activeStoreId);
     return this.crmService.getPipeline(workspace.id);
   }
 
@@ -166,7 +166,7 @@ export class CrmController {
     @Body() body: MoveDealStageDto,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id, user.activeStoreId);
     const result = await this.crmService.moveDealStage(workspace.id, id, body.newStageId);
     this.realtimeService.emitWorkspaceEvent(workspace.id, "deal_stage_changed", {
       dealId: id,
@@ -177,13 +177,13 @@ export class CrmController {
 
   @Get("contacts")
   async getContacts(@CurrentUser() user: AuthenticatedUser, @Query("search") search?: string) {
-    const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id, user.activeStoreId);
     return this.crmService.getContacts(workspace.id, search);
   }
 
   @Post("contacts")
   async createContact(@Body() body: CreateContactBodyDto, @CurrentUser() user: AuthenticatedUser) {
-    const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id, user.activeStoreId);
     const contact = await this.crmService.createContact(workspace.id, body);
     this.realtimeService.emitWorkspaceEvent(workspace.id, "new_contact", contact);
     return { contact };
@@ -196,7 +196,7 @@ export class CrmController {
     @Query("channel") channel?: string,
     @Query("search") search?: string,
   ) {
-    const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id, user.activeStoreId);
     return this.crmService.getConversations(workspace.id, { status, channel, search });
   }
 
@@ -206,7 +206,7 @@ export class CrmController {
     @Body() body: SetConversationReadStatusDto,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id, user.activeStoreId);
     const updated = await this.crmService.setConversationReadStatus(workspace.id, id, body.read);
     this.realtimeService.emitWorkspaceEvent(workspace.id, "conversation_updated", updated);
     return { conversation: updated };
@@ -218,7 +218,7 @@ export class CrmController {
     @Body() body: SetConversationReplyStatusDto,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id, user.activeStoreId);
     const updated = await this.crmService.setConversationReplyStatus(workspace.id, id, body.replied);
     this.realtimeService.emitWorkspaceEvent(workspace.id, "conversation_updated", updated);
     return { conversation: updated };
@@ -227,7 +227,7 @@ export class CrmController {
 
   @Get("conversations/:id/messages")
   async getMessages(@Param("id") id: string, @CurrentUser() user: AuthenticatedUser) {
-    const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id, user.activeStoreId);
     return this.crmService.getMessages(workspace.id, id);
   }
 
@@ -238,7 +238,7 @@ export class CrmController {
     @CurrentUser() user: AuthenticatedUser,
     @Res() response: Response,
   ) {
-    const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id, user.activeStoreId);
     const image = await this.crmService.getWhatsAppMessageImage(workspace.id, id, messageId);
     response.setHeader("Content-Type", image.mimeType);
     response.setHeader("Cache-Control", "private, no-store");
@@ -252,7 +252,7 @@ export class CrmController {
     @Body() body: SendMessageBodyDto,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id, user.activeStoreId);
     const message = await this.crmService.sendMessage(workspace.id, id, user.id, body);
     this.realtimeService.emitWorkspaceEvent(workspace.id, "new_message", message);
     return { message };
@@ -264,7 +264,7 @@ export class CrmController {
     @Body() body: SendProductBodyDto,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id, user.activeStoreId);
     const message = await this.crmService.sendProductCard(workspace.id, id, user.id, body.listingId);
     this.realtimeService.emitWorkspaceEvent(workspace.id, "new_message", message);
     return { message };
@@ -272,7 +272,7 @@ export class CrmController {
 
   @Post("conversations/:id/send-payment")
   async sendPayment(@Param("id") id: string, @CurrentUser() user: AuthenticatedUser) {
-    const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id, user.activeStoreId);
     const message = await this.crmService.sendPaymentDetails(workspace.id, id, user.id);
     this.realtimeService.emitWorkspaceEvent(workspace.id, "new_message", message);
     return { message };
@@ -280,55 +280,55 @@ export class CrmController {
 
   @Get("channels")
   async getChannels(@CurrentUser() user: AuthenticatedUser) {
-    const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id, user.activeStoreId);
     return this.crmService.getChannels(workspace.id);
   }
 
   @Get("social/channels")
   async getSocialChannels(@CurrentUser() user: AuthenticatedUser) {
-    const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id, user.activeStoreId);
     return this.socialService.listChannels(workspace.id);
   }
 
   @Get("social/publishing-capabilities")
   async getPublishingCapabilities(@CurrentUser() user: AuthenticatedUser) {
-    const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id, user.activeStoreId);
     return this.socialService.publishingCapabilities(workspace.id);
   }
 
   @Get("social/channels/:id/media")
   async getSocialMedia(@Param("id", ParseUUIDPipe) id: string, @Query("after") after: string | undefined, @CurrentUser() user: AuthenticatedUser) {
-    const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id, user.activeStoreId);
     return this.socialService.listMedia(workspace.id, id, after);
   }
 
   @Get("social/channels/:id/profile")
   async getSocialProfile(@Param("id", ParseUUIDPipe) id: string, @CurrentUser() user: AuthenticatedUser) {
-    const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id, user.activeStoreId);
     return this.socialService.getProfile(workspace.id, id);
   }
 
   @Get("social/channels/:id/comments")
   async getSocialComments(@Param("id", ParseUUIDPipe) id: string, @Query("mediaRef") mediaRef: string, @Query("after") after: string | undefined, @CurrentUser() user: AuthenticatedUser) {
-    const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id, user.activeStoreId);
     return this.socialService.listComments(workspace.id, id, mediaRef, after);
   }
 
   @Post("social/channels/:id/comments/replies")
   async replyToSocialComment(@Param("id", ParseUUIDPipe) id: string, @Body() body: ReplyToSocialCommentDto, @CurrentUser() user: AuthenticatedUser) {
-    const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id, user.activeStoreId);
     return this.socialService.reply(workspace.id, id, body.commentRef, body.message);
   }
 
   @Patch("social/channels/:id/comments/status")
   async setSocialCommentStatus(@Param("id", ParseUUIDPipe) id: string, @Body() body: SocialCommentStatusDto, @CurrentUser() user: AuthenticatedUser) {
-    const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id, user.activeStoreId);
     return this.socialService.setCommentStatus(workspace.id, id, body.commentRef, { isRead: body.isRead, isReplied: body.isReplied });
   }
 
   @Get("channels/:id/diagnostics")
   async getChannelDiagnostics(@Param("id", ParseUUIDPipe) id: string, @CurrentUser() user: AuthenticatedUser) {
-    const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id, user.activeStoreId);
     return this.crmService.getChannelDiagnostics(workspace.id, id);
   }
 
@@ -336,31 +336,31 @@ export class CrmController {
   @RateLimit({ scope: "crm-meta-history", limit: 12, windowSeconds: 60 })
   @UseGuards(RateLimitGuard)
   async importChannelHistory(@Param("id", ParseUUIDPipe) id: string, @Body() body: ImportHistoryDto, @CurrentUser() user: AuthenticatedUser) {
-    const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id, user.activeStoreId);
     return this.historyService.importPage(workspace.id, id, body.after);
   }
 
   @Get("meta/connect")
   async startMetaConnection(@CurrentUser() user: AuthenticatedUser) {
-    const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id, user.activeStoreId);
     return this.crmService.startMetaConnection(user.id, workspace.id);
   }
 
   @Get("meta/connect/preview")
   async getMetaConnectionPreview(@Query("attemptId") attemptId: string, @CurrentUser() user: AuthenticatedUser) {
-    const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id, user.activeStoreId);
     return this.crmService.getMetaConnectionPreview(user.id, workspace.id, attemptId);
   }
 
   @Post("meta/connect/complete")
   async completeMetaConnection(@Body() body: CompleteMetaConnectionDto, @CurrentUser() user: AuthenticatedUser) {
-    const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id, user.activeStoreId);
     return this.crmService.completeMetaConnections(user.id, workspace.id, body.attemptId, body.pageIds);
   }
 
   @Post("channels")
   async connectChannel(@Body() body: ConnectChannelBodyDto, @CurrentUser() user: AuthenticatedUser) {
-    const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id, user.activeStoreId);
     const channel = await this.crmService.connectChannel(
       workspace.id,
       body.channelType,
@@ -373,14 +373,14 @@ export class CrmController {
 
   @Post("channels/whatsapp-cloud")
   async connectWhatsAppCloud(@Body() body: ConnectWhatsAppCloudDto, @CurrentUser() user: AuthenticatedUser) {
-    const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id, user.activeStoreId);
     const channel = await this.crmService.connectWhatsAppCloud(workspace.id, body.accountName, body.phoneNumberId, body.accessToken, body.wabaId);
     return { channel };
   }
 
   @Get("whatsapp/embedded-signup/config")
   async getWhatsAppEmbeddedSignupConfig(@CurrentUser() user: AuthenticatedUser) {
-    await this.crmService.resolveWorkspaceForUser(user.id);
+    await this.crmService.resolveWorkspaceForUser(user.id, user.activeStoreId);
     return this.crmService.getWhatsAppEmbeddedSignupConfig();
   }
 
@@ -388,7 +388,7 @@ export class CrmController {
   @RateLimit({ scope: "crm-whatsapp-signup", limit: 5, windowSeconds: 600 })
   @UseGuards(RateLimitGuard)
   async startWhatsAppEmbeddedSignup(@CurrentUser() user: AuthenticatedUser) {
-    const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id, user.activeStoreId);
     return this.crmService.startWhatsAppEmbeddedSignup(user.id, workspace.id);
   }
 
@@ -396,7 +396,7 @@ export class CrmController {
   @RateLimit({ scope: "crm-whatsapp-signup-finish", limit: 5, windowSeconds: 600 })
   @UseGuards(RateLimitGuard)
   async finishWhatsAppEmbeddedSignup(@Body() body: FinishWhatsAppEmbeddedSignupDto, @CurrentUser() user: AuthenticatedUser) {
-    const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id, user.activeStoreId);
     return this.crmService.finishWhatsAppEmbeddedSignup(user.id, workspace.id, body);
   }
 
@@ -404,13 +404,13 @@ export class CrmController {
   @RateLimit({ scope: "crm-whatsapp-sync", limit: 3, windowSeconds: 600 })
   @UseGuards(RateLimitGuard)
   async retryWhatsAppSync(@Param("id", ParseUUIDPipe) id: string, @CurrentUser() user: AuthenticatedUser) {
-    const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id, user.activeStoreId);
     return this.crmService.retryWhatsAppSync(workspace.id, id);
   }
 
   @Get("channels/:id/whatsapp-templates")
   async listWhatsAppTemplates(@Param("id", ParseUUIDPipe) id: string, @CurrentUser() user: AuthenticatedUser) {
-    const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id, user.activeStoreId);
     return this.crmService.listWhatsAppTemplates(workspace.id, id);
   }
 
@@ -418,59 +418,59 @@ export class CrmController {
   @RateLimit({ scope: "crm-whatsapp-template-create", limit: 5, windowSeconds: 3600 })
   @UseGuards(RateLimitGuard)
   async createWhatsAppTemplate(@Param("id", ParseUUIDPipe) id: string, @Body() body: CreateWhatsAppTemplateDto, @CurrentUser() user: AuthenticatedUser) {
-    const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id, user.activeStoreId);
     return this.crmService.createWhatsAppUtilityTemplate(workspace.id, id, body);
   }
 
   @Delete("channels/:id")
   async disconnectChannel(@Param("id") id: string, @CurrentUser() user: AuthenticatedUser) {
-    const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id, user.activeStoreId);
     return this.crmService.disconnectChannel(workspace.id, id);
   }
 
   @Get("ai/config")
   async getAiConfig(@CurrentUser() user: AuthenticatedUser) {
-    const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id, user.activeStoreId);
     const config = await this.crmService.getStoreAiConfig(workspace.id);
     return { config };
   }
 
   @Patch("ai/config")
   async saveAiConfig(@Body() body: SaveStoreAiConfigBodyDto, @CurrentUser() user: AuthenticatedUser) {
-    const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id, user.activeStoreId);
     const config = await this.crmService.saveStoreAiConfig(workspace.id, body);
     return { config };
   }
 
   @Get("ai/knowledge")
   async getKnowledge(@CurrentUser() user: AuthenticatedUser) {
-    const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id, user.activeStoreId);
     const items = await this.crmService.getKnowledgeList(workspace.id);
     return { items };
   }
 
   @Post("ai/knowledge")
   async addKnowledge(@Body() body: CreateKnowledgeBodyDto, @CurrentUser() user: AuthenticatedUser) {
-    const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id, user.activeStoreId);
     const item = await this.crmService.addKnowledge(workspace.id, body);
     return { item };
   }
 
   @Delete("ai/knowledge/:id")
   async deleteKnowledge(@Param("id") id: string, @CurrentUser() user: AuthenticatedUser) {
-    const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id, user.activeStoreId);
     return this.crmService.deleteKnowledge(workspace.id, id);
   }
 
   @Post("ai/suggest-reply")
   async suggestReply(@Body() body: SuggestReplyBodyDto, @CurrentUser() user: AuthenticatedUser) {
-    const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id, user.activeStoreId);
     return this.crmService.suggestReplyForConversation(workspace.id, body.conversationId);
   }
 
   @Post("ai/test")
   async testAi(@Body() body: TestAiBodyDto, @CurrentUser() user: AuthenticatedUser) {
-    const workspace = await this.crmService.resolveWorkspaceForUser(user.id);
+    const workspace = await this.crmService.resolveWorkspaceForUser(user.id, user.activeStoreId);
     return this.crmService.testStoreAi(workspace.id, body.prompt);
   }
 }

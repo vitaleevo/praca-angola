@@ -4,7 +4,7 @@ services:
       context: .
       dockerfile: apps/api/Dockerfile
       target: deps
-    command: ["sh", "-c", "node apps/api/scripts/migrate.mjs && pnpm --filter @puvo/api dev"]
+    command: ["sh", "-c", "node apps/api/scripts/migrate.mjs && cd apps/api && ./node_modules/.bin/nest start --watch"]
     environment:
       NODE_ENV: development
       API_PORT: 4000
@@ -44,11 +44,10 @@ services:
       context: .
       dockerfile: apps/web/Dockerfile
       target: deps
-    command: pnpm --filter @puvo/web exec next dev --webpack --hostname 0.0.0.0 --port 3100
+    command: ["sh", "-c", "cd apps/web && ./node_modules/.bin/next dev --hostname 0.0.0.0 --port 3100"]
     environment:
       NODE_ENV: development
       API_INTERNAL_URL: http://api:4000/api/v1
-      WATCHPACK_POLLING: "true"
     expose:
       - "3100"
     volumes:

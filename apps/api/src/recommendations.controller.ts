@@ -4,19 +4,20 @@ import { CurrentUser } from "./auth/current-user.decorator";
 import { AuthenticatedUser } from "./auth/auth.types";
 import { DatabaseService } from "./database/database.service";
 import { AiClientService } from "./ai/ai-client.service";
-import { IsOptional, IsString, IsNumber, Min, Max, IsIn } from "class-validator";
+import { IsOptional, IsString, IsNumber, Min, Max, IsIn, IsUUID } from "class-validator";
+import { Type } from "class-transformer";
 
 class RecommendationQueryDto {
-  @IsOptional() @IsString() currentListingId?: string;
+  @IsOptional() @IsUUID("4") currentListingId?: string;
   @IsOptional() @IsString() categorySlug?: string;
   @IsOptional() @IsString() province?: string;
-  @IsOptional() @IsNumber() @Min(1) @Max(30) limit?: number;
+  @IsOptional() @Type(() => Number) @IsNumber() @Min(1) @Max(30) limit?: number;
   @IsOptional() @IsIn(["auto", "trending", "collaborative", "content_based", "ai_personalized"])
   algorithm?: string;
 }
 
 class TrackEventDto {
-  @IsString() listingId!: string;
+  @IsUUID("4") listingId!: string;
   @IsIn(["view", "add_to_cart", "purchase", "wishlist", "search"])
   eventType!: string;
   @IsOptional() @IsString() categorySlug?: string;
@@ -57,7 +58,7 @@ export class RecommendationsController {
       `SELECT DISTINCT oi.listing_id
        FROM order_items oi
        JOIN orders o ON o.id = oi.order_id
-       WHERE o.buyer_user_id = $1 AND o.status NOT IN ('cancelled')`,
+       WHERE o.buyer_id = $1 AND o.status NOT IN ('cancelled', 'refunded')`,
       [user.id],
     );
 
@@ -97,10 +98,15 @@ export class RecommendationsController {
         price: string;
         slug: string;
       }>(
-        `SELECT id, title, price::text, slug FROM listings
-         WHERE status = 'active'
-         ORDER BY created_at DESC LIMIT $1`,
-        [query.limit || 12],
+        `SELECT l.id, l.title, l.price::text, l.slug
+         FROM listings l
+         JOIN seller_profiles s ON s.id = l.seller_profile_id
+         JOIN categories c ON c.id = l.category_id
+         JOIN marketplaces m ON m.id = c.marketplace_id
+         WHERE l.status = 'published' AND l.available_quantity > 0 AND s.status = 'active' AND m.slug = 'produtos'
+           AND ($2::text IS NULL OR l.province = $2)
+         ORDER BY l.published_at DESC NULLS LAST, l.created_at DESC LIMIT $1`,
+        [query.limit || 12, query.province ?? null],
       );
 
       return {
@@ -114,26 +120,35 @@ export class RecommendationsController {
       };
     }
 
-    // 4. Enrich recommendations with real listing data
-    const enrichedRes = await this.database.query<{
+    // 4. Enrich exactly the IDs returned by the recommender, preserving its ranking.
+    const recommendedIds = result.recommendations.slice(0, query.limit || 12).map((item) => item.listing_id);
+    const enrichedRes = recommendedIds.length ? await this.database.query<{
       id: string;
       title: string;
       price: string;
       slug: string;
     }>(
-      `SELECT id, title, price::text, slug FROM listings
-       WHERE status = 'active'
-       ORDER BY created_at DESC LIMIT $1`,
-      [query.limit || 12],
-    );
+      `SELECT l.id, l.title, l.price::text, l.slug
+       FROM listings l
+       JOIN seller_profiles s ON s.id = l.seller_profile_id
+       JOIN categories c ON c.id = l.category_id
+       JOIN marketplaces m ON m.id = c.marketplace_id
+       WHERE l.id::text = ANY($1::text[]) AND l.status = 'published' AND l.available_quantity > 0
+         AND s.status = 'active' AND m.slug = 'produtos'`,
+      [recommendedIds],
+    ) : { rows: [] as Array<{ id: string; title: string; price: string; slug: string }> };
+    const listingById = new Map(enrichedRes.rows.map((listing) => [listing.id, listing]));
 
     return {
-      recommendations: enrichedRes.rows.map((l, i) => ({
-        listing: l,
-        score: result.recommendations[i]?.score ?? 0.5,
-        algorithm: result.algorithm_used,
-        reason: result.recommendations[i]?.reason ?? "Recomendado para ti",
-      })),
+      recommendations: result.recommendations.slice(0, query.limit || 12).flatMap((recommendation) => {
+        const listing = listingById.get(recommendation.listing_id);
+        return listing ? [{
+          listing,
+          score: recommendation.score,
+          algorithm: recommendation.algorithm || result.algorithm_used,
+          reason: recommendation.reason || "Recomendado para ti",
+        }] : [];
+      }),
       algorithmUsed: result.algorithm_used,
       computationTimeMs: result.computation_time_ms,
     };
@@ -152,10 +167,15 @@ export class RecommendationsController {
       price: string;
       slug: string;
     }>(
-      `SELECT id, title, price::text, slug FROM listings
-       WHERE status = 'active'
-       ORDER BY created_at DESC LIMIT $1`,
-      [lim],
+      `SELECT l.id, l.title, l.price::text, l.slug
+       FROM listings l
+       JOIN seller_profiles s ON s.id = l.seller_profile_id
+       JOIN categories c ON c.id = l.category_id
+       JOIN marketplaces m ON m.id = c.marketplace_id
+       WHERE l.status = 'published' AND l.available_quantity > 0 AND s.status = 'active' AND m.slug = 'produtos'
+         AND ($2::text IS NULL OR l.province = $2)
+       ORDER BY l.published_at DESC NULLS LAST, l.created_at DESC LIMIT $1`,
+      [lim, province?.trim() || null],
     );
 
     return {
